@@ -50,6 +50,9 @@ yourself.
 3. **Ask only for the gaps**, in one short message:
    - Always ask which **resume version** they used, whether they sent a
      **cover letter**, and whether they had a **referral**.
+   - If they mention a recruiter or hiring manager, save the name in `contact`
+     and their **LinkedIn profile** in `contact_link` (many recruiters have no
+     findable email; `contact_email` stays empty then).
    - Also ask about anything important you couldn't find (pay, deadline,
      location or work mode, a contact). Let them say "skip".
    - Defaults you can state rather than ask about: status Applied, applied
