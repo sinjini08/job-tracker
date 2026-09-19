@@ -3,10 +3,11 @@
 import { useActionState } from 'react';
 import { sendCode, verifyCode } from './actions';
 
-export default function LoginForm({ linkFailed }) {
+export default function LoginForm({ linkFailed, next = '/' }) {
   const [sent, sendAction, sending] = useActionState(sendCode, { step: 'email' });
   const [checked, verifyAction, verifying] = useActionState(verifyCode, null);
   const onCodeStep = sent?.step === 'code';
+  const connecting = next.startsWith('/oauth/authorize');
   const email = sent?.email ?? '';
 
   return (
@@ -17,8 +18,10 @@ export default function LoginForm({ linkFailed }) {
 
         {!onCodeStep ? (
           <form action={sendAction} className="login-form">
-            <p>Track on-campus and off-campus applications in one spreadsheet, with charts, and let
-              Claude fill it in from job postings. Sign in or create an account with your email.</p>
+            <p>{connecting
+              ? 'Sign in to connect the app to your tracker. New here? Entering your email creates an account.'
+              : 'Track on-campus and off-campus applications in one spreadsheet, with charts, and let Claude fill it in from job postings. Sign in or create an account with your email.'}</p>
+            <input type="hidden" name="next" value={next} />
             <input name="email" type="email" autoComplete="email" placeholder="you@example.com"
               defaultValue={email} autoFocus required />
             <button type="submit" disabled={sending}>{sending ? 'Sending…' : 'Email me a code'}</button>
@@ -33,6 +36,7 @@ export default function LoginForm({ linkFailed }) {
             <p>We emailed a code to <b>{email}</b>. Enter it below, or click the link in the email
               on this device. It can take a minute; check spam too.</p>
             <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="next" value={next} />
             <input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code"
               maxLength={10} autoFocus required className="code-input" />
             <button type="submit" disabled={verifying}>{verifying ? 'Checking…' : 'Sign in'}</button>
@@ -43,6 +47,7 @@ export default function LoginForm({ linkFailed }) {
         {onCodeStep && (
           <form action={sendAction} className="login-alt">
             <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="next" value={next} />
             <button type="submit" className="link-btn" disabled={sending}>Send a new code</button>
             <a href="/login" className="link-btn">Use a different email</a>
           </form>

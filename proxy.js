@@ -3,7 +3,8 @@ import { createServerClient } from '@supabase/ssr';
 
 // Paths that carry their own token (share links, Claude connector) or are the
 // sign-in page itself. Everything else needs a signed-in user.
-const PUBLIC = [/^\/login/, /^\/s\//, /^\/api\/share\//, /^\/api\/mcp\//, /^\/auth\//];
+const PUBLIC = [/^\/login/, /^\/s\//, /^\/api\/share\//, /^\/api\/mcp/, /^\/auth\//,
+  /^\/\.well-known\//, /^\/oauth\//];
 
 export async function proxy(request) {
   const path = request.nextUrl.pathname;

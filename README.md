@@ -14,13 +14,15 @@ in from job postings.
   and breakdowns by status, source and category.
 - **Sharing:** a student can create a read-only link (for a career advisor or a
   friend) and turn it off at any time.
-- **Claude:** each student gets a personal connector link (Settings → Connect
-  Claude). Claude can then add jobs from pasted postings, update statuses, and
-  answer questions about the student's stats, with access to that student's data only.
+- **Claude:** students add one connector URL (`/api/mcp`) and approve it with a
+  sign-in and consent screen — OAuth 2.1, no secret to copy. Claude can then add jobs
+  from pasted postings, update statuses, and answer questions about that student's
+  stats, and it only ever sees that student's data. Connections are listed and
+  revocable in Settings.
 
 ```
 Student ──sign in (email code)──► Website ──(their session, RLS)──► Supabase
-Student's Claude ──personal link──► /api/mcp/<token> ──(scoped to them)──┘
+Student's Claude ──OAuth──► /api/mcp (bearer token, scoped to them) ────┘
 Advisor ──share link──► /s/<token> (read-only) ─────────────────────────┘
 ```
 
@@ -31,8 +33,8 @@ Advisor ──share link──► /s/<token> (read-only) ───────�
 ### 1. Supabase
 
 1. Create a project at https://supabase.com.
-2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql), then
-   [`supabase/migrations/002_multi_user.sql`](supabase/migrations/002_multi_user.sql).
+2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql), then each file in
+   [`supabase/migrations/`](supabase/migrations) in order.
 3. Go to **Authentication → Emails → Templates** and add the one-time code to both
    the **Confirm signup** and **Magic Link** templates. The site asks for the code,
    not a link:
@@ -74,11 +76,12 @@ npm run dev
 
 ## For students: using Claude with your tracker
 
-1. On the site, open **Settings → Connect Claude → Create my connector link**, and
-   copy the link. It's shown once, and it works like a password.
-2. In Claude, go to **Settings → Connectors → Add custom connector**. Name it
-   **Job Tracker** and paste the link. If you use Claude Code instead, run
-   `claude mcp add --transport http job-tracker <link>`.
+1. In Claude, go to **Settings → Connectors → Add custom connector**. Name it
+   **Job Tracker** and paste `https://<your-site>/api/mcp`. In Claude Code, run
+   `claude mcp add --transport http job-tracker https://<your-site>/api/mcp`.
+2. Click **Connect**. You'll be sent to the tracker to sign in and approve, then
+   back to Claude. Nothing to copy, and you can disconnect any time in
+   **Settings → Connected apps**.
 3. Optional but recommended: add the skill in
    [`claude-skill/job-tracker/`](claude-skill/job-tracker/SKILL.md). It teaches Claude
    the whole routine: read the posting, ask only about the gaps, confirm, then
@@ -86,8 +89,8 @@ npm run dev
    Upload**. In Claude Code, copy the folder to `~/.claude/skills/`.
 4. Paste a job posting and say *"I'm applying to this."*
 
-If a link leaks, open **Settings → Make a new link**. The old one stops working
-immediately.
+Tools that can't sign in can still use a personal link (**Settings → Connect Claude →
+Show the old-style link**). That link works like a password, so prefer OAuth.
 
 ---
 
@@ -97,7 +100,8 @@ immediately.
 |---|---|---|
 | Website and `/api/*` | the signed-in student | Supabase session cookie. Queries run as that user under RLS (`user_id = auth.uid()`) |
 | `/s/<token>` and `/api/share/<token>/*` | anyone with the share link | read-only routes. The server looks up the owner and reads only their rows |
-| `/api/mcp/<token>` | the student's Claude | the token is stored only as a SHA-256 hash. Tools run against a store scoped to that user |
+| `/api/mcp` | the student's Claude (OAuth) | bearer access token, hashed at rest, 1-hour expiry with refresh; PKCE required, codes single-use, replay revokes the connection |
+| `/api/mcp/<token>` | tools that can't sign in | personal link; the token is stored only as a SHA-256 hash |
 
 Every database call goes through `storeFor(client, userId)` in `lib/db.js`, which
 filters every query by `user_id`. For the signed-in path, RLS enforces the same
@@ -114,11 +118,15 @@ app/
   s/[token]/                                read-only shared view
   api/applications/…, api/events            signed-in JSON API
   api/share/[token]/…                       read-only JSON API for share links
-  api/mcp/[token]/                          the per-student Claude connector (MCP)
+  api/mcp/                                  the Claude connector (MCP), OAuth-protected
+  api/mcp/[token]/                          same tools via a personal link
+  oauth/                                    authorize + consent, token, register, revoke
+  .well-known/                              OAuth metadata MCP clients look for
 lib/
   db.js            per-user data access (the one place queries are built)
   auth.js          sessions, share and connector token lookups
   mcp-tools.js     the connector's tools
+  oauth.js         the OAuth 2.1 authorization server (clients, codes, tokens)
   stats.js         numbers behind Charts, shared with the get_stats tool
   fields.js        columns and dropdown options
 proxy.js           refreshes sessions; sends signed-out visitors to /login

@@ -22,11 +22,13 @@ function CopyField({ value }) {
   );
 }
 
-export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector }) {
+export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector, connections: initialConnections = [] }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const [shareUrl, setShareUrl] = useState(shareToken ? `/s/${shareToken}` : null);
   const [connectorOn, setConnectorOn] = useState(initialConnector);
   const [connectorUrl, setConnectorUrl] = useState(null); // shown once, right after creating
+  const [connections, setConnections] = useState(initialConnections);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
 
@@ -53,37 +55,75 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
 
         <section className="settings-card">
           <h2>Connect Claude</h2>
-          <p>Let Claude add jobs from postings you paste, update statuses, and answer questions
-            about your applications. Claude only ever sees <b>your</b> tracker.</p>
-          {connectorUrl ? (
-            <>
-              <p className="settings-warn">Copy this link now. For your security it won’t be shown again.
-                Treat it like a password: anyone with it can edit your tracker.</p>
-              <CopyField value={connectorUrl} />
-              <ol className="settings-steps">
-                <li>In Claude, open <b>Settings → Connectors → Add custom connector</b>.</li>
-                <li>Name it <b>Job Tracker</b>, paste the link as the URL, and click <b>Add</b>.</li>
-                <li>Using Claude Code instead? Run: <code>claude mcp add --transport http job-tracker &lt;link&gt;</code></li>
-                <li>In a new chat, paste a job posting and say <i>“I’m applying to this.”</i></li>
-              </ol>
-            </>
+          <p>Let Claude add jobs from postings you paste, update statuses, and answer questions about
+            your applications. Claude only ever sees <b>your</b> tracker, and you approve the connection
+            with a sign-in, so there's no secret to copy.</p>
+          <ol className="settings-steps">
+            <li>In Claude, open <b>Settings → Connectors → Add custom connector</b>.</li>
+            <li>Name it <b>Job Tracker</b> and paste this URL:</li>
+          </ol>
+          <CopyField value={`${origin}/api/mcp`} />
+          <ol className="settings-steps" start={3}>
+            <li>Click <b>Add</b>, then <b>Connect</b>. You'll land back here to approve it.</li>
+            <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i></li>
+          </ol>
+
+          <h3 className="settings-sub">Connected apps</h3>
+          {connections.length === 0 ? (
+            <p className="settings-status">○ Nothing connected yet.</p>
           ) : (
-            <p className="settings-status">{connectorOn ? '● Connected. A link is active.' : '○ Not connected.'}</p>
+            <ul className="conn-list">
+              {connections.map((c) => (
+                <li key={c.id}>
+                  <span>
+                    <b>{c.name}</b>
+                    <span className="conn-when">
+                      connected {new Date(c.created_at).toLocaleDateString()}
+                      {c.last_used_at ? ` · last used ${new Date(c.last_used_at).toLocaleDateString()}` : ' · not used yet'}
+                    </span>
+                  </span>
+                  <button className="btn ghost-dark" disabled={busy === c.id} onClick={act(c.id, async () => {
+                    if (!confirm(`Disconnect ${c.name}? It will lose access immediately.`)) return;
+                    await call(`/api/settings/connections?id=${encodeURIComponent(c.id)}`, 'DELETE');
+                    setConnections((list) => list.filter((x) => x.id !== c.id));
+                  })}>Disconnect</button>
+                </li>
+              ))}
+            </ul>
           )}
-          <div className="settings-actions">
-            <button className="btn primary" disabled={busy === 'conn'} onClick={act('conn', async () => {
-              if (connectorOn && !confirm('Make a new link? The current one will stop working, so you’ll need to update it in Claude.')) return;
-              const { url } = await call('/api/settings/connector', 'POST');
-              setConnectorUrl(url); setConnectorOn(true);
-            })}>{connectorOn ? 'Make a new link' : 'Create my connector link'}</button>
-            {connectorOn && (
-              <button className="btn ghost-dark" disabled={busy === 'conn'} onClick={act('conn', async () => {
-                if (!confirm('Disconnect Claude? The link stops working immediately.')) return;
-                await call('/api/settings/connector', 'DELETE');
-                setConnectorOn(false); setConnectorUrl(null);
-              })}>Disconnect</button>
-            )}
-          </div>
+
+          <button className="link-btn advanced-toggle" onClick={() => setShowAdvanced((v) => !v)}>
+            {showAdvanced ? 'Hide' : 'Show'} the old-style link (for tools without sign-in)
+          </button>
+          {showAdvanced && (
+            <div className="settings-advanced">
+              <p>Some tools can't sign in. For those, use a personal link that works like a password.
+                Prefer the sign-in method above.</p>
+              {connectorUrl ? (
+                <>
+                  <p className="settings-warn">Copy this link now. It won't be shown again, and anyone
+                    with it can edit your tracker.</p>
+                  <CopyField value={connectorUrl} />
+                </>
+              ) : (
+                <p className="settings-status">{connectorOn ? '● A personal link is active.' : '○ No personal link.'}</p>
+              )}
+              <div className="settings-actions">
+                <button className="btn ghost-dark" disabled={busy === 'conn'} onClick={act('conn', async () => {
+                  if (connectorOn && !confirm('Make a new link? The current one stops working.')) return;
+                  const { url } = await call('/api/settings/connector', 'POST');
+                  setConnectorUrl(url); setConnectorOn(true);
+                })}>{connectorOn ? 'Make a new link' : 'Create a personal link'}</button>
+                {connectorOn && (
+                  <button className="btn ghost-dark" disabled={busy === 'conn'} onClick={act('conn', async () => {
+                    if (!confirm('Turn off the personal link?')) return;
+                    await call('/api/settings/connector', 'DELETE');
+                    setConnectorOn(false); setConnectorUrl(null);
+                  })}>Turn it off</button>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="settings-card">

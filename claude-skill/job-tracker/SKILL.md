@@ -19,9 +19,10 @@ which only ever sees this student's own applications. Its tools:
 | `delete_application` | delete (only after explicit confirmation) |
 | `get_stats` | the numbers behind the website's Charts tab |
 
-If these tools aren't available, tell the student to connect the tracker:
-**tracker website → Settings → Connect Claude**, then add the link as a custom
-connector in Claude. Don't pretend anything was saved.
+If these tools aren't available, tell the student to connect the tracker: in
+Claude, **Settings → Connectors → Add custom connector**, paste the tracker's
+`/api/mcp` URL (shown on the site under **Settings → Connect Claude**), then click
+**Connect** and approve it on the site. Don't pretend anything was saved.
 
 The tools validate every value. Sheets, statuses, categories, sources, work modes
 and priorities must be one of the listed options, and dates are `YYYY-MM-DD`.

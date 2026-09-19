@@ -7,10 +7,12 @@ import { supabaseForUser } from '@/lib/supabase/server';
 export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
+  const nextParam = url.searchParams.get('next');
+  const next = nextParam?.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/';
   if (code) {
     const sb = await supabaseForUser();
     const { error } = await sb.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL('/', url.origin));
+    if (!error) return NextResponse.redirect(new URL(next, url.origin));
   }
   const back = new URL('/login', url.origin);
   back.searchParams.set('link', 'failed');
