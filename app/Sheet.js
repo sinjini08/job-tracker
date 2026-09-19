@@ -1,0 +1,559 @@
+'use client';
+
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { OPTIONS, SHEETS, columnLetter, isBlankRow } from '@/lib/fields';
+import { signOut } from './login/actions';
+import Drawer from './Drawer';
+import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
+
+const TABS = ['On-Campus', 'Off-Campus'];
+const MIN_GRID_ROWS = 40;
+const POLL_MS = 20000;
+const ACTIVE = new Set(['Wishlist', 'Applied', 'OA / Assessment', 'Interviewing', 'Offer']);
+const REQUIRED = new Set(['status']); // NOT NULL in the schema: never offer a blank
+
+function rawValue(row, col) {
+  if (!row) return null;
+  if (col.kind === 'computed') return daysSince(row.date_applied);
+  return row[col.key] ?? null;
+}
+
+function plainText(row, col) {
+  const v = rawValue(row, col);
+  if (v == null) return '';
+  if (col.kind === 'date') return fmtDate(v);
+  if (col.kind === 'bool') return v ? 'TRUE' : 'FALSE';
+  return String(v);
+}
+
+function normalize(col, value) {
+  if (col.kind === 'bool') return Boolean(value);
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (s === '') return col.key === 'role' ? '' : null;
+  if (col.kind === 'number') {
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  return s;
+}
+
+function cellFlags(row, col) {
+  if (!row) return '';
+  const active = ACTIVE.has(row.status);
+  if (col.key === 'next_follow_up' && row.next_follow_up && active && row.next_follow_up <= todayISO()) return 'due';
+  if (col.key === 'deadline' && row.deadline && row.status === 'Wishlist') {
+    const left = dayNumber(row.deadline) - dayNumber(todayISO());
+    if (left <= 3) return 'due';
+  }
+  if (!active && col.kind === 'computed') return 'dim';
+  return '';
+}
+
+async function api(url, method = 'GET', body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401) {
+    window.location.href = '/login';
+    throw new Error('Signed out');
+  }
+  const data = res.status === 204 ? null : await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data;
+}
+
+export default function Sheet({ initialRows, role, loadError }) {
+  const canEdit = role === 'edit';
+  const [rows, setRows] = useState(initialRows);
+  const [tab, setTab] = useState(TABS[0]);
+  const [sel, setSel] = useState({ r: 0, c: 0 });
+  const [editing, setEditing] = useState(null); // { r, c, draft }
+  const [pending, setPending] = useState(0);
+  const [error, setError] = useState(loadError);
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
+  const [drawerId, setDrawerId] = useState(null);
+  const gridRef = useRef(null);
+  const drawerOpenRef = useRef(false);
+
+  const cols = SHEETS[tab];
+
+  // Remember the last tab per browser.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('jt_tab');
+      if (TABS.includes(saved)) setTab(saved);
+    } catch {}
+  }, []);
+  const switchTab = (t) => {
+    setTab(t);
+    setSel({ r: 0, c: 0 });
+    setEditing(null);
+    try { localStorage.setItem('jt_tab', t); } catch {}
+  };
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = rows.filter((r) => r.type === tab);
+    if (q) {
+      list = list.filter((r) =>
+        [r.role, r.company, r.location, r.notes, r.status, r.category, r.contact, r.source]
+          .some((v) => v && String(v).toLowerCase().includes(q)));
+    }
+    if (sort) {
+      const col = cols.find((c) => c.id === sort.key);
+      if (col) {
+        list = [...list].sort((a, b) => {
+          const va = rawValue(a, col), vb = rawValue(b, col);
+          if (va == null && vb == null) return 0;
+          if (va == null) return 1;
+          if (vb == null) return -1;
+          return (va > vb ? 1 : va < vb ? -1 : 0) * sort.dir;
+        });
+      }
+    }
+    return list;
+  }, [rows, tab, query, sort, cols]);
+
+  const gridRowCount = Math.max(MIN_GRID_ROWS, visible.length + 10);
+  const rowAt = (r) => visible[r] ?? null;
+
+  // ---- live refresh ----
+  const busy = useRef(false);
+  busy.current = Boolean(editing) || pending > 0;
+  const refresh = useCallback(async () => {
+    if (busy.current || document.visibilityState !== 'visible') return;
+    try {
+      const data = await api('/api/applications');
+      if (!busy.current) setRows(data);
+    } catch (e) {
+      setError(e.message);
+    }
+  }, []);
+  useEffect(() => {
+    const t = setInterval(refresh, POLL_MS);
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(t); window.removeEventListener('focus', refresh); };
+  }, [refresh]);
+
+  // ---- writes ----
+  const track = async (fn) => {
+    setPending((n) => n + 1);
+    try {
+      const result = await fn();
+      setError(null);
+      return result;
+    } catch (e) {
+      setError(e.message);
+      return null;
+    } finally {
+      setPending((n) => n - 1);
+    }
+  };
+
+  const patchRow = useCallback((id, patch) => track(async () => {
+    const before = rows.find((x) => x.id === id);
+    setRows((rs) => rs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+    try {
+      const saved = await api(`/api/applications/${id}`, 'PATCH', patch);
+      setRows((rs) => rs.map((x) => (x.id === id ? saved : x)));
+    } catch (e) {
+      if (before) setRows((rs) => rs.map((x) => (x.id === id ? before : x)));
+      throw e;
+    }
+  }), [rows]);
+
+  const createRow = (fields) => track(async () => {
+    const saved = await api('/api/applications', 'POST', { type: tab, ...fields });
+    setRows((rs) => [...rs, saved]);
+    return saved;
+  });
+
+  const deleteRow = (id) => track(async () => {
+    await api(`/api/applications/${id}`, 'DELETE');
+    setRows((rs) => rs.filter((x) => x.id !== id));
+    setDrawerId(null);
+  });
+
+  // Typing into a blank row creates it. If you keep typing across that row before
+  // the create comes back, later cells wait for it instead of creating duplicates.
+  const creating = useRef(null); // { r, promise }
+  const commit = (r, c, value) => {
+    const col = cols[c];
+    if (!col || col.kind === 'computed') return;
+    const row = rowAt(r);
+    const next = normalize(col, value);
+    if (row) {
+      // Clearing the last filled cell removes the row, like an emptied row in Excel.
+      // Checked before the no-change test so Delete also clears out a row that's
+      // already empty apart from its status.
+      const clearing = next === null || next === '';
+      if (clearing && isBlankRow({ ...row, [col.key]: next })) {
+        deleteRow(row.id);
+        return;
+      }
+      if ((row[col.key] ?? null) === next) return;
+      patchRow(row.id, { [col.key]: next });
+      return;
+    }
+    if (next === null || next === '' || next === false) return;
+    if (creating.current?.r === r) {
+      creating.current.promise.then((saved) => saved && patchRow(saved.id, { [col.key]: next }));
+      return;
+    }
+    const promise = createRow({ [col.key]: next });
+    creating.current = { r, promise };
+    promise.finally(() => { if (creating.current?.promise === promise) creating.current = null; });
+  };
+
+  const addRow = () => {
+    if (!canEdit) return;
+    createRow({ date_applied: todayISO() }).then(() => {
+      setSort(null);
+      setQuery('');
+      setSel({ r: visible.length, c: 0 });
+    });
+  };
+
+  // ---- selection & keyboard ----
+  const move = (dr, dc) => setSel((s) => ({
+    r: Math.min(Math.max(s.r + dr, 0), gridRowCount - 1),
+    c: Math.min(Math.max(s.c + dc, 0), cols.length - 1),
+  }));
+
+  useEffect(() => {
+    gridRef.current
+      ?.querySelector(`[data-cell="${sel.r}-${sel.c}"]`)
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [sel]);
+
+  // The sheet needs keyboard focus for arrows/Delete/typing to work. Take it on
+  // load (a cell already looks selected), and route keys pressed while nothing
+  // in particular is focused to the grid.
+  const focusGrid = () => gridRef.current?.focus({ preventScroll: true });
+  useEffect(() => { focusGrid(); }, []);
+  const keyHandler = useRef(null);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (document.activeElement === document.body && !drawerOpenRef.current) keyHandler.current?.(e);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const startEdit = (r, c, draft) => {
+    const col = cols[c];
+    if (!canEdit || !col || col.kind === 'computed') return;
+    if (col.kind === 'bool') {
+      commit(r, c, !rawValue(rowAt(r), col));
+      return;
+    }
+    setEditing({ r, c, draft: draft ?? (rawValue(rowAt(r), col) ?? '') });
+  };
+
+  const endEdit = (save, value, step = [0, 0]) => {
+    if (!editing) return;
+    const { r, c } = editing;
+    setEditing(null);
+    if (save) commit(r, c, value);
+    move(...step);
+    requestAnimationFrame(() => gridRef.current?.focus({ preventScroll: true }));
+  };
+
+  const onGridKey = (e) => {
+    if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+    const col = cols[sel.c];
+    switch (e.key) {
+      case 'ArrowUp': e.preventDefault(); move(-1, 0); return;
+      case 'ArrowDown': e.preventDefault(); move(1, 0); return;
+      case 'ArrowLeft': e.preventDefault(); move(0, -1); return;
+      case 'ArrowRight': e.preventDefault(); move(0, 1); return;
+      case 'Tab': e.preventDefault(); move(0, e.shiftKey ? -1 : 1); return;
+      case 'Enter':
+      case 'F2': e.preventDefault(); startEdit(sel.r, sel.c); return;
+      case ' ':
+        if (col?.kind === 'bool') { e.preventDefault(); startEdit(sel.r, sel.c); }
+        return;
+      case 'Delete':
+      case 'Backspace':
+        if (canEdit && col && col.kind !== 'computed' && !REQUIRED.has(col.key) && rowAt(sel.r)) {
+          e.preventDefault();
+          commit(sel.r, sel.c, col.kind === 'bool' ? false : null);
+        }
+        return;
+      default:
+        if (e.key.length === 1 && col && ['text', 'number', 'url', 'email'].includes(col.kind)) {
+          e.preventDefault();
+          startEdit(sel.r, sel.c, e.key);
+        } else if (e.key.length === 1 && col && ['select', 'date'].includes(col.kind)) {
+          e.preventDefault();
+          startEdit(sel.r, sel.c);
+        }
+    }
+  };
+
+  keyHandler.current = onGridKey;
+
+  const toggleSort = (key) => setSort((s) =>
+    !s || s.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null);
+
+  // ---- derived UI bits ----
+  const selRow = rowAt(sel.r);
+  const selCol = cols[sel.c];
+  const counts = useMemo(() => {
+    const out = {};
+    for (const r of rows) if (r.type === tab) out[r.status] = (out[r.status] || 0) + 1;
+    return out;
+  }, [rows, tab]);
+  const tabCount = (t) => rows.filter((r) => r.type === t).length;
+  const drawerRow = rows.find((r) => r.id === drawerId) || null;
+  drawerOpenRef.current = Boolean(drawerRow);
+
+  return (
+    <div className="app">
+      <header className="toolbar">
+        <div className="brand"><span className="brand-mark" aria-hidden>▦</span>Job Application Tracker</div>
+        <div className="toolbar-mid">
+          <input
+            className="search"
+            type="search"
+            placeholder="Search this sheet"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {canEdit && <button className="btn primary" onClick={addRow}>+ New row</button>}
+        </div>
+        <div className="toolbar-right">
+          <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
+            {error ? `⚠ ${error}` : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
+          </span>
+          <form action={signOut}><button className="btn ghost" type="submit">Sign out</button></form>
+        </div>
+      </header>
+
+      <div className="formula-bar">
+        <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
+        <div className="fx" aria-hidden>fx</div>
+        <div className="formula-value">{selCol ? plainText(selRow, selCol) : ''}</div>
+      </div>
+
+      <div
+        className="grid-wrap"
+        ref={gridRef}
+        tabIndex={0}
+        onKeyDown={onGridKey}
+        aria-label={`${tab} sheet`}
+      >
+        <table className="grid">
+          <colgroup>
+            <col style={{ width: 44 }} />
+            {cols.map((c) => <col key={c.id} style={{ width: c.width }} />)}
+          </colgroup>
+          <thead>
+            <tr className="letters">
+              <th className="corner" />
+              {cols.map((c, i) => (
+                <th key={c.id} className={`${i === 0 ? 'sticky-col' : ''} ${i === sel.c ? 'hl' : ''}`}>
+                  {columnLetter(i)}
+                </th>
+              ))}
+            </tr>
+            <tr className="headers">
+              <th className="rownum">1</th>
+              {cols.map((c, i) => (
+                <th
+                  key={c.id}
+                  className={i === 0 ? 'sticky-col' : ''}
+                  onClick={() => toggleSort(c.id)}
+                  title="Click to sort"
+                >
+                  {c.label}
+                  {sort?.key === c.id && <span className="sort">{sort.dir === 1 ? ' ▲' : ' ▼'}</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: gridRowCount }, (_, r) => {
+              const row = rowAt(r);
+              return (
+                <tr key={row?.id ?? `empty-${r}`} className={r === sel.r ? 'sel-row' : ''}>
+                  <th
+                    className={`rownum ${r === sel.r ? 'hl' : ''} ${row ? 'has-row' : ''}`}
+                    onClick={() => row && setDrawerId(row.id)}
+                    title={row ? 'Open details & history' : ''}
+                  >
+                    {r + 2}
+                  </th>
+                  {cols.map((col, c) => (
+                    <Cell
+                      key={col.id}
+                      r={r}
+                      c={c}
+                      row={row}
+                      col={col}
+                      selected={sel.r === r && sel.c === c}
+                      editing={editing && editing.r === r && editing.c === c ? editing : null}
+                      canEdit={canEdit}
+                      onSelect={() => { setSel({ r, c }); if (!editing) focusGrid(); }}
+                      onStartEdit={() => { setSel({ r, c }); startEdit(r, c); }}
+                      onEnd={endEdit}
+                    />
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <footer className="tabs-bar">
+        <div className="tabs" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className={`tab ${tab === t ? 'active' : ''}`}
+              onClick={() => switchTab(t)}
+            >
+              {t} <span className="tab-count">{tabCount(t)}</span>
+            </button>
+          ))}
+        </div>
+        <div className="status-summary">
+          {['Applied', 'OA / Assessment', 'Interviewing', 'Offer'].map((s) => (
+            <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
+          ))}
+          <span>Total: <b>{tabCount(tab)}</b></span>
+        </div>
+      </footer>
+
+      {drawerRow && (
+        <Drawer
+          row={drawerRow}
+          canEdit={canEdit}
+          onPatch={(patch) => patchRow(drawerRow.id, patch)}
+          onDelete={() => deleteRow(drawerRow.id)}
+          onClose={() => {
+            setDrawerId(null);
+            requestAnimationFrame(() => gridRef.current?.focus({ preventScroll: true }));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Cell({ r, c, row, col, selected, editing, canEdit, onSelect, onStartEdit, onEnd }) {
+  const v = rawValue(row, col);
+  const flags = cellFlags(row, col);
+  const cls = [
+    'cell',
+    `k-${col.kind}`,
+    c === 0 ? 'sticky-col' : '',
+    selected ? 'selected' : '',
+    flags,
+  ].join(' ');
+
+  return (
+    <td
+      className={cls}
+      data-cell={`${r}-${c}`}
+      onMouseDown={onSelect}
+      onDoubleClick={() => canEdit && col.kind !== 'bool' && onStartEdit()}
+      onClick={(e) => {
+        if (col.kind === 'bool' && canEdit && row && e.target.classList.contains('check')) onStartEdit();
+      }}
+    >
+      {editing ? <Editor col={col} initial={editing.draft} onEnd={onEnd} /> : <Display col={col} v={v} row={row} />}
+    </td>
+  );
+}
+
+function Display({ col, v, row }) {
+  if (v == null || v === '') {
+    return col.kind === 'bool' && row ? <span className="check">☐</span> : null;
+  }
+  switch (col.kind) {
+    case 'select': {
+      const [bg, fg] = CHIP[v] || ['#eef0f3', '#374151'];
+      return <span className="chip" style={{ background: bg, color: fg }}>{v}</span>;
+    }
+    case 'date':
+      return fmtDate(v);
+    case 'bool':
+      return <span className="check">{v ? '☑' : '☐'}</span>;
+    case 'url': {
+      let label = v;
+      try { const u = new URL(v); label = u.hostname.replace(/^www\./, '') + u.pathname.replace(/\/$/, ''); } catch {}
+      return (
+        <span className="link-cell">
+          <span className="truncate">{label}</span>
+          <a href={v} target="_blank" rel="noreferrer noopener" onMouseDown={(e) => e.stopPropagation()} title="Open posting">↗</a>
+        </span>
+      );
+    }
+    default:
+      return <span className="truncate">{String(v)}</span>;
+  }
+}
+
+function Editor({ col, initial, onEnd }) {
+  const ref = useRef(null);
+  const done = useRef(false);
+  const finish = (save, value, step) => {
+    if (done.current) return;
+    done.current = true;
+    onEnd(save, value, step);
+  };
+
+  // Layout effect, not a plain effect: focus must move into the editor before the
+  // next keystroke arrives, or fast typing lands on the grid and is lost.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    if (el.setSelectionRange && typeof initial === 'string' && col.kind !== 'date') {
+      el.setSelectionRange(initial.length, initial.length);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const keys = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    else if (e.key === 'Enter') { e.preventDefault(); finish(true, e.currentTarget.value, [e.shiftKey ? -1 : 1, 0]); }
+    else if (e.key === 'Tab') { e.preventDefault(); finish(true, e.currentTarget.value, [0, e.shiftKey ? -1 : 1]); }
+  };
+
+  if (col.kind === 'select') {
+    const options = OPTIONS[col.key];
+    return (
+      <select
+        ref={ref}
+        className="list-editor"
+        size={Math.min(options.length + (REQUIRED.has(col.key) ? 0 : 1), 10)}
+        defaultValue={initial ?? ''}
+        onKeyDown={keys}
+        onClick={(e) => finish(true, ref.current.value, [0, 0])}
+        onBlur={() => finish(false)}
+      >
+        {!REQUIRED.has(col.key) && <option value="">—</option>}
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+
+  return (
+    <input
+      ref={ref}
+      className="cell-editor"
+      type={col.kind === 'date' ? 'date' : col.kind === 'number' ? 'number' : 'text'}
+      defaultValue={initial ?? ''}
+      onKeyDown={keys}
+      onBlur={(e) => finish(true, e.currentTarget.value)}
+    />
+  );
+}

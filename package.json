@@ -1,0 +1,19 @@
+{
+  "name": "job-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Password-protected, Excel-style job application tracker backed by Supabase",
+  "scripts": {
+    "dev": "next dev",
+    "demo": "DEMO_MODE=1 EDIT_CODE=edit-demo VIEW_CODE=view-demo SESSION_SECRET=demo-only-secret-demo-only-secret-0000 next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1"
+  }
+}
