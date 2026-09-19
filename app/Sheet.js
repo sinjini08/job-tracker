@@ -67,7 +67,7 @@ async function api(url, method = 'GET', body) {
   return data;
 }
 
-export default function Sheet({ initialRows, role, loadError }) {
+export default function Sheet({ initialRows, role, apiBase = '/api', email, shared = false, loadError }) {
   const canEdit = role === 'edit';
   const [rows, setRows] = useState(initialRows);
   const [tab, setTab] = useState(TABS[0]);
@@ -134,19 +134,19 @@ export default function Sheet({ initialRows, role, loadError }) {
     if (busy.current || document.visibilityState !== 'visible') return;
     try {
       const [data, evs] = await Promise.all([
-        api('/api/applications'),
-        onCharts.current ? api('/api/events') : null,
+        api(`${apiBase}/applications`),
+        onCharts.current ? api(`${apiBase}/events`) : null,
       ]);
       if (!busy.current) setRows(data);
       if (evs) setEvents(evs);
     } catch (e) {
       setError(e.message);
     }
-  }, []);
+  }, [apiBase]);
   // Load history the first time the Charts tab opens (the funnel needs it).
   useEffect(() => {
-    if (isCharts) api('/api/events').then(setEvents).catch((e) => setError(e.message));
-  }, [isCharts]);
+    if (isCharts) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
+  }, [isCharts, apiBase]);
   useEffect(() => {
     const t = setInterval(refresh, POLL_MS);
     window.addEventListener('focus', refresh);
@@ -172,7 +172,7 @@ export default function Sheet({ initialRows, role, loadError }) {
     const before = rows.find((x) => x.id === id);
     setRows((rs) => rs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
     try {
-      const saved = await api(`/api/applications/${id}`, 'PATCH', patch);
+      const saved = await api(`${apiBase}/applications/${id}`, 'PATCH', patch);
       setRows((rs) => rs.map((x) => (x.id === id ? saved : x)));
     } catch (e) {
       if (before) setRows((rs) => rs.map((x) => (x.id === id ? before : x)));
@@ -181,13 +181,13 @@ export default function Sheet({ initialRows, role, loadError }) {
   }), [rows]);
 
   const createRow = (fields) => track(async () => {
-    const saved = await api('/api/applications', 'POST', { type: tab, ...fields });
+    const saved = await api(`${apiBase}/applications`, 'POST', { type: tab, ...fields });
     setRows((rs) => [...rs, saved]);
     return saved;
   });
 
   const deleteRow = (id) => track(async () => {
-    await api(`/api/applications/${id}`, 'DELETE');
+    await api(`${apiBase}/applications/${id}`, 'DELETE');
     setRows((rs) => rs.filter((x) => x.id !== id));
     setDrawerId(null);
   });
@@ -342,9 +342,15 @@ export default function Sheet({ initialRows, role, loadError }) {
         </div>
         <div className="toolbar-right">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
-            {error ? `⚠ ${error}` : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
+            {error ? `⚠ ${error}` : shared ? 'Shared view · read-only' : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
           </span>
-          <form action={signOut}><button className="btn ghost" type="submit">Sign out</button></form>
+          {!shared && (
+            <>
+              {email && <span className="whoami" title={email}>{email}</span>}
+              <a className="btn ghost" href="/settings">Settings</a>
+              <form action={signOut}><button className="btn ghost" type="submit">Sign out</button></form>
+            </>
+          )}
         </div>
       </header>
 
@@ -452,6 +458,7 @@ export default function Sheet({ initialRows, role, loadError }) {
 
       {drawerRow && (
         <Drawer
+          apiBase={apiBase}
           row={drawerRow}
           canEdit={canEdit}
           onPatch={(patch) => patchRow(drawerRow.id, patch)}

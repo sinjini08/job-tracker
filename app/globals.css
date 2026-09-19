@@ -522,3 +522,39 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .viz-grid { grid-template-columns: 1fr; }
   .hbar-row { grid-template-columns: 96px 1fr; }
 }
+
+/* ---------- accounts: login steps, settings ---------- */
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.code-input { letter-spacing: 0.3em; font-size: 20px !important; text-align: center; font-variant-numeric: tabular-nums; }
+.login-alt { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.link-btn { background: none !important; border: 0; padding: 0 !important; height: auto !important; color: var(--xl-green) !important; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 13px; }
+.link-btn:hover { text-decoration: underline; }
+.whoami { font-size: 12px; opacity: 0.85; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+a.brand { color: inherit; text-decoration: none; }
+
+.settings { min-height: 100dvh; background: var(--chrome); overflow: auto; }
+body:has(.settings) { overflow: auto; }
+.settings-body { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+.settings-body h1 { margin: 0; font-size: 22px; }
+.settings-card { background: #fff; border: 1px solid var(--head-line); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.settings-card h2 { margin: 0; font-size: 16px; }
+.settings-card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.settings-card p b { color: var(--text); }
+.settings-status { font-weight: 600; color: var(--text) !important; }
+.settings-warn { background: #fff8e6; border: 1px solid #f3dca5; border-radius: 6px; padding: 8px 10px; color: #7a5a00 !important; }
+.settings-error { background: #fdecea; border: 1px solid #f1c4bf; color: var(--due); border-radius: 6px; padding: 8px 10px; margin: 0; }
+.settings-steps { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.7; }
+.settings-steps code { background: var(--head-bg); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--text); word-break: break-all; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings .btn { height: 32px; }
+.settings .btn.primary { background: var(--xl-green); color: #fff; font-weight: 600; }
+.settings .btn.primary:hover { background: var(--xl-green-dark); }
+.settings .btn.primary:disabled { opacity: 0.6; }
+.btn.ghost-dark { background: #fff; border-color: var(--head-line); color: var(--text); }
+.btn.ghost-dark:hover { background: var(--head-bg); }
+.settings .btn.danger { background: #fff; color: var(--due); border-color: #f1c4bf; }
+.settings .btn.danger:hover { background: #fdecea; }
+.copy-field { display: flex; gap: 8px; }
+.copy-field input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--head-line); border-radius: 4px; padding: 0 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--head-bg); }
+@media (max-width: 720px) { .whoami { display: none; } }

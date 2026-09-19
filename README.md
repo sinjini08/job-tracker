@@ -1,128 +1,127 @@
 # Job Application Tracker
 
-A live, Excel-style tracker for on-campus and off-campus job applications.
+An Excel-style tracker for students' on-campus and off-campus job applications,
+with charts, read-only share links, and a personal Claude connector that fills it
+in from job postings.
 
-- **The website** (Next.js on Vercel) is a spreadsheet with **On-Campus** and
-  **Off-Campus** tabs. You can click any cell and type. Click a row number to see the
-  saved job description and that application's history.
-- **Access codes.** `EDIT_CODE` gets full access (that's you). `VIEW_CODE` is read-only;
-  give it to anyone who should be able to look. Without a code, the site shows only the
-  sign-in screen, and none of the data leaves the server.
-- **Claude adds applications for you.** Paste a posting, say you're applying, and Claude
-  fills in the row through the Supabase connector (see `claude-skill/job-tracker/SKILL.md`).
-- **The data lives in Supabase (Postgres).** Status changes are logged to each
-  application's history automatically.
+- **Accounts:** anyone can sign up with an email address. They sign in with a
+  one-time code emailed to them, so there are no passwords.
+- **Private by default:** each student sees only their own applications. The
+  database enforces this with row-level security, not just the website.
+- **The sheet:** On-Campus and Off-Campus tabs. Click a cell and type. Click a
+  row number to see the saved job description and the application's history.
+- **📊 Charts:** headline numbers, how far applications get, applications per week,
+  and breakdowns by status, source and category.
+- **Sharing:** a student can create a read-only link (for a career advisor or a
+  friend) and turn it off at any time.
+- **Claude:** each student gets a personal connector link (Settings → Connect
+  Claude). Claude can then add jobs from pasted postings, update statuses, and
+  answer questions about the student's stats, with access to that student's data only.
 
 ```
-You ──► Claude (Supabase connector) ──┐
-                                      ├──► Supabase Postgres
-Website (edit code / view code) ──────┘
+Student ──sign in (email code)──► Website ──(their session, RLS)──► Supabase
+Student's Claude ──personal link──► /api/mcp/<token> ──(scoped to them)──┘
+Advisor ──share link──► /s/<token> (read-only) ─────────────────────────┘
 ```
 
 ---
 
-## 1. Try it locally (no accounts needed)
+## Setup (for whoever runs the site)
+
+### 1. Supabase
+
+1. Create a project at https://supabase.com.
+2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql), then
+   [`supabase/migrations/002_multi_user.sql`](supabase/migrations/002_multi_user.sql).
+3. Go to **Authentication → Emails → Templates** and add the one-time code to both
+   the **Confirm signup** and **Magic Link** templates. The site asks for the code,
+   not a link:
+   ```html
+   <h2>Your sign-in code</h2>
+   <p>Enter this code to sign in to Job Application Tracker:</p>
+   <p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+   <p>It expires in an hour. If you didn't request it, you can ignore this email.</p>
+   ```
+4. In **Authentication → URL Configuration**, set **Site URL** to your live site's address.
+5. **Before inviting anyone:** Supabase's built-in email only sends to members of
+   your Supabase team, and only a few emails an hour. Under **Authentication →
+   Emails → SMTP Settings**, connect a real email service. Gmail with an app
+   password works for small groups (about 500 emails a day). Resend or Brevo are
+   free alternatives.
+
+### 2. Vercel
+
+Import the repo and add these environment variables:
+
+| Name | Where to find it |
+|---|---|
+| `SUPABASE_URL` | Project Settings → Data API → Project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Project Settings → API Keys → publishable key (`sb_publishable_…`), safe to expose |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API Keys → secret key (`sb_secret_…`), **server-only, never share it** |
+
+On the free Vercel plan, commits must be authored by the email address linked to
+the GitHub account that owns the Vercel project. Otherwise the deploy is blocked.
+
+### 3. Local development
 
 ```bash
 npm install
-npm run demo
+cp .env.example .env.local   # fill in the three values
+npm run dev
 ```
-
-Open http://localhost:3000 and sign in with `edit-demo`, or `view-demo` for read-only.
-Demo mode keeps sample data in memory and resets it every time the server restarts. It
-ignores `.env.local`, and it never runs in production.
-
-## 2. Create the database (Supabase)
-
-1. Sign up at https://supabase.com and click **New project**. Name it `job-tracker`,
-   choose a strong database password (save it in your password manager), and pick the
-   region closest to you.
-2. In the project, open **SQL Editor → New query**. Paste all of
-   [`supabase/schema.sql`](supabase/schema.sql) and click **Run**. It's safe to run again.
-3. Open **Project Settings → API Keys** and copy:
-   - the **Project URL**, which goes in `SUPABASE_URL`
-   - the **secret key** (called `service_role` on older projects), which goes in
-     `SUPABASE_SERVICE_ROLE_KEY`. This key bypasses all security. Only ever put it in
-     `.env.local` and in Vercel's settings. Never commit it or paste it into a chat.
-
-Row-level security is on, and there are no public policies. The public "anon" key can't
-read anything, so the only ways in are this website's server and your Claude connector.
-
-> Free Supabase projects pause after about a week of no activity. If the site shows a
-> connection error, open the Supabase dashboard and click **Restore**.
-
-## 3. Deploy the website (Vercel)
-
-1. Push this folder to a **private** GitHub repo.
-2. In Vercel, click **Add New → Project** and import the repo. It detects Next.js on its own.
-3. Under **Environment Variables**, add:
-
-   | Name | Value |
-   |---|---|
-   | `SUPABASE_URL` | from step 2 |
-   | `SUPABASE_SERVICE_ROLE_KEY` | from step 2 |
-   | `EDIT_CODE` | your own code: long and unguessable |
-   | `VIEW_CODE` | the code you'll give to other people |
-   | `SESSION_SECRET` | the output of `openssl rand -base64 48` |
-
-4. Click **Deploy**. To change a code later, edit the variable and redeploy. Changing
-   `SESSION_SECRET` signs everyone out.
-
-## 4. Let Claude update the tracker
-
-1. **Connect Supabase to Claude.**
-   - *Claude app:* **Settings → Connectors**. Add **Supabase**, sign in, and allow access
-     to the `job-tracker` project.
-   - *Claude Code:* add Supabase's MCP server by following Supabase's MCP guide. Scope it
-     to the `job-tracker` project.
-2. **Install the skill** in [`claude-skill/job-tracker/`](claude-skill/job-tracker/SKILL.md):
-   - *Claude app:* zip the `job-tracker` folder, then go to **Settings → Capabilities →
-     Skills → Upload skill**.
-   - *Claude Code:* copy the folder to `~/.claude/skills/job-tracker/`.
-3. Try it: paste a posting and say *"I'm applying to this."* Claude fills in what it can,
-   asks about the rest (resume version, cover letter, referral, anything the posting
-   doesn't say), shows you the row, and saves it after you confirm. Later, say things like
-   *"Vanguard sent me an OA"* or *"interview with the HCI lab Thursday at 2"*, and it
-   updates the status and history.
 
 ---
 
-## Using the sheet
+## For students: using Claude with your tracker
 
-| Action | How |
-|---|---|
-| Edit a cell | Double-click it, press Enter, or just start typing |
-| Save and move | Enter moves down, Tab moves right, Esc cancels |
-| Clear a cell | Delete or Backspace. Clearing the last filled cell in a row deletes the row |
-| Add a row | Type in the first empty row, or click **+ New row** |
-| Sort | Click a column header (click again to reverse, a third time to clear) |
-| Details and history | Click the row number |
-| Move a job to the other tab | Open its details → **Sheet** |
+1. On the site, open **Settings → Connect Claude → Create my connector link**, and
+   copy the link. It's shown once, and it works like a password.
+2. In Claude, go to **Settings → Connectors → Add custom connector**. Name it
+   **Job Tracker** and paste the link. If you use Claude Code instead, run
+   `claude mcp add --transport http job-tracker <link>`.
+3. Optional but recommended: add the skill in
+   [`claude-skill/job-tracker/`](claude-skill/job-tracker/SKILL.md). It teaches Claude
+   the whole routine: read the posting, ask only about the gaps, confirm, then
+   save. In Claude, zip the folder and go to **Settings → Capabilities → Skills →
+   Upload**. In Claude Code, copy the folder to `~/.claude/skills/`.
+4. Paste a job posting and say *"I'm applying to this."*
 
-The **📊 Charts** tab shows your headline numbers (applications, still in progress,
-response rate, interviews, offers), how far applications get, applications per week,
-current status, results by source, and by category. Filter by sheet and period, and
-switch any chart to a table. People with the view code can see it too.
+If a link leaks, open **Settings → Make a new link**. The old one stops working
+immediately.
 
-Overdue follow-ups, and wishlist deadlines within three days, show in red. The sheet
-refreshes every 20 seconds and whenever you switch back to the tab, so changes Claude
-makes show up on their own.
+---
+
+## How access is enforced
+
+| Path | Who | How |
+|---|---|---|
+| Website and `/api/*` | the signed-in student | Supabase session cookie. Queries run as that user under RLS (`user_id = auth.uid()`) |
+| `/s/<token>` and `/api/share/<token>/*` | anyone with the share link | read-only routes. The server looks up the owner and reads only their rows |
+| `/api/mcp/<token>` | the student's Claude | the token is stored only as a SHA-256 hash. Tools run against a store scoped to that user |
+
+Every database call goes through `storeFor(client, userId)` in `lib/db.js`, which
+filters every query by `user_id`. For the signed-in path, RLS enforces the same
+rule a second time. Deleting an account (Settings → Account) removes all of that
+student's data through `ON DELETE CASCADE`.
 
 ## Project layout
 
 ```
 app/
-  page.js, Sheet.js, Drawer.js   the spreadsheet UI
-  login/                         access-code sign-in (server action)
-  api/applications/...           JSON API (edit code needed for writes)
+  page.js, Sheet.js, Drawer.js, Charts.js   the spreadsheet and the Charts tab
+  login/                                    email-code sign-in (server actions)
+  settings/                                 connector link, share link, account
+  s/[token]/                                read-only shared view
+  api/applications/…, api/events            signed-in JSON API
+  api/share/[token]/…                       read-only JSON API for share links
+  api/mcp/[token]/                          the per-student Claude connector (MCP)
 lib/
-  fields.js                      the columns in each sheet and the dropdown options
-  session.js, auth.js            signed session cookie and role checks
-  db.js, memory-store.js         Supabase store and the local demo store
-proxy.js                         sends signed-out visitors to /login
-supabase/schema.sql              tables, triggers, RLS
-claude-skill/job-tracker/        the Claude skill
+  db.js            per-user data access (the one place queries are built)
+  auth.js          sessions, share and connector token lookups
+  mcp-tools.js     the connector's tools
+  stats.js         numbers behind Charts, shared with the get_stats tool
+  fields.js        columns and dropdown options
+proxy.js           refreshes sessions; sends signed-out visitors to /login
+supabase/          schema.sql and migrations/
+claude-skill/      the Claude skill
 ```
-
-To add a column: add it to `supabase/schema.sql` (with `alter table ... add column`),
-then to `WRITABLE` and a sheet in `lib/fields.js`, and to the table in the skill.

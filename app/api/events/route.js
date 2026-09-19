@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { requireRole } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { sessionStore } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 // Every application's history in one call, for the Charts tab.
 export async function GET() {
-  const denied = await requireRole('view');
+  const { store, denied } = await sessionStore();
   if (denied) return denied;
   try {
-    return NextResponse.json(await db().listAllEvents());
+    return NextResponse.json(await store.listAllEvents());
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

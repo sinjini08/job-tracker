@@ -6,7 +6,7 @@ import { CHIP, fmtDate, todayISO } from '@/lib/format';
 
 const KIND_LABEL = { status: 'Status', note: 'Note', interview: 'Interview', follow_up: 'Follow-up', offer: 'Offer' };
 
-export default function Drawer({ row, canEdit, onPatch, onDelete, onClose }) {
+export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDelete, onClose }) {
   const [events, setEvents] = useState(null);
   const [note, setNote] = useState({ kind: 'note', event_date: todayISO(), detail: '' });
   const [err, setErr] = useState(null);
@@ -14,12 +14,12 @@ export default function Drawer({ row, canEdit, onPatch, onDelete, onClose }) {
   // Reload history whenever the row changes (status changes add events server-side).
   useEffect(() => {
     let live = true;
-    fetch(`/api/applications/${row.id}/events`)
+    fetch(`${apiBase}/applications/${row.id}/events`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Could not load history'))))
       .then((d) => live && setEvents(d))
       .catch((e) => live && setErr(e.message));
     return () => { live = false; };
-  }, [row.id, row.status, row.updated_at]);
+  }, [apiBase, row.id, row.status, row.updated_at]);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -30,7 +30,7 @@ export default function Drawer({ row, canEdit, onPatch, onDelete, onClose }) {
   const addNote = async (e) => {
     e.preventDefault();
     if (!note.detail.trim()) return;
-    const res = await fetch(`/api/applications/${row.id}/events`, {
+    const res = await fetch(`${apiBase}/applications/${row.id}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(note),

@@ -2,18 +2,21 @@
   "name": "job-tracker",
   "version": "1.0.0",
   "private": true,
-  "description": "Password-protected, Excel-style job application tracker backed by Supabase",
+  "description": "Excel-style job application tracker for students: accounts, charts, share links, and a Claude connector",
   "scripts": {
     "dev": "next dev",
-    "demo": "DEMO_MODE=1 EDIT_CODE=edit-demo VIEW_CODE=view-demo SESSION_SECRET=demo-only-secret-demo-only-secret-0000 next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
+    "mcp-handler": "^2.2.0",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
   }
 }

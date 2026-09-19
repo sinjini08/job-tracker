@@ -1,26 +1,25 @@
 import { NextResponse } from 'next/server';
-import { requireRole } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { sessionStore } from '@/lib/auth';
 import { pickWritable } from '@/lib/fields';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const denied = await requireRole('view');
+  const { store, denied } = await sessionStore();
   if (denied) return denied;
   try {
-    return NextResponse.json(await db().listApplications());
+    return NextResponse.json(await store.listApplications());
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  const denied = await requireRole('edit');
+  const { store, denied } = await sessionStore();
   if (denied) return denied;
   try {
     const row = pickWritable(await request.json().catch(() => ({})));
-    return NextResponse.json(await db().createApplication(row), { status: 201 });
+    return NextResponse.json(await store.createApplication(row), { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }
