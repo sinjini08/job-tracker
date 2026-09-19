@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/auth';
+import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { getClient, issueCode, validRedirectUri } from '@/lib/oauth';
 
 // Handles the Connect / Cancel buttons on the consent screen.
@@ -25,8 +25,9 @@ export async function approve(formData) {
 
   if (get('decision') !== 'allow') send({ error: 'access_denied', error_description: 'The student cancelled' });
 
-  const user = await currentUser();
+  const user = await currentUserWithEmail();
   if (!user) send({ error: 'access_denied', error_description: 'Signed out before approving' });
+  await ensureProfile(user.id, user.email);
 
   const code = await issueCode({
     client,

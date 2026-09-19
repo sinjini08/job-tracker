@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OPTIONS, SHEETS, columnLetter, isBlankRow } from '@/lib/fields';
-import { signOut } from './login/actions';
+import { SignOutButton } from '@clerk/nextjs';
 import Drawer from './Drawer';
 import Charts from './Charts';
 import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
@@ -348,7 +348,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             <>
               {email && <span className="whoami" title={email}>{email}</span>}
               <a className="btn ghost" href="/settings">Settings</a>
-              <form action={signOut}><button className="btn ghost" type="submit">Sign out</button></form>
+              <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
             </>
           )}
         </div>

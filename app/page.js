@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/auth';
+import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { storeFor } from '@/lib/db';
 import Sheet from './Sheet';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const user = await currentUser();
-  if (!user) redirect('/login');
+  const user = await currentUserWithEmail();
+  if (!user) redirect('/sign-in');
+  await ensureProfile(user.id, user.email);
 
   let rows = [];
   let loadError = null;

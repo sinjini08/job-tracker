@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/auth';
+import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { getClient, validRedirectUri } from '@/lib/oauth';
 import { approve } from './actions';
 
@@ -42,11 +42,12 @@ export default async function Authorize({ searchParams }) {
   }
 
   // Not signed in? Sign in first, then come back here.
-  const user = await currentUser();
+  const user = await currentUserWithEmail();
   if (!user) {
     const self = new URLSearchParams(Object.entries(q).filter(([, v]) => typeof v === 'string'));
-    redirect(`/login?next=${encodeURIComponent(`/oauth/authorize?${self}`)}`);
+    redirect(`/sign-in?redirect_url=${encodeURIComponent(`/oauth/authorize?${self}`)}`);
   }
+  await ensureProfile(user.id, user.email);
 
   return (
     <main className="login">

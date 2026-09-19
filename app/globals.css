@@ -368,9 +368,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- login ---------- */
 .login {
-  height: 100dvh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 20px;
   background: linear-gradient(180deg, var(--xl-green) 0 38%, var(--chrome) 38%);
   padding: 16px;
 }
@@ -574,3 +576,10 @@ body:has(.settings) { overflow: auto; }
 .conn-when { display: block; font-size: 12px; color: var(--muted); }
 .advanced-toggle { align-self: flex-start; margin-top: 4px; }
 .settings-advanced { border-top: 1px solid var(--grid-line); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Clerk sign-in / sign-up pages */
+.login-intro { text-align: center; max-width: 420px; padding: 0 16px; }
+.login-intro h1 { margin: 8px 0 6px; font-size: 20px; color: #fff; }
+.login-intro p { margin: 0; color: rgba(255, 255, 255, 0.85); line-height: 1.5; }
+.login-intro .login-mark { color: #fff; }
+body:has(.login) { overflow: auto; }

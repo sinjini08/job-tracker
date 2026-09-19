@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from '../login/actions';
+import { SignOutButton } from '@clerk/nextjs';
 
 async function call(url, method) {
   const res = await fetch(url, { method });
@@ -150,7 +150,7 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
           <h2>Account</h2>
           <p>Signed in as <b>{email}</b>.</p>
           <div className="settings-actions">
-            <form action={signOut}><button className="btn ghost-dark" type="submit">Sign out</button></form>
+            <SignOutButton><button className="btn ghost-dark" type="button">Sign out</button></SignOutButton>
             <button className="btn danger" disabled={busy === 'del'} onClick={act('del', async () => {
               const typed = prompt('This permanently deletes your account, every application, and all history. Type DELETE to confirm.');
               if (typed !== 'DELETE') return;

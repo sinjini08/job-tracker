@@ -4,8 +4,8 @@ An Excel-style tracker for students' on-campus and off-campus job applications,
 with charts, read-only share links, and a personal Claude connector that fills it
 in from job postings.
 
-- **Accounts:** anyone can sign up with an email address. They sign in with a
-  one-time code emailed to them, so there are no passwords.
+- **Accounts:** Clerk handles sign-in (Google, Microsoft, or an emailed code), so
+  there are no passwords to store and no email service to run.
 - **Private by default:** each student sees only their own applications. The
   database enforces this with row-level security, not just the website.
 - **The sheet:** On-Campus and Off-Campus tabs. Click a cell and type. Click a
@@ -21,7 +21,7 @@ in from job postings.
   revocable in Settings.
 
 ```
-Student ──sign in (email code)──► Website ──(their session, RLS)──► Supabase
+Student ──sign in (Clerk)──────► Website ──(their session, RLS)──► Supabase
 Student's Claude ──OAuth──► /api/mcp (bearer token, scoped to them) ────┘
 Advisor ──share link──► /s/<token> (read-only) ─────────────────────────┘
 ```
@@ -30,41 +30,40 @@ Advisor ──share link──► /s/<token> (read-only) ───────�
 
 ## Setup (for whoever runs the site)
 
-### 1. Supabase
+### 1. Supabase (database)
 
 1. Create a project at https://supabase.com.
 2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql), then each file in
    [`supabase/migrations/`](supabase/migrations) in order.
-3. Go to **Authentication → Emails → Templates** and add the one-time code to both
-   the **Confirm signup** and **Magic Link** templates. The site asks for the code,
-   not a link:
-   ```html
-   <h2>Your sign-in code</h2>
-   <p>Enter this code to sign in to Job Application Tracker:</p>
-   <p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
-   <p>It expires in an hour. If you didn't request it, you can ignore this email.</p>
-   ```
-4. In **Authentication → URL Configuration**, set **Site URL** to your live site's address.
-5. **Before inviting anyone:** Supabase's built-in email only sends to members of
-   your Supabase team, and only a few emails an hour. Under **Authentication →
-   Emails → SMTP Settings**, connect a real email service. Gmail with an app
-   password works for small groups (about 500 emails a day). Resend or Brevo are
-   free alternatives.
 
-### 2. Vercel
+### 2. Clerk (sign-in)
+
+1. Create an application at https://dashboard.clerk.com and enable the sign-in
+   methods you want (Google, Microsoft, email code).
+2. In Clerk, open **Configure → Integrations** and enable **Supabase**. Copy the
+   Clerk domain it shows.
+3. In Supabase, open **Authentication → Sign In / Providers → Third-Party Auth**,
+   add **Clerk**, and paste that domain. Row-level security then reads the Clerk
+   user id from the session token (`auth.jwt()->>'sub'`).
+4. For real users, switch Clerk from its Development instance to **Production**,
+   which needs a domain you own.
+
+### 3. Vercel
 
 Import the repo and add these environment variables:
 
 | Name | Where to find it |
 |---|---|
-| `SUPABASE_URL` | Project Settings → Data API → Project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | Project Settings → API Keys → publishable key (`sb_publishable_…`), safe to expose |
-| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API Keys → secret key (`sb_secret_…`), **server-only, never share it** |
+| `SUPABASE_URL` | Supabase → Project Settings → Data API → Project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase → API Keys → publishable key (`sb_publishable_…`), safe to expose |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → API Keys → secret key (`sb_secret_…`), **server-only** |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk → Configure → API keys (`pk_…`), safe to expose |
+| `CLERK_SECRET_KEY` | Clerk → Configure → API keys (`sk_…`), **server-only** |
 
 On the free Vercel plan, commits must be authored by the email address linked to
 the GitHub account that owns the Vercel project. Otherwise the deploy is blocked.
 
-### 3. Local development
+### 4. Local development
 
 ```bash
 npm install
@@ -98,7 +97,7 @@ Show the old-style link**). That link works like a password, so prefer OAuth.
 
 | Path | Who | How |
 |---|---|---|
-| Website and `/api/*` | the signed-in student | Supabase session cookie. Queries run as that user under RLS (`user_id = auth.uid()`) |
+| Website and `/api/*` | the signed-in student | Clerk session. Supabase queries carry the Clerk token, so RLS matches `auth.jwt()->>'sub'` to `user_id` |
 | `/s/<token>` and `/api/share/<token>/*` | anyone with the share link | read-only routes. The server looks up the owner and reads only their rows |
 | `/api/mcp` | the student's Claude (OAuth) | bearer access token, hashed at rest, 1-hour expiry with refresh; PKCE required, codes single-use, replay revokes the connection |
 | `/api/mcp/<token>` | tools that can't sign in | personal link; the token is stored only as a SHA-256 hash |
@@ -106,14 +105,15 @@ Show the old-style link**). That link works like a password, so prefer OAuth.
 Every database call goes through `storeFor(client, userId)` in `lib/db.js`, which
 filters every query by `user_id`. For the signed-in path, RLS enforces the same
 rule a second time. Deleting an account (Settings → Account) removes all of that
-student's data through `ON DELETE CASCADE`.
+student's data: their rows cascade from the profile row, and the Clerk user is
+deleted through Clerk's API.
 
 ## Project layout
 
 ```
 app/
   page.js, Sheet.js, Drawer.js, Charts.js   the spreadsheet and the Charts tab
-  login/                                    email-code sign-in (server actions)
+  sign-in/, sign-up/                        Clerk sign-in and sign-up
   settings/                                 connector link, share link, account
   s/[token]/                                read-only shared view
   api/applications/…, api/events            signed-in JSON API
@@ -129,7 +129,7 @@ lib/
   oauth.js         the OAuth 2.1 authorization server (clients, codes, tokens)
   stats.js         numbers behind Charts, shared with the get_stats tool
   fields.js        columns and dropdown options
-proxy.js           refreshes sessions; sends signed-out visitors to /login
+proxy.js           Clerk middleware; sends signed-out visitors to /sign-in
 supabase/          schema.sql and migrations/
 claude-skill/      the Claude skill
 ```

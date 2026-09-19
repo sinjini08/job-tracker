@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/auth';
+import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { listConnections } from '@/lib/oauth';
 import SettingsPanel from './SettingsPanel';
 
@@ -7,8 +7,10 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Settings · Job Application Tracker' };
 
 export default async function SettingsPage() {
-  const user = await currentUser();
-  if (!user) redirect('/login');
+  const user = await currentUserWithEmail();
+  if (!user) redirect('/sign-in');
+  await ensureProfile(user.id, user.email);
+
   const [{ data: profile }, connections] = await Promise.all([
     user.sb.from('profiles').select('share_token, mcp_token_hash').eq('id', user.id).maybeSingle(),
     listConnections(user.id),
