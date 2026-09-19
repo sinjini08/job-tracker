@@ -11,6 +11,10 @@ write to that database through the **Supabase connector** (its SQL tool,
 `execute_sql`, against the project that contains the `applications` table).
 The website updates within ~20 seconds of any write.
 
+- **Supabase project ID:** `pnlzjqdcxcpznqwhkynm`. Pass it as `project_id` on every
+  call. Never touch any other project.
+- **Live site:** https://job-tracker-sable-iota.vercel.app (mention it when reporting a save)
+
 If the Supabase connector isn't available in this conversation, say so and stop.
 Don't pretend to have saved anything.
 
