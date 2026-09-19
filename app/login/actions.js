@@ -1,5 +1,6 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { supabaseForUser } from '@/lib/supabase/server';
 
@@ -10,7 +11,11 @@ export async function sendCode(_prev, formData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!EMAIL.test(email)) return { step: 'email', error: 'Enter a valid email address.' };
   const sb = await supabaseForUser();
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  const origin = (await headers()).get('origin');
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, ...(origin ? { emailRedirectTo: `${origin}/auth/callback` } : {}) },
+  });
   if (error) {
     const wait = /rate|security purposes|too many/i.test(error.message);
     return { step: 'email', email, error: wait ? 'Too many codes requested. Wait a minute and try again.' : error.message };

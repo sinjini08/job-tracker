@@ -3,10 +3,15 @@ import { createServerClient } from '@supabase/ssr';
 
 // Paths that carry their own token (share links, Claude connector) or are the
 // sign-in page itself. Everything else needs a signed-in user.
-const PUBLIC = [/^\/login/, /^\/s\//, /^\/api\/share\//, /^\/api\/mcp\//];
+const PUBLIC = [/^\/login/, /^\/s\//, /^\/api\/share\//, /^\/api\/mcp\//, /^\/auth\//];
 
 export async function proxy(request) {
   const path = request.nextUrl.pathname;
+  if (path === '/' && request.nextUrl.searchParams.has('code')) {
+    const to = new URL('/auth/callback', request.url);
+    to.searchParams.set('code', request.nextUrl.searchParams.get('code'));
+    return NextResponse.redirect(to);
+  }
   if (PUBLIC.slice(1).some((re) => re.test(path))) return NextResponse.next();
 
   // Refresh the Supabase session cookie (the documented @supabase/ssr pattern).
