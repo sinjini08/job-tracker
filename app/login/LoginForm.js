@@ -21,7 +21,7 @@ export default function LoginForm({ linkFailed }) {
               Claude fill it in from job postings. Sign in or create an account with your email.</p>
             <input name="email" type="email" autoComplete="email" placeholder="you@example.com"
               defaultValue={email} autoFocus required />
-            <button type="submit" disabled={sending}>{sending ? 'Sending…' : 'Email me a sign-in link'}</button>
+            <button type="submit" disabled={sending}>{sending ? 'Sending…' : 'Email me a code'}</button>
             {linkFailed && !sent?.error && (
               <p className="login-error" role="alert">That sign-in link expired or was opened in a different
                 browser. Request a new one here, in the browser you'll use.</p>
@@ -30,8 +30,8 @@ export default function LoginForm({ linkFailed }) {
           </form>
         ) : (
           <form action={verifyAction} className="login-form">
-            <p>We emailed <b>{email}</b>. Click the sign-in link in it, or enter the code if the
-              email has one. It can take a minute; check spam too.</p>
+            <p>We emailed a code to <b>{email}</b>. Enter it below, or click the link in the email
+              on this device. It can take a minute; check spam too.</p>
             <input type="hidden" name="email" value={email} />
             <input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code"
               maxLength={10} autoFocus required className="code-input" />

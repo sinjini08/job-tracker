@@ -18,7 +18,14 @@ export async function sendCode(_prev, formData) {
   });
   if (error) {
     const wait = /rate|security purposes|too many/i.test(error.message);
-    return { step: 'email', email, error: wait ? 'Too many codes requested. Wait a minute and try again.' : error.message };
+    const mail = /sending|smtp|email/i.test(error.message);
+    return {
+      step: 'email',
+      email,
+      error: wait ? 'Too many codes requested. Wait a minute and try again.'
+        : mail ? 'We couldn’t send the email just now. Try again in a minute.'
+        : error.message,
+    };
   }
   return { step: 'code', email };
 }
