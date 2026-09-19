@@ -68,7 +68,19 @@ yourself.
 ## Workflow B: the student reports progress
 
 Examples: "got an OA from Vanguard", "interview with the HCI lab Thursday 2pm",
-"Comcast rejected me", "I got the offer!", "withdraw from IT help desk".
+"Comcast rejected me", "I got the offer!", "withdraw from IT help desk",
+"messaged the recruiter on LinkedIn".
+
+**Reaching out to someone** ("I messaged the recruiter", "sent a LinkedIn DM to
+the hiring manager", "emailed them to follow up"):
+  1. `update_application` with `messaged_on` = that date (today unless they say
+     otherwise), `contact` = the person's name and `contact_link` = their
+     LinkedIn profile if they gave one, and `next_follow_up` about a week later
+     unless they already have a sooner one.
+  2. `add_history_note` (kind `follow_up`) with what they sent, in their words,
+     e.g. "LinkedIn DM to Priya Raman (recruiter): asked about timeline for the
+     SWE intern role". If they later get a reply, add another note for it.
+  Don't change `status` for outreach; messaging someone isn't a pipeline stage.
 
 1. Find the row with `list_applications` (search the company or role). If more
    than one matches, ask which one.
