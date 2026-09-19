@@ -4,9 +4,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { OPTIONS, SHEETS, columnLetter, isBlankRow } from '@/lib/fields';
 import { signOut } from './login/actions';
 import Drawer from './Drawer';
+import Charts from './Charts';
 import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 
-const TABS = ['On-Campus', 'Off-Campus'];
+const TABS = ['On-Campus', 'Off-Campus', 'Charts'];
+const CHARTS = 'Charts';
 const MIN_GRID_ROWS = 40;
 const POLL_MS = 20000;
 const ACTIVE = new Set(['Wishlist', 'Applied', 'OA / Assessment', 'Interviewing', 'Offer']);
@@ -79,7 +81,9 @@ export default function Sheet({ initialRows, role, loadError }) {
   const gridRef = useRef(null);
   const drawerOpenRef = useRef(false);
 
-  const cols = SHEETS[tab];
+  const isCharts = tab === CHARTS;
+  const cols = SHEETS[tab] ?? SHEETS['On-Campus']; // Charts has no grid; keep a harmless default
+  const [events, setEvents] = useState(null);
 
   // Remember the last tab per browser.
   useEffect(() => {
@@ -124,15 +128,25 @@ export default function Sheet({ initialRows, role, loadError }) {
   // ---- live refresh ----
   const busy = useRef(false);
   busy.current = Boolean(editing) || pending > 0;
+  const onCharts = useRef(false);
+  onCharts.current = isCharts;
   const refresh = useCallback(async () => {
     if (busy.current || document.visibilityState !== 'visible') return;
     try {
-      const data = await api('/api/applications');
+      const [data, evs] = await Promise.all([
+        api('/api/applications'),
+        onCharts.current ? api('/api/events') : null,
+      ]);
       if (!busy.current) setRows(data);
+      if (evs) setEvents(evs);
     } catch (e) {
       setError(e.message);
     }
   }, []);
+  // Load history the first time the Charts tab opens (the funnel needs it).
+  useEffect(() => {
+    if (isCharts) api('/api/events').then(setEvents).catch((e) => setError(e.message));
+  }, [isCharts]);
   useEffect(() => {
     const t = setInterval(refresh, POLL_MS);
     window.addEventListener('focus', refresh);
@@ -264,7 +278,7 @@ export default function Sheet({ initialRows, role, loadError }) {
   };
 
   const onGridKey = (e) => {
-    if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (isCharts || editing || e.metaKey || e.ctrlKey || e.altKey) return;
     const col = cols[sel.c];
     switch (e.key) {
       case 'ArrowUp': e.preventDefault(); move(-1, 0); return;
@@ -317,14 +331,14 @@ export default function Sheet({ initialRows, role, loadError }) {
       <header className="toolbar">
         <div className="brand"><span className="brand-mark" aria-hidden>▦</span>Job Application Tracker</div>
         <div className="toolbar-mid">
-          <input
+          {!isCharts && <input
             className="search"
             type="search"
             placeholder="Search this sheet"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-          />
-          {canEdit && <button className="btn primary" onClick={addRow}>+ New row</button>}
+          />}
+          {canEdit && !isCharts && <button className="btn primary" onClick={addRow}>+ New row</button>}
         </div>
         <div className="toolbar-right">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
@@ -334,6 +348,7 @@ export default function Sheet({ initialRows, role, loadError }) {
         </div>
       </header>
 
+      {isCharts ? <Charts rows={rows} events={events} /> : <>
       <div className="formula-bar">
         <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
         <div className="fx" aria-hidden>fx</div>
@@ -409,6 +424,7 @@ export default function Sheet({ initialRows, role, loadError }) {
           </tbody>
         </table>
       </div>
+      </>}
 
       <footer className="tabs-bar">
         <div className="tabs" role="tablist">
@@ -420,16 +436,18 @@ export default function Sheet({ initialRows, role, loadError }) {
               className={`tab ${tab === t ? 'active' : ''}`}
               onClick={() => switchTab(t)}
             >
-              {t} <span className="tab-count">{tabCount(t)}</span>
+              {t === CHARTS
+                ? <><span className="tab-chart-icon" aria-hidden>📊</span> {t}</>
+                : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
             </button>
           ))}
         </div>
-        <div className="status-summary">
+        {!isCharts && <div className="status-summary">
           {['Applied', 'OA / Assessment', 'Interviewing', 'Offer'].map((s) => (
             <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
           ))}
           <span>Total: <b>{tabCount(tab)}</b></span>
-        </div>
+        </div>}
       </footer>
 
       {drawerRow && (

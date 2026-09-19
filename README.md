@@ -99,6 +99,11 @@ read anything, so the only ways in are this website's server and your Claude con
 | Details and history | Click the row number |
 | Move a job to the other tab | Open its details → **Sheet** |
 
+The **📊 Charts** tab shows your headline numbers (applications, still in progress,
+response rate, interviews, offers), how far applications get, applications per week,
+current status, results by source, and by category. Filter by sheet and period, and
+switch any chart to a table. People with the view code can see it too.
+
 Overdue follow-ups, and wishlist deadlines within three days, show in red. The sheet
 refreshes every 20 seconds and whenever you switch back to the tab, so changes Claude
 makes show up on their own.

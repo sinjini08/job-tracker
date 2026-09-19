@@ -140,6 +140,21 @@ Examples: "got an OA from Vanguard", "interview with the HCI lab Thursday 2pm",
    ```
 3. Confirm in one line what changed.
 
+## Charts and stats
+
+The website has a **Charts** tab (the last tab at the bottom) that's always up to date:
+headline numbers, how far applications get, applications per week, current
+status, results by source, and by category, with Sheet and Period filters.
+Point the user there for those.
+
+For anything the tab doesn't cover ("interview rate for on-campus vs
+off-campus", "average days until I hear back", "which week did I apply the
+most"), query the tables with `execute_sql` and answer with the number. If a
+picture helps, draw a chart. Count "reached a stage" from the history
+(`application_events` status rows, where `detail` is `'Applied'` or
+`'Old → New'`), not just from the current status, because a row now marked
+Rejected may have reached Interviewing first.
+
 ## Other requests
 
 - "What's on my plate?" / "what should I follow up on?" Query the rows where
