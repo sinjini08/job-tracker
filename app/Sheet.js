@@ -10,6 +10,8 @@ import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 const TABS = ['On-Campus', 'Off-Campus', 'Charts'];
 const CHARTS = 'Charts';
 const MIN_GRID_ROWS = 40;
+const MIN_COL_W = 48, MAX_COL_W = 640;
+const MIN_ROW_H = 18, MAX_ROW_H = 120;
 const POLL_MS = 20000;
 const ACTIVE = new Set(['Wishlist', 'Applied', 'OA / Assessment', 'Interviewing', 'Offer']);
 const REQUIRED = new Set(['status']); // NOT NULL in the schema: never offer a blank
@@ -78,6 +80,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
   const [drawerId, setDrawerId] = useState(null);
+  const [colWidths, setColWidths] = useState({});   // { [column id]: px }, per sheet
+  const [rowHeight, setRowHeight] = useState(24);
   const gridRef = useRef(null);
   const drawerOpenRef = useRef(false);
 
@@ -85,13 +89,79 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const cols = SHEETS[tab] ?? SHEETS['On-Campus']; // Charts has no grid; keep a harmless default
   const [events, setEvents] = useState(null);
 
-  // Remember the last tab per browser.
+  // Remember the last tab, the column widths and the row height per browser.
   useEffect(() => {
     try {
       const saved = localStorage.getItem('jt_tab');
       if (TABS.includes(saved)) setTab(saved);
+      const h = Number(localStorage.getItem('jt_rowh'));
+      if (h >= MIN_ROW_H && h <= MAX_ROW_H) setRowHeight(h);
     } catch {}
   }, []);
+  useEffect(() => {
+    try {
+      setColWidths(JSON.parse(localStorage.getItem(`jt_colw_${tab}`) || '{}'));
+    } catch { setColWidths({}); }
+  }, [tab]);
+
+  const widthOf = (col) => colWidths[col.id] ?? col.width;
+  const saveWidths = (next) => {
+    setColWidths(next);
+    try { localStorage.setItem(`jt_colw_${tab}`, JSON.stringify(next)); } catch {}
+  };
+  const saveRowHeight = (h) => {
+    setRowHeight(h);
+    try { localStorage.setItem('jt_rowh', String(h)); } catch {}
+  };
+
+  // Drag a column's right edge, or a row number's bottom edge, to resize.
+  const startColDrag = (e, col) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = widthOf(col);
+    const move = (ev) => {
+      const w = Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, startW + ev.clientX - startX)));
+      setColWidths((prev) => ({ ...prev, [col.id]: w }));
+    };
+    const up = (ev) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      const w = Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, startW + ev.clientX - startX)));
+      saveWidths({ ...colWidths, [col.id]: w });
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const startRowDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const startH = rowHeight;
+    const move = (ev) => setRowHeight(Math.round(Math.min(MAX_ROW_H, Math.max(MIN_ROW_H, startH + ev.clientY - startY))));
+    const up = (ev) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      saveRowHeight(Math.round(Math.min(MAX_ROW_H, Math.max(MIN_ROW_H, startH + ev.clientY - startY))));
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  // Double-click an edge to fit the column to its widest value (Excel's autofit).
+  const autoFit = (col) => {
+    const texts = [col.label, ...visible.map((row) => plainText(row, col))];
+    const ctx = autoFit.ctx ??= document.createElement('canvas').getContext('2d');
+    ctx.font = '13px system-ui, sans-serif';
+    const widest = Math.max(...texts.map((t) => ctx.measureText(String(t)).width));
+    saveWidths({ ...colWidths, [col.id]: Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, widest + 26))) });
+  };
+
+  const resetSizes = () => {
+    saveWidths({});
+    saveRowHeight(24);
+  };
   const switchTab = (t) => {
     setTab(t);
     setSel({ r: 0, c: 0 });
@@ -363,6 +433,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
       <div
         className="grid-wrap"
+        style={{ '--row-h': `${rowHeight}px` }}
         ref={gridRef}
         tabIndex={0}
         onKeyDown={onGridKey}
@@ -371,7 +442,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         <table className="grid">
           <colgroup>
             <col style={{ width: 44 }} />
-            {cols.map((c) => <col key={c.id} style={{ width: c.width }} />)}
+            {cols.map((c) => <col key={c.id} style={{ width: widthOf(c) }} />)}
           </colgroup>
           <thead>
             <tr className="letters">
@@ -379,6 +450,12 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               {cols.map((c, i) => (
                 <th key={c.id} className={`${i === 0 ? 'sticky-col' : ''} ${i === sel.c ? 'hl' : ''}`}>
                   {columnLetter(i)}
+                  <span
+                    className="col-resizer"
+                    title="Drag to resize · double-click to fit"
+                    onPointerDown={(e) => startColDrag(e, c)}
+                    onDoubleClick={() => autoFit(c)}
+                  />
                 </th>
               ))}
             </tr>
@@ -393,6 +470,12 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
                 >
                   {c.label}
                   {sort?.key === c.id && <span className="sort">{sort.dir === 1 ? ' ▲' : ' ▼'}</span>}
+                  <span
+                    className="col-resizer"
+                    title="Drag to resize · double-click to fit"
+                    onPointerDown={(e) => startColDrag(e, c)}
+                    onDoubleClick={() => autoFit(c)}
+                  />
                 </th>
               ))}
             </tr>
@@ -408,6 +491,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
                     title={row ? 'Open details & history' : ''}
                   >
                     {r + 2}
+                    <span className="row-resizer" title="Drag to change row height" onPointerDown={startRowDrag} />
                   </th>
                   {cols.map((col, c) => (
                     <Cell
@@ -448,6 +532,11 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             </button>
           ))}
         </div>
+        {!isCharts && (Object.keys(colWidths).length > 0 || rowHeight !== 24) && (
+          <button className="reset-sizes" onClick={resetSizes} title="Back to default column widths and row height">
+            Reset sizes
+          </button>
+        )}
         {!isCharts && <div className="status-summary">
           {['Applied', 'OA / Assessment', 'Interviewing', 'Offer'].map((s) => (
             <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
