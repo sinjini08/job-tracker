@@ -13,9 +13,9 @@ const mark = (ring, dart) => `
   <path d="M49.5 20 L58.5 18 L56.5 27 Z" fill="${dart}" opacity="0.78"/>`;
 
 const files = {
-  'icon-green.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2b5a41"/>${mark('#f4f8f5', '#cfe3d7')}</svg>`,
-  'icon-white.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#ffffff"/>${mark('#2b5a41', '#4e8b6a')}</svg>`,
-  'mark-transparent.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${mark('#2b5a41', '#4e8b6a')}</svg>`,
+  'icon-green.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2e6b3d"/>${mark('#f5f5f0', '#6bb87a')}</svg>`,
+  'icon-white.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#ffffff"/>${mark('#2e6b3d', '#4a8b5a')}</svg>`,
+  'mark-transparent.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${mark('#2e6b3d', '#4a8b5a')}</svg>`,
 };
 for (const [name, svg] of Object.entries(files)) fs.writeFileSync(`${out}/${name}`, svg);
 
@@ -32,12 +32,12 @@ for (const [name, svg] of Object.entries(files)) fs.writeFileSync(`${out}/${name
   // A small strip for checking legibility at real sizes.
   const proof = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="80" viewBox="0 0 420 80">
     <rect width="420" height="80" fill="#f7f7f7"/>
-    <g transform="translate(20,24)"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2b5a41"/>${mark('#f4f8f5', '#cfe3d7')}</svg></g>
-    <g transform="translate(52,16)"><svg width="32" height="32" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2b5a41"/>${mark('#f4f8f5', '#cfe3d7')}</svg></g>
-    <g transform="translate(100,8)"><svg width="48" height="48" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2b5a41"/>${mark('#f4f8f5', '#cfe3d7')}</svg></g>
-    <g transform="translate(164,4)"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#ffffff" stroke="#e1e0d9"/>${mark('#2b5a41', '#4e8b6a')}</svg></g>
-    <g transform="translate(240,16)"><rect width="160" height="48" rx="11" fill="#2b5a41"/>
-      <g transform="translate(9,9)"><svg width="30" height="30" viewBox="0 0 64 64">${mark('#f4f8f5', '#cfe3d7')}</svg></g>
+    <g transform="translate(20,24)"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2e6b3d"/>${mark('#f5f5f0', '#6bb87a')}</svg></g>
+    <g transform="translate(52,16)"><svg width="32" height="32" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2e6b3d"/>${mark('#f5f5f0', '#6bb87a')}</svg></g>
+    <g transform="translate(100,8)"><svg width="48" height="48" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#2e6b3d"/>${mark('#f5f5f0', '#6bb87a')}</svg></g>
+    <g transform="translate(164,4)"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#ffffff" stroke="#e1e0d9"/>${mark('#2e6b3d', '#4a8b5a')}</svg></g>
+    <g transform="translate(240,16)"><rect width="160" height="48" rx="11" fill="#2e6b3d"/>
+      <g transform="translate(9,9)"><svg width="30" height="30" viewBox="0 0 64 64">${mark('#f5f5f0', '#6bb87a')}</svg></g>
       <text x="46" y="30" style="font:700 15px system-ui;fill:#fff">Job Tracker</text></g>
   </svg>`;
   await sharp(Buffer.from(proof), { density: 600 }).resize(840).png().toFile('/private/tmp/claude-501/-Users-user-Documents-ACE/e9c6b827-b4db-465a-ba0e-c1605b552955/scratchpad/logo-proof.png');

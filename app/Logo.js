@@ -7,11 +7,11 @@
 // `badge` draws the rounded green square behind it (app icon, sign-in mark).
 
 export const BRAND = {
-  green: '#2b5a41',
-  greenDeep: '#1f4230',
-  ring: '#f4f8f5',
-  dart: '#cfe3d7',
-  dartDark: '#4e8b6a',
+  green: '#2e6b3d',
+  greenDeep: '#235231',
+  ring: '#f5f5f0',
+  dart: '#6bb87a',
+  dartDark: '#4a8b5a',
 };
 
 export default function Logo({ size = 28, tone = 'light', badge = false, title = 'Job Tracker' }) {
