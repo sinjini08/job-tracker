@@ -74,15 +74,28 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     return p;
   };
 
-  // The mark, white and green, trimmed to its own bounds.
-  await sharp(mark, raw).png().trim({ threshold: 1 })
-    .toFile(out(path.join(root, 'public/brand/mark-white.png')));
+  // The mark, white and green. Trim to the artwork, then pad back to a square
+  // so it sits level next to text instead of floating (the dart makes the
+  // untrimmed shape wider than it is tall).
+  const squarePad = async (buf) => {
+    const trimmed = await sharp(buf, raw).png().trim({ threshold: 1 }).toBuffer({ resolveWithObject: true });
+    const side = Math.max(trimmed.info.width, trimmed.info.height);
+    return sharp(trimmed.data)
+      .extend({
+        top: Math.round((side - trimmed.info.height) / 2),
+        bottom: side - trimmed.info.height - Math.round((side - trimmed.info.height) / 2),
+        left: Math.round((side - trimmed.info.width) / 2),
+        right: side - trimmed.info.width - Math.round((side - trimmed.info.width) / 2),
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png().toBuffer();
+  };
+  fs.writeFileSync(out(path.join(root, 'public/brand/mark-white.png')), await squarePad(mark));
   const greenMark = Buffer.from(mark);
   for (let i = 0; i < greenMark.length; i += 4) {
     greenMark[i] = 0x2e; greenMark[i + 1] = 0x6b; greenMark[i + 2] = 0x3d;
   }
-  await sharp(greenMark, raw).png().trim({ threshold: 1 })
-    .toFile(out(path.join(root, 'public/brand/mark-green.png')));
+  fs.writeFileSync(out(path.join(root, 'public/brand/mark-green.png')), await squarePad(greenMark));
 
   // The full icon, cropped to the rounded square.
   const icon = sharp(SRC).extract(box);
@@ -91,8 +104,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   await icon.clone().resize(180, 180).png().toFile(out(path.join(root, 'app/apple-icon.png')));
   for (const size of [512, 1024]) {
     await icon.clone().resize(size, size).png().toFile(out(path.join(root, `brand/icon-green-${size}.png`)));
-    await sharp(greenMark, raw).png().trim({ threshold: 1 }).resize({ width: size, fit: 'contain',
-      background: { r: 255, g: 255, b: 255, alpha: 0 } })
+    await sharp(await squarePad(greenMark)).resize(size, size).png()
       .toFile(out(path.join(root, `brand/mark-green-${size}.png`)));
   }
   // A classic favicon.ico (16/32/48) alongside the big PNG: browsers prefer it

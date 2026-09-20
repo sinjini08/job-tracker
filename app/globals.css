@@ -50,7 +50,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
-.brand svg { display: block; }
+.brand img {
+  /* Optical, not geometric: the dart's tip stretches the artwork upward, so the
+     rings read a hair low when the box is centred. */
+  transform: translateY(-1px);
+}
 .toolbar-mid { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; min-width: 0; }
 .toolbar-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .search {

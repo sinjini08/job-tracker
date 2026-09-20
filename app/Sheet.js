@@ -400,7 +400,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   return (
     <div className="app">
       <header className="toolbar">
-        <div className="brand"><Logo size={22} />Job Application Tracker</div>
+        <div className="brand"><Logo size={24} />Job Application Tracker</div>
         <div className="toolbar-mid">
           {!isCharts && <input
             className="search"

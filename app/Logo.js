@@ -20,7 +20,7 @@ export const BRAND = {
 
 // Bumped by scripts/build-logo.cjs whenever the artwork changes, so browsers
 // and CDNs can't serve a stale mark.
-const V = '0f79ec8e';
+const V = '67ffaf7a';
 
 export default function Logo({ size = 28, tone = 'light', badge = false, title = 'Job Tracker' }) {
   const file = badge ? 'icon-green' : tone === 'dark' ? 'mark-green' : 'mark-white';
