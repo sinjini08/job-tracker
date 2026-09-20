@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { getClient, validRedirectUri } from '@/lib/oauth';
+import Logo from '@/app/Logo';
 import { approve } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export default async function Authorize({ searchParams }) {
   const fail = (title, detail) => (
     <main className="login">
       <div className="login-card">
-        <div className="login-mark" aria-hidden>▦</div>
+        <div className="login-mark"><Logo size={48} badge /></div>
         <h1>{title}</h1>
         <p>{detail}</p>
       </div>
@@ -52,7 +53,7 @@ export default async function Authorize({ searchParams }) {
   return (
     <main className="login">
       <div className="login-card consent">
-        <div className="login-mark" aria-hidden>▦</div>
+        <div className="login-mark"><Logo size={48} badge /></div>
         <h1>Connect {client.client_name}</h1>
         <p><b>{client.client_name}</b> wants to connect to your Job Application Tracker.</p>
         <ul className="consent-list">

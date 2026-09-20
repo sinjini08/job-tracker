@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OPTIONS, SHEETS, columnLetter, isBlankRow } from '@/lib/fields';
 import { SignOutButton } from '@clerk/nextjs';
+import Logo from './Logo';
 import Drawer from './Drawer';
 import Charts from './Charts';
 import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
@@ -399,7 +400,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   return (
     <div className="app">
       <header className="toolbar">
-        <div className="brand"><span className="brand-mark" aria-hidden>▦</span>Job Application Tracker</div>
+        <div className="brand"><Logo size={22} />Job Application Tracker</div>
         <div className="toolbar-mid">
           {!isCharts && <input
             className="search"

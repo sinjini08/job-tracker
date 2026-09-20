@@ -43,7 +43,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
-.brand-mark { font-size: 16px; line-height: 1; }
+.brand svg { display: block; }
 .toolbar-mid { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; min-width: 0; }
 .toolbar-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .search {
@@ -386,7 +386,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   flex-direction: column;
   gap: 12px;
 }
-.login-mark { font-size: 28px; color: var(--xl-green); line-height: 1; }
+.login-mark { line-height: 0; }
+.login-mark svg { display: block; }
 .login-card h1 { margin: 0; font-size: 18px; }
 .login-card p { margin: 0; color: var(--muted); }
 .login-card input {
@@ -581,7 +582,7 @@ body:has(.settings) { overflow: auto; }
 .login-intro { text-align: center; max-width: 420px; padding: 0 16px; }
 .login-intro h1 { margin: 8px 0 6px; font-size: 20px; color: #fff; }
 .login-intro p { margin: 0; color: rgba(255, 255, 255, 0.85); line-height: 1.5; }
-.login-intro .login-mark { color: #fff; }
+.login-intro .login-mark { display: flex; justify-content: center; }
 body:has(.login) { overflow: auto; }
 
 /* ---------- resizing columns and rows ---------- */

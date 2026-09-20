@@ -1,4 +1,5 @@
 import { shareStore } from '@/lib/auth';
+import Logo from '../../Logo';
 import Sheet from '../../Sheet';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,7 @@ export default async function SharedTracker({ params }) {
     return (
       <main className="login">
         <div className="login-card">
-          <div className="login-mark" aria-hidden>▦</div>
+          <div className="login-mark"><Logo size={48} badge /></div>
           <h1>This link isn’t active</h1>
           <p>The owner turned off sharing or made a new link. Ask them for the current one.</p>
         </div>
