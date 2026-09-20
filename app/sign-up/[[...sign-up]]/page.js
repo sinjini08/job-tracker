@@ -8,7 +8,7 @@ export default function SignUpPage() {
   return (
     <main className="login">
       <div className="login-intro">
-        <div className="login-mark"><Logo size={52} /></div>
+        <div className="login-mark"><Logo size={64} /></div>
         <h1>Job Application Tracker</h1>
         <p>Free for students. Track every application, see your stats, and let Claude
           do the typing.</p>

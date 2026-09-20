@@ -12,7 +12,7 @@ export default async function SharedTracker({ params }) {
     return (
       <main className="login">
         <div className="login-card">
-          <div className="login-mark"><Logo size={48} badge /></div>
+          <div className="login-mark"><Logo size={52} badge /></div>
           <h1>This link isn’t active</h1>
           <p>The owner turned off sharing or made a new link. Ask them for the current one.</p>
         </div>

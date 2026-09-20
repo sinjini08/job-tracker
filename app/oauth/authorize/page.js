@@ -16,7 +16,7 @@ export default async function Authorize({ searchParams }) {
   const fail = (title, detail) => (
     <main className="login">
       <div className="login-card">
-        <div className="login-mark"><Logo size={48} badge /></div>
+        <div className="login-mark"><Logo size={52} badge /></div>
         <h1>{title}</h1>
         <p>{detail}</p>
       </div>
@@ -53,7 +53,7 @@ export default async function Authorize({ searchParams }) {
   return (
     <main className="login">
       <div className="login-card consent">
-        <div className="login-mark"><Logo size={48} badge /></div>
+        <div className="login-mark"><Logo size={52} badge /></div>
         <h1>Connect {client.client_name}</h1>
         <p><b>{client.client_name}</b> wants to connect to your Job Application Tracker.</p>
         <ul className="consent-list">

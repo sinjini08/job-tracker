@@ -1,12 +1,17 @@
 # Brand
 
 The mark is a bullseye with a dart: aiming at a role, and hitting it.
+`source-logo.png` is the original artwork; every other file is generated from it
+by `node scripts/build-logo.cjs`. Replace that file and re-run the script to
+change the logo everywhere.
 
 | File | Use |
 |---|---|
-| `icon-green.svg` / `-512.png` / `-1024.png` | app icon, profile pictures, anywhere on a light background |
-| `icon-white.svg` / `-512.png` / `-1024.png` | the same mark on white, for slides and print |
-| `mark-transparent.svg` / `-512.png` / `-1024.png` | mark only, no background square |
+| `source-logo.png` | the original artwork — the one file to replace |
+| `icon-green-512.png` / `-1024.png` | app icon, profile pictures, LinkedIn |
+| `mark-green-512.png` / `-1024.png` | mark only, transparent, for light backgrounds |
+| `public/brand/mark-white.png` | mark only, white, used in the app's green bar |
+| `app/icon.png`, `app/apple-icon.png` | browser tab and phone home screen |
 
 ## Palette
 
