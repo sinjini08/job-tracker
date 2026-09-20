@@ -93,7 +93,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   fs.writeFileSync(out(path.join(root, 'public/brand/mark-white.png')), await squarePad(mark));
   const greenMark = Buffer.from(mark);
   for (let i = 0; i < greenMark.length; i += 4) {
-    greenMark[i] = 0x2e; greenMark[i + 1] = 0x6b; greenMark[i + 2] = 0x3d;
+    greenMark[i] = 0x1d; greenMark[i + 1] = 0x5c; greenMark[i + 2] = 0x36;
   }
   fs.writeFileSync(out(path.join(root, 'public/brand/mark-green.png')), await squarePad(greenMark));
 

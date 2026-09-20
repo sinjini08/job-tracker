@@ -13,19 +13,22 @@ change the logo everywhere.
 | `public/brand/mark-white.png` | mark only, white, used in the app's green bar |
 | `app/icon.png`, `app/apple-icon.png` | browser tab and phone home screen |
 
-## Palette
+## Palette — "Forest"
 
 | Token | Hex | Used for |
 |---|---|---|
 | paper | `#f5f5f0` | page background, header rows |
 | sand | `#e8e8dc` | gridlines, borders |
-| green | `#2e6b3d` | app bar, buttons, the logo |
-| green-mid | `#4a8b5a` | hovers, the dart on white |
-| green-light | `#6bb87a` | the dart on green, lightest funnel step |
+| green | `#1d5c36` | app bar, buttons, the logo (sampled from the artwork) |
+| green-mid | `#2e7d46` | hovers |
+| green-light | `#69b57f` | lightest funnel step |
 
-Charts use `#1f9d55` (On-Campus) and `#e0651f` (Off-Campus): a pair checked for
-colourblind separation against the `#f5f5f0` surface. The funnel ramp is
-`#6bb87a → #4a8b5a → #2e6b3d → #215030 → #143520`.
-The live version is `app/Logo.js`; `app/icon.svg` is the browser tab icon and
-`app/apple-icon.png` the phone home-screen icon. Change `app/Logo.js` and re-run
-`scripts/export-logo.mjs` to regenerate these files.
+Charts, all checked with the dataviz validator against `#f5f5f0`:
+
+- Series, in fixed order: `#1f9d55` · `#2a78d6` · `#e0651f` · `#8a5bd0` · `#d1478c`.
+  Slots 1 and 2 are On-Campus and Off-Campus; the rest appear in the by-source
+  and by-category charts.
+- Funnel ramp: `#69b57f → #4a9463 → #2e7d46 → #1d5c36 → #123c22`.
+
+Colours live in `app/globals.css` (`:root`). Changing them there updates the app;
+re-run `node scripts/build-logo.cjs` afterwards so the logo files follow.

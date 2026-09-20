@@ -10,6 +10,9 @@ const PERIODS = [
 ];
 const SHEET_FILTERS = ['All', 'On-Campus', 'Off-Campus'];
 const SERIES = { 'On-Campus': 'var(--series-1)', 'Off-Campus': 'var(--series-2)' };
+// Used where each bar is its own category (by source, by category).
+const CATEGORY_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)',
+  'var(--series-4)', 'var(--series-5)'];
 const FUNNEL_RAMP = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)'];
 
 export default function Charts({ rows, events }) {
@@ -67,12 +70,12 @@ export default function Charts({ rows, events }) {
 
             <Card title="By source" subtitle="Where you found the job, and how often it led to an interview"
               table={{ cols: ['Source', 'Applications', 'Reached interview'], rows: data.bySource.map((r) => [r.label, r.value, r.note]) }}>
-              <HBars rows={data.bySource} tip={tip} />
+              <HBars rows={data.bySource.map((r, i) => ({ ...r, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))} tip={tip} />
             </Card>
 
             <Card title="By category" subtitle="Type of role"
               table={{ cols: ['Category', 'Applications'], rows: data.byCategory.map((r) => [r.label, r.value]) }}>
-              <HBars rows={data.byCategory} tip={tip} />
+              <HBars rows={data.byCategory.map((r, i) => ({ ...r, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))} tip={tip} />
             </Card>
           </div>
         </>

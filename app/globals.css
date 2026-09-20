@@ -2,13 +2,13 @@
   /* Brand palette: warm off-white, sand, and three greens. */
   --paper: #f5f5f0;
   --sand: #e8e8dc;
-  --green: #2e6b3d;
-  --green-mid: #4a8b5a;
-  --green-light: #6bb87a;
+  --green: #1d5c36;        /* the logo's green */
+  --green-mid: #2e7d46;
+  --green-light: #69b57f;
 
   --xl-green: var(--green);
-  --xl-green-dark: #235231;
-  --xl-green-tint: #dfece3;
+  --xl-green-dark: #14472a;
+  --xl-green-tint: #dcece1;
   --grid-line: var(--sand);
   --head-bg: var(--paper);
   --head-line: #d8d8ca;
@@ -434,13 +434,20 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Palette: validated with the dataviz skill's validator against #ffffff —
    categorical slots 1–2 (all checks pass) and a 5-step ordinal blue ramp. */
 .viz-root {
-  --series-1: #1f9d55;   /* On-Campus */
-  --series-2: #e0651f;   /* Off-Campus */
-  --ord-1: #6bb87a;
-  --ord-2: #4a8b5a;
-  --ord-3: #2e6b3d;
-  --ord-4: #215030;
-  --ord-5: #143520;
+  /* Series colours in fixed order, checked for colourblind separation against
+     the #f5f5f0 surface. 1 and 2 are On-Campus and Off-Campus; 3-5 are there
+     for the by-source and by-category charts. */
+  --series-1: #1f9d55;
+  --series-2: #2a78d6;
+  --series-3: #e0651f;
+  --series-4: #8a5bd0;
+  --series-5: #d1478c;
+  /* Funnel: one hue, light to dark, ending on the logo green. */
+  --ord-1: #69b57f;
+  --ord-2: #4a9463;
+  --ord-3: #2e7d46;
+  --ord-4: #1d5c36;
+  --ord-5: #123c22;
   --viz-surface: #ffffff;
   --viz-page: var(--paper);
   --viz-ink: #1d231f;

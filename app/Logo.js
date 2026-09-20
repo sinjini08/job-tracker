@@ -10,10 +10,10 @@
 // `badge`  — the full rounded-square icon instead of the bare mark.
 
 export const BRAND = {
-  green: '#2e6b3d',
-  greenDeep: '#235231',
-  greenMid: '#4a8b5a',
-  greenLight: '#6bb87a',
+  green: '#1d5c36',
+  greenDeep: '#14472a',
+  greenMid: '#2e7d46',
+  greenLight: '#69b57f',
   paper: '#f5f5f0',
   sand: '#e8e8dc',
 };
