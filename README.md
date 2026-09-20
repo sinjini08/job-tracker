@@ -10,7 +10,7 @@ in from job postings.
   database enforces this with row-level security, not just the website.
 - **The sheet:** On-Campus and Off-Campus tabs. Click a cell and type. Click a
   row number to see the saved job description and the application's history.
-- **📊 Charts:** headline numbers, how far applications get, applications per week,
+- **Charts:** headline numbers, how far applications get, applications per week,
   and breakdowns by status, source and category.
 - **Sharing:** a student can create a read-only link (for a career advisor or a
   friend) and turn it off at any time.

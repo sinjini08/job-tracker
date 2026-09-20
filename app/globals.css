@@ -537,8 +537,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .viz-empty-title { font-size: 15px; font-weight: 600; color: var(--viz-ink); margin: 0 0 6px; }
 .viz-empty p { margin: 0; }
 
-.tab-chart-icon { font-size: 12px; }
-
 @media (max-width: 720px) {
   .viz-grid { grid-template-columns: 1fr; }
   .hbar-row { grid-template-columns: 96px 1fr; }

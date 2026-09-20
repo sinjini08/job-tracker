@@ -527,9 +527,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               className={`tab ${tab === t ? 'active' : ''}`}
               onClick={() => switchTab(t)}
             >
-              {t === CHARTS
-                ? <><span className="tab-chart-icon" aria-hidden>📊</span> {t}</>
-                : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
+              {t === CHARTS ? t : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
             </button>
           ))}
         </div>
