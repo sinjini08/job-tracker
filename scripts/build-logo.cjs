@@ -95,6 +95,31 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
       background: { r: 255, g: 255, b: 255, alpha: 0 } })
       .toFile(out(path.join(root, `brand/mark-green-${size}.png`)));
   }
+  // A classic favicon.ico (16/32/48) alongside the big PNG: browsers prefer it
+  // for the tab, and some ignore large PNG icons entirely.
+  const icoSizes = [16, 32, 48];
+  const icoPngs = [];
+  for (const size of icoSizes) {
+    icoPngs.push(await icon.clone().resize(size, size).png().toBuffer());
+  }
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); header.writeUInt16LE(1, 2); header.writeUInt16LE(icoSizes.length, 4);
+  const dir = Buffer.alloc(16 * icoSizes.length);
+  let offset = 6 + dir.length;
+  icoSizes.forEach((size, i) => {
+    const e = i * 16;
+    dir[e] = size === 256 ? 0 : size;       // width
+    dir[e + 1] = size === 256 ? 0 : size;   // height
+    dir[e + 2] = 0;                          // palette
+    dir[e + 3] = 0;                          // reserved
+    dir.writeUInt16LE(1, e + 4);             // colour planes
+    dir.writeUInt16LE(32, e + 6);            // bits per pixel
+    dir.writeUInt32LE(icoPngs[i].length, e + 8);
+    dir.writeUInt32LE(offset, e + 12);
+    offset += icoPngs[i].length;
+  });
+  fs.writeFileSync(out(path.join(root, 'public/favicon.ico')), Buffer.concat([header, dir, ...icoPngs]));
+
   // Stamp the content hash into Logo.js so the browser always fetches the new art.
   const crypto = require('node:crypto');
   const hash = crypto.createHash('sha1')
