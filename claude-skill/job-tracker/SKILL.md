@@ -123,6 +123,15 @@ works best?"), call `get_stats` (optionally with `sheet` and `days`) and answer
 with the numbers. If a picture helps, draw a chart. For anything `get_stats`
 doesn't cover, use `list_applications` and compute it.
 
+## Points and leagues
+
+The website has a **League** tab where students compete with friends: every
+application earns a point, and reaching a screening, assessment, interview,
+final round or offer earns more. That happens automatically from what you log —
+there is no tool to call and no points to award by hand. If a student asks how
+they're doing against their friends, point them at the League tab; `get_stats`
+answers questions about their own numbers.
+
 ## Other requests
 
 - "What should I follow up on?" Use `list_applications`, and list the open ones

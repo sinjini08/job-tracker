@@ -666,3 +666,74 @@ body:has(.login) { overflow: auto; }
   white-space: nowrap;
 }
 .reset-sizes:hover { color: var(--xl-green-dark); text-decoration: underline; }
+
+/* ---------- league tab ---------- */
+.league-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.league-board th.rank-col, .league-board td.rank-col { text-align: left; width: 32px; color: var(--viz-muted); }
+.league-board td.member { text-align: left; font-weight: 500; color: var(--viz-ink); }
+.league-board tr.me { background: var(--xl-green-tint); }
+.league-board tr.me td { border-bottom-color: #cfe4d6; }
+.league-board .you {
+  margin-left: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--xl-green);
+  color: #fff;
+}
+.hidden-cell { color: var(--viz-base); cursor: help; }
+.goal { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; white-space: nowrap; }
+.goal-track { width: 46px; height: 6px; border-radius: 3px; background: var(--viz-grid); overflow: hidden; }
+.goal-fill { display: block; height: 100%; background: var(--ord-4); }
+.goal.met .goal-fill { background: var(--series-1); }
+.invite { display: inline-flex; align-items: center; gap: 8px; }
+.invite code {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  color: var(--xl-green-dark);
+}
+.league-err { color: var(--due); margin: 0 0 12px; }
+.league-fine { margin: 12px 0 0; font-size: 12px; color: var(--viz-muted); }
+.league-intro { max-width: 52ch; margin: 0 0 18px; color: var(--viz-ink-2); line-height: 1.5; }
+
+.league-start {
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 560px;
+}
+.league-start.compact { background: none; border: 0; border-radius: 0; padding: 0; max-width: none; }
+.league-start form { display: flex; align-items: flex-end; gap: 8px; }
+.league-start label { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.league-start label span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--viz-muted); }
+.league-start input, .league-settings input {
+  border: 1px solid var(--head-line);
+  border-radius: 4px;
+  padding: 7px 9px;
+  background: #fff;
+  font: inherit;
+}
+.league-start input.code { letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+.league-start input:focus, .league-settings input:focus { outline: 2px solid var(--xl-green); outline-offset: -1px; border-color: transparent; }
+.league-start .btn { height: 34px; }
+.league-start .btn.primary { background: var(--xl-green); color: #fff; border-color: var(--xl-green); }
+.league-start .btn.primary:hover { background: var(--xl-green-dark); }
+.league-or { margin: 14px 0; font-size: 12px; color: var(--viz-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.league-settings { display: flex; flex-direction: column; gap: 14px; }
+.league-settings .field > span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--viz-muted); }
+.league-settings fieldset.detail { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.league-settings .radio { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.league-settings .radio input { margin-top: 3px; }
+.league-settings .radio span { display: flex; flex-direction: column; }
+.league-settings .radio small { color: var(--viz-muted); }
+.board-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.league-board { min-width: 420px; }

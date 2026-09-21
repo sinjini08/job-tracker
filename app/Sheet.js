@@ -7,10 +7,12 @@ import { SignOutButton } from '@clerk/nextjs';
 import Logo from './Logo';
 import Drawer from './Drawer';
 import Charts from './Charts';
+import League from './League';
 import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 
-const TABS = ['On-Campus', 'Off-Campus', 'Charts'];
+const TABS = ['On-Campus', 'Off-Campus', 'Charts', 'League'];
 const CHARTS = 'Charts';
+const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
 const MIN_COL_W = 48, MAX_COL_W = 640;
 const MIN_ROW_H = 18, MAX_ROW_H = 120;
@@ -106,7 +108,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const drawerOpenRef = useRef(false);
 
   const isCharts = tab === CHARTS;
-  const cols = SHEETS[tab] ?? SHEETS['On-Campus']; // Charts has no grid; keep a harmless default
+  const isLeague = tab === LEAGUE;
+  const isGrid = !isCharts && !isLeague;
+  const cols = SHEETS[tab] ?? SHEETS['On-Campus']; // the extra tabs have no grid; keep a harmless default
   const [events, setEvents] = useState(null);
 
   // Remember the last tab, the column widths and the row height per browser.
@@ -368,7 +372,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   };
 
   const onGridKey = (e) => {
-    if (isCharts || editing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!isGrid || editing || e.metaKey || e.ctrlKey || e.altKey) return;
     const col = cols[sel.c];
     switch (e.key) {
       case 'ArrowUp': e.preventDefault(); move(-1, 0); return;
@@ -425,14 +429,14 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       <header className="toolbar">
         <div className="brand"><Logo size={24} />Job Application Tracker</div>
         <div className="toolbar-mid">
-          {!isCharts && <input
+          {isGrid && <input
             className="search"
             type="search"
             placeholder="Search this sheet"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />}
-          {canEdit && !isCharts && <button className="btn primary" onClick={addRow}>+ New row</button>}
+          {canEdit && isGrid && <button className="btn primary" onClick={addRow}>+ New row</button>}
         </div>
         <div className="toolbar-right">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
@@ -448,7 +452,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>
       </header>
 
-      {isCharts ? <Charts rows={rows} events={events} /> : <>
+      {isCharts ? <Charts rows={rows} events={events} /> : isLeague ? <League /> : <>
       <div className="formula-bar">
         <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
         <div className="fx" aria-hidden>fx</div>
@@ -550,16 +554,16 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               className={`tab ${tab === t ? 'active' : ''}`}
               onClick={() => switchTab(t)}
             >
-              {t === CHARTS ? t : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
+              {t === CHARTS || t === LEAGUE ? t : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
             </button>
           ))}
         </div>
-        {!isCharts && (Object.keys(colWidths).length > 0 || rowHeight !== 24) && (
+        {isGrid && (Object.keys(colWidths).length > 0 || rowHeight !== 24) && (
           <button className="reset-sizes" onClick={resetSizes} title="Back to default column widths and row height">
             Reset sizes
           </button>
         )}
-        {!isCharts && <div className="status-summary">
+        {isGrid && <div className="status-summary">
           {['Applied', 'OA / Assessment', 'Interviewing', 'Offer'].map((s) => (
             <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
           ))}
