@@ -88,6 +88,11 @@ export default function League() {
     setActive(null);
     await loadLeagues();
   });
+  const removeMember = (row) => act(async () => {
+    if (!confirm(`Remove ${row.display_name} from “${league.name}”? They keep all their own data, and can rejoin with the code.`)) return;
+    await api(`/api/leagues/${active}/members/${encodeURIComponent(row.user_id)}`, 'DELETE');
+    await Promise.all([loadBoard(active), loadLeagues(active)]);
+  });
   const saveProfile = (patch) => act(async () => {
     setProfile(await api('/api/profile', 'PATCH', patch));
     await loadBoard(active);
@@ -126,7 +131,7 @@ export default function League() {
           </div>}
 
           <div className="viz-grid league-grid">
-            <div className="viz-card">
+            <div className="viz-card board-card">
               <div className="viz-card-head">
                 <div>
                   <h2>{league?.name ?? 'Leaderboard'}</h2>
@@ -138,7 +143,8 @@ export default function League() {
                   </button>
                 )}
               </div>
-              <Board rows={ranked} period={period} />
+              <Board rows={ranked} period={period}
+                canRemove={Boolean(league?.is_owner)} onRemove={removeMember} busy={busy} />
             </div>
 
             <div className="viz-card">
@@ -188,9 +194,15 @@ export default function League() {
 
 // ---------------------------------------------------------------------------
 
-function Board({ rows, period }) {
+function Board({ rows, period, canRemove, onRemove, busy }) {
   if (!rows) return <p className="viz-note">Loading…</p>;
   const p = periodBy(period);
+  // One scale across everyone, so the traces are comparable rather than each
+  // row being normalised to its own best day. The scale is capped, though:
+  // without that, a single thirty-in-an-evening spike flattens everybody
+  // else's week into stubs. Anything past the cap just reaches full height.
+  const busiest = Math.max(0, ...rows.flatMap((r) => r.daily ?? []));
+  const peak = Math.min(6, Math.max(3, busiest));
   return (
     // Scrolls sideways rather than spilling out of the card on a phone.
     <div className="board-wrap">
@@ -204,6 +216,8 @@ function Board({ rows, period }) {
           <th>Interviews</th>
           <th>Offers</th>
           <th>Goal</th>
+          <th className="trace-col" title="Applications per day over the last two weeks">Last 2 weeks</th>
+          {canRemove && <th className="kick-col" aria-label="Remove" />}
         </tr>
       </thead>
       <tbody>
@@ -228,12 +242,39 @@ function Board({ rows, period }) {
                   </span>
                 ) : '—'}
               </td>
+              <td className="trace-col"><Trace daily={row.daily} peak={peak} /></td>
+              {canRemove && (
+                <td className="kick-col">
+                  {!row.is_me && (
+                    <button className="kick" title={`Remove ${row.display_name}`} disabled={busy}
+                      onClick={() => onRemove(row)}>×</button>
+                  )}
+                </td>
+              )}
             </tr>
           );
         })}
       </tbody>
     </table>
     </div>
+  );
+}
+
+// Applications per day for the last fortnight. Steady beats spiky, and a
+// week's work done in one evening looks like exactly that.
+function Trace({ daily, peak }) {
+  if (!daily) return <span className="hidden-cell" title="This member shows points only">·</span>;
+  const total = daily.reduce((t, n) => t + n, 0);
+  const busiest = Math.max(0, ...daily);
+  return (
+    <span className="trace" title={`${total} in the last 14 days · busiest day ${busiest}`}>
+      {daily.map((n, i) => (
+        // A day with one application must not look like a day with none, so
+        // any non-zero day gets a visible minimum.
+        <i key={i} className={n ? '' : 'empty'}
+           style={{ height: n ? `${Math.max(25, Math.min(100, (n / peak) * 100))}%` : undefined }} />
+      ))}
+    </span>
   );
 }
 

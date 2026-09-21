@@ -132,6 +132,10 @@ there is no tool to call and no points to award by hand. If a student asks how
 they're doing against their friends, point them at the League tab; `get_stats`
 answers questions about their own numbers.
 
+A row only scores once it has **both a role and a company**, and the same job
+logged twice scores once — so fill both in rather than saving a placeholder,
+and check for duplicates before adding (which you should be doing anyway).
+
 ## Other requests
 
 - "What should I follow up on?" Use `list_applications`, and list the open ones

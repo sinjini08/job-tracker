@@ -736,4 +736,27 @@ body:has(.login) { overflow: auto; }
 .league-settings .radio span { display: flex; flex-direction: column; }
 .league-settings .radio small { color: var(--viz-muted); }
 .board-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
-.league-board { min-width: 420px; }
+.league-board { min-width: 520px; }
+
+/* the 14-day trace: steady application habits look different from a spike */
+.league-board .trace-col { width: 78px; }
+.trace { display: flex; align-items: flex-end; gap: 1px; height: 18px; justify-content: flex-end; }
+.trace i { width: 4px; min-height: 1px; background: var(--ord-4); border-radius: 1px 1px 0 0; }
+.trace i.empty { height: 1px; background: var(--viz-grid); }
+.league-board .kick-col { width: 24px; padding-left: 0; }
+.kick {
+  border: 0;
+  background: none;
+  color: var(--viz-base);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  border-radius: 3px;
+  visibility: hidden;
+}
+.league-board tr:hover .kick { visibility: visible; }
+.kick:hover { color: var(--due); background: #fdecea; }
+/* The board is the point of the page: it gets the full row, and the smaller
+   cards sit underneath it. */
+.league-grid > .board-card { grid-column: 1 / -1; }
