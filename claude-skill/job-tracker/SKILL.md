@@ -24,10 +24,15 @@ Claude, **Settings → Connectors → Add custom connector**, paste the tracker'
 `/api/mcp` URL (shown on the site under **Settings → Connect Claude**), then click
 **Connect** and approve it on the site. Don't pretend anything was saved.
 
-The tools validate every value. Sheets, statuses, categories, sources, work modes
-and priorities must be one of the listed options, and dates are `YYYY-MM-DD`.
-Status changes are recorded in the history automatically, so never log them
-yourself.
+Dates are `YYYY-MM-DD`. Most dropdowns (status, category, source, work mode,
+term, outreach method) list the usual choices but accept another value when the
+posting genuinely calls for one — prefer a listed value, and only stray when
+none of them fit. `type` (the sheet) and `priority` are strict. Status changes
+are recorded in the history automatically, so never log them yourself.
+
+Statuses, in pipeline order: `Wishlist` · `Applied` · `Screening` ·
+`OA / Assessment` · `Interviewing` · `Final round` · `Offer` · `Accepted`, plus
+`Rejected`, `Withdrawn` and `No reply` (an application that went silent).
 
 ## Workflow A: the student is applying to a job
 
@@ -40,9 +45,17 @@ yourself.
      university's Workday). Everything else is `Off-Campus`.
    - `category`: infer it from the title and terms ("Summer 2027 Intern" is
      `Internship`; "Learning Assistant" is `Research / TA / LA`).
+   - `term`: the hiring season the posting names, e.g. `Summer 2027`. Use
+     `Ongoing` for a job with no season (most on-campus work). Leave it out if
+     the posting doesn't say.
    - `source`: infer it from the URL (handshake.com → Handshake;
-     `*.myworkdayjobs.com` for the university → Workday (PSU); linkedin.com →
-     LinkedIn; the employer's own site → Company Site).
+     `*.myworkdayjobs.com` for the university → University portal; linkedin.com
+     → LinkedIn; indeed.com → Indeed; the employer's own site → Company site).
+   - `location`: the campus or building on-campus, "City, ST" off-campus.
+     `work_mode` and `hours_per_week` apply to both sheets — fill them only
+     when the posting states them.
+   - `deadline`: leave it out when the posting is rolling or gives no date, and
+     say "rolling — no stated deadline" in `notes`.
    - `requirements`: the must-have qualifications, in 2–4 short lines.
    - `job_description`: the full posting text, lightly cleaned. Postings vanish,
      and the student will want the text for interview prep.
@@ -72,11 +85,13 @@ Examples: "got an OA from Vanguard", "interview with the HCI lab Thursday 2pm",
 "messaged the recruiter on LinkedIn".
 
 **Reaching out to someone** ("I messaged the recruiter", "sent a LinkedIn DM to
-the hiring manager", "emailed them to follow up"):
-  1. `update_application` with `messaged_on` = that date (today unless they say
-     otherwise), `contact` = the person's name and `contact_link` = their
-     LinkedIn profile if they gave one, and `next_follow_up` about a week later
-     unless they already have a sooner one.
+the hiring manager", "emailed them to follow up", "talked to them at the career
+fair"):
+  1. `update_application` with `outreach_method` (`LinkedIn`, `Email`,
+     `In person`, `Career fair`), `reached_out_on` = that date (today unless
+     they say otherwise), `contact` = the person's name and `contact_link` =
+     their LinkedIn profile if they gave one, and `next_follow_up` about a week
+     later unless they already have a sooner one.
   2. `add_history_note` (kind `follow_up`) with what they sent, in their words,
      e.g. "LinkedIn DM to Priya Raman (recruiter): asked about timeline for the
      SWE intern role". If they later get a reply, add another note for it.
@@ -85,15 +100,17 @@ the hiring manager", "emailed them to follow up"):
 1. Find the row with `list_applications` (search the company or role). If more
    than one matches, ask which one.
 2. Update it with `update_application`:
+   - Recruiter screen / phone screen: status `Screening`.
    - OA received: status `OA / Assessment`. Put the OA due date in
      `next_follow_up` if they gave one.
    - Interview scheduled: status `Interviewing`, and `next_follow_up` = the
      interview date. Then `add_history_note` (kind `interview`) with the date,
      time, format and interviewer, if known.
+   - Final / onsite round: status `Final round`, same history note.
    - Offer: status `Offer`. Then `add_history_note` (kind `offer`) with pay,
      the deadline to respond, and the start date.
-   - Accepted, Rejected or Withdrawn: set the status and clear `next_follow_up`
-     (set it to `null`).
+   - Accepted, Rejected, Withdrawn or No reply: set the status and clear
+     `next_follow_up` (set it to `null`).
 3. Confirm in one line what changed.
 
 ## Stats and charts
@@ -108,8 +125,10 @@ doesn't cover, use `list_applications` and compute it.
 
 ## Other requests
 
-- "What should I follow up on?" Use `list_applications`, and list the active ones
-  (Applied, OA / Assessment, Interviewing, Offer) whose `next_follow_up` is today
-  or earlier, soonest first.
+- "What should I follow up on?" Use `list_applications`, and list the open ones
+  (anything except Rejected, Withdrawn and No reply) whose `next_follow_up` is
+  today or earlier, soonest first — the same count the website shows as
+  "Follow-ups due". Also flag a `Wishlist` row whose `deadline` is within three
+  days.
 - "Delete X": confirm which one first, then `delete_application`. Its history
   goes with it.

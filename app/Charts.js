@@ -13,7 +13,9 @@ const SERIES = { 'On-Campus': 'var(--series-1)', 'Off-Campus': 'var(--series-2)'
 // Used where each bar is its own category (by source, by category).
 const CATEGORY_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)',
   'var(--series-4)', 'var(--series-5)'];
-const FUNNEL_RAMP = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)'];
+// One step per pipeline stage, so the funnel darkens as it narrows.
+const FUNNEL_RAMP = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)',
+  'var(--ord-5)', 'var(--ord-6)', 'var(--ord-7)'];
 
 export default function Charts({ rows, events }) {
   const [sheet, setSheet] = useState('All');
@@ -43,7 +45,7 @@ export default function Charts({ rows, events }) {
         <>
           <div className="viz-kpis">
             <Stat label="Applications" value={data.total} sub={data.wishlist ? `+ ${data.wishlist} on wishlist` : 'sent'} />
-            <Stat label="Still in progress" value={data.active} sub="applied, OA, interviewing or offer" />
+            <Stat label="Still in progress" value={data.active} sub="not rejected, withdrawn or silent" />
             <Stat label="Response rate" value={`${data.responseRate}%`} sub={`${data.responded} of ${data.total} heard back`} />
             <Stat label="Reached interview" value={data.interviews} sub={`${pct(data.interviews, data.total)}% of applications`} />
             <Stat label="Offers" value={data.offers} sub={`${pct(data.offers, data.total)}% of applications`} />

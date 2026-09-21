@@ -246,7 +246,29 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .list-editor option { padding: 3px 8px; }
 .list-editor option:checked { background: var(--xl-green-tint) linear-gradient(var(--xl-green-tint), var(--xl-green-tint)); color: var(--xl-green-dark); }
-.grid td:has(.list-editor) { overflow: visible; z-index: 20; }
+.grid td:has(.list-editor), .grid td:has(.combo) { overflow: visible; z-index: 20; }
+
+/* a dropdown you can type into: the input fills the cell, the suggestions
+   hang below it */
+.combo { position: static; }
+.combo-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  max-height: 230px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  z-index: 25;
+  background: #fff;
+  border: 1px solid var(--head-line);
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+.combo-list li { padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+.combo-list li.hi { background: var(--xl-green-tint); color: var(--xl-green-dark); }
 
 /* ---------- sheet tabs + status bar ---------- */
 .tabs-bar {
@@ -299,6 +321,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow: hidden;
 }
 .status-summary b { color: var(--text); font-weight: 600; }
+.status-summary .due-count, .status-summary .due-count b { color: var(--due); font-weight: 600; }
 
 /* ---------- details drawer ---------- */
 .drawer-scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.18); z-index: 40; }
@@ -341,14 +364,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .drawer h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-.field select, .field textarea, .note-form select, .note-form input {
+/* Contact details: two to a row, so the four short fields don't push the
+   job description off the screen. */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.contact-grid h3 { grid-column: 1 / -1; margin-bottom: 0; }
+.field input, .field select, .field textarea, .note-form select, .note-form input {
   border: 1px solid var(--head-line);
   border-radius: 4px;
   padding: 6px 8px;
   background: #fff;
 }
 .field textarea { resize: vertical; line-height: 1.45; }
-.field select:focus, .field textarea:focus, .note-form select:focus, .note-form input:focus {
+.field input:focus, .field select:focus, .field textarea:focus, .note-form select:focus, .note-form input:focus {
   outline: 2px solid var(--xl-green);
   outline-offset: -1px;
   border-color: transparent;
@@ -442,12 +469,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
   --series-3: #e0651f;
   --series-4: #8a5bd0;
   --series-5: #d1478c;
-  /* Funnel: one hue, light to dark, ending on the logo green. */
-  --ord-1: #69b57f;
-  --ord-2: #4a9463;
-  --ord-3: #2e7d46;
-  --ord-4: #1d5c36;
-  --ord-5: #123c22;
+  /* Funnel: one hue, light to dark, ending past the logo green. Seven steps,
+     one per pipeline stage (Applied … Accepted). */
+  --ord-1: #a8d4b5;
+  --ord-2: #86c69a;
+  --ord-3: #69b57f;
+  --ord-4: #4a9463;
+  --ord-5: #2e7d46;
+  --ord-6: #1d5c36;
+  --ord-7: #123c22;
   --viz-surface: #ffffff;
   --viz-page: var(--paper);
   --viz-ink: #1d231f;

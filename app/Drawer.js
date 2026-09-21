@@ -61,15 +61,22 @@ export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDele
         </div>
 
         <div className="drawer-body">
-          {canEdit && (
-            <label className="field">
-              <span>Sheet</span>
-              <select value={row.type} onChange={(e) => onPatch({ type: e.target.value })}>
-                {OPTIONS.type.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </label>
-          )}
+          <section className="contact-grid">
+            <h3>Contact</h3>
+            <ShortField label="Name" value={row.contact} canEdit={canEdit}
+              onSave={(v) => onPatch({ contact: v })} />
+            <ShortField label="Email" value={row.contact_email} type="email" canEdit={canEdit}
+              onSave={(v) => onPatch({ contact_email: v })} />
+            <ShortField label="LinkedIn" value={row.contact_link} type="url" canEdit={canEdit}
+              onSave={(v) => onPatch({ contact_link: v })}
+              hint="Use this when a recruiter has no public email." />
+            <ShortField label="Reached out on" value={row.reached_out_on} type="date" canEdit={canEdit}
+              onSave={(v) => onPatch({ reached_out_on: v })}
+              hint={`The date you sent it${row.outreach_method ? ` (via ${row.outreach_method})` : ''}. What you said goes in the history below.`} />
+          </section>
 
+          <LongField label="Notes" value={row.notes} canEdit={canEdit}
+            onSave={(v) => onPatch({ notes: v })} rows={3} />
           <LongField label="Key requirements" value={row.requirements} canEdit={canEdit}
             onSave={(v) => onPatch({ requirements: v })} rows={4} />
           <LongField label="Job description" value={row.job_description} canEdit={canEdit}
@@ -109,16 +116,48 @@ export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDele
           </section>
 
           {canEdit && (
-            <button
-              className="btn danger"
-              onClick={() => { if (confirm(`Delete “${row.role || 'this application'}” and its history?`)) onDelete(); }}
-            >
-              Delete application
-            </button>
+            <>
+              <label className="field">
+                <span>Sheet</span>
+                <select value={row.type} onChange={(e) => onPatch({ type: e.target.value })}>
+                  {OPTIONS.type.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </label>
+              <button
+                className="btn danger"
+                onClick={() => { if (confirm(`Delete “${row.role || 'this application'}” and its history?`)) onDelete(); }}
+              >
+                Delete application
+              </button>
+            </>
           )}
         </div>
       </aside>
     </>
+  );
+}
+
+// A one-line detail. Saves on blur, like the long fields, so typing never
+// fires a request per keystroke.
+function ShortField({ label, value, canEdit, onSave, type = 'text', hint }) {
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => setDraft(value ?? ''), [value]);
+  const shown = type === 'date' ? fmtDate(value) : value;
+  return (
+    <label className="field" title={hint || ''}>
+      <span>{label}</span>
+      {canEdit ? (
+        <input
+          type={type}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => { if ((value ?? '') !== draft) onSave(draft); }}
+          placeholder="—"
+        />
+      ) : (
+        <div className="readonly-text">{shown || '—'}</div>
+      )}
+    </label>
   );
 }
 

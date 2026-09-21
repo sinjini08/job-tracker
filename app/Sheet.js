@@ -1,21 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { OPTIONS, SHEETS, columnLetter, isBlankRow } from '@/lib/fields';
+import { SHEETS, columnLetter, isBlankRow, snapToKnown } from '@/lib/fields';
+import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from './Logo';
 import Drawer from './Drawer';
 import Charts from './Charts';
-import { CHIP, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
+import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 
 const TABS = ['On-Campus', 'Off-Campus', 'Charts'];
 const CHARTS = 'Charts';
 const MIN_GRID_ROWS = 40;
 const MIN_COL_W = 48, MAX_COL_W = 640;
 const MIN_ROW_H = 18, MAX_ROW_H = 120;
+const DEADLINE_WARN_DAYS = 3;
 const POLL_MS = 20000;
-const ACTIVE = new Set(['Wishlist', 'Applied', 'OA / Assessment', 'Interviewing', 'Offer']);
 const REQUIRED = new Set(['status']); // NOT NULL in the schema: never offer a blank
+const LISTS = new Set(['select', 'combo']);
+const open = (row) => Boolean(row) && !CLOSED.has(row.status);
 
 function rawValue(row, col) {
   if (!row) return null;
@@ -40,18 +43,34 @@ function normalize(col, value) {
     const n = Number(s);
     return Number.isFinite(n) ? n : null;
   }
+  // A typed value that only differs in case or spacing becomes the listed one.
+  if (LISTS.has(col.kind)) return snapToKnown(s, col.options);
   return s;
+}
+
+// A reminder a week out, set the first time a row gets a Date applied. It's a
+// starting point, not a rule: clear it or move it and nothing puts it back.
+const FOLLOW_UP_DAYS = 7;
+function withFollowUp(row, patch) {
+  if (!patch.date_applied || row?.next_follow_up) return patch;
+  return { ...patch, next_follow_up: addDays(patch.date_applied, FOLLOW_UP_DAYS) };
+}
+
+// A deadline only matters until you've applied, so it warns on rows with no
+// Date applied rather than on the Wishlist status alone.
+export function deadlineSoon(row) {
+  return Boolean(row?.deadline) && !row.date_applied && open(row) &&
+    dayNumber(row.deadline) - dayNumber(todayISO()) <= DEADLINE_WARN_DAYS;
+}
+export function followUpDue(row) {
+  return Boolean(row?.next_follow_up) && open(row) && row.next_follow_up <= todayISO();
 }
 
 function cellFlags(row, col) {
   if (!row) return '';
-  const active = ACTIVE.has(row.status);
-  if (col.key === 'next_follow_up' && row.next_follow_up && active && row.next_follow_up <= todayISO()) return 'due';
-  if (col.key === 'deadline' && row.deadline && row.status === 'Wishlist') {
-    const left = dayNumber(row.deadline) - dayNumber(todayISO());
-    if (left <= 3) return 'due';
-  }
-  if (!active && col.kind === 'computed') return 'dim';
+  if (col.key === 'next_follow_up' && followUpDue(row)) return 'due';
+  if (col.key === 'deadline' && deadlineSoon(row)) return 'due';
+  if (col.kind === 'computed' && !open(row)) return 'dim';
   return '';
 }
 
@@ -281,22 +300,22 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         return;
       }
       if ((row[col.key] ?? null) === next) return;
-      patchRow(row.id, { [col.key]: next });
+      patchRow(row.id, withFollowUp(row, { [col.key]: next }));
       return;
     }
     if (next === null || next === '' || next === false) return;
     if (creating.current?.r === r) {
-      creating.current.promise.then((saved) => saved && patchRow(saved.id, { [col.key]: next }));
+      creating.current.promise.then((saved) => saved && patchRow(saved.id, withFollowUp(saved, { [col.key]: next })));
       return;
     }
-    const promise = createRow({ [col.key]: next });
+    const promise = createRow(withFollowUp(null, { [col.key]: next }));
     creating.current = { r, promise };
     promise.finally(() => { if (creating.current?.promise === promise) creating.current = null; });
   };
 
   const addRow = () => {
     if (!canEdit) return;
-    createRow({ date_applied: todayISO() }).then(() => {
+    createRow(withFollowUp(null, { date_applied: todayISO() })).then(() => {
       setSort(null);
       setQuery('');
       setSel({ r: visible.length, c: 0 });
@@ -370,9 +389,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         }
         return;
       default:
-        if (e.key.length === 1 && col && ['text', 'number', 'url', 'email'].includes(col.kind)) {
+        if (e.key.length === 1 && col && ['text', 'number', 'url', 'email', 'combo'].includes(col.kind)) {
           e.preventDefault();
-          startEdit(sel.r, sel.c, e.key);
+          startEdit(sel.r, sel.c, e.key); // a combo opens filtered by what you typed
         } else if (e.key.length === 1 && col && ['select', 'date'].includes(col.kind)) {
           e.preventDefault();
           startEdit(sel.r, sel.c);
@@ -389,8 +408,12 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const selRow = rowAt(sel.r);
   const selCol = cols[sel.c];
   const counts = useMemo(() => {
-    const out = {};
-    for (const r of rows) if (r.type === tab) out[r.status] = (out[r.status] || 0) + 1;
+    const out = { due: 0 };
+    for (const r of rows) {
+      if (r.type !== tab) continue;
+      out[r.status] = (out[r.status] || 0) + 1;
+      if (followUpDue(r)) out.due += 1;
+    }
     return out;
   }, [rows, tab]);
   const tabCount = (t) => rows.filter((r) => r.type === t).length;
@@ -467,7 +490,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
                   key={c.id}
                   className={i === 0 ? 'sticky-col' : ''}
                   onClick={() => toggleSort(c.id)}
-                  title="Click to sort"
+                  title={`${c.hint}\n\nClick to sort.`}
                 >
                   {c.label}
                   {sort?.key === c.id && <span className="sort">{sort.dir === 1 ? ' ▲' : ' ▼'}</span>}
@@ -541,6 +564,11 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
           ))}
           <span>Total: <b>{tabCount(tab)}</b></span>
+          {counts.due > 0 && (
+            <span className="due-count" title="Rows whose Follow up by date has arrived">
+              Follow-ups due: <b>{counts.due}</b>
+            </span>
+          )}
         </div>}
       </footer>
 
@@ -592,7 +620,10 @@ function Display({ col, v, row }) {
     return col.kind === 'bool' && row ? <span className="check">☐</span> : null;
   }
   switch (col.kind) {
-    case 'select': {
+    case 'select':
+    case 'combo': {
+      // Statuses and priorities are colour-coded; the other lists (and any
+      // status a student typed themselves) get the neutral chip.
       const [bg, fg] = CHIP[v] || ['#eef0f3', '#374151'];
       return <span className="chip" style={{ background: bg, color: fg }}>{v}</span>;
     }
@@ -641,8 +672,10 @@ function Editor({ col, initial, onEnd }) {
     else if (e.key === 'Tab') { e.preventDefault(); finish(true, e.currentTarget.value, [0, e.shiftKey ? -1 : 1]); }
   };
 
+  if (col.kind === 'combo') return <ComboEditor col={col} initial={initial} finish={finish} />;
+
   if (col.kind === 'select') {
-    const options = OPTIONS[col.key];
+    const options = col.options;
     return (
       <select
         ref={ref}
@@ -668,5 +701,75 @@ function Editor({ col, initial, onEnd }) {
       onKeyDown={keys}
       onBlur={(e) => finish(true, e.currentTarget.value)}
     />
+  );
+}
+
+// A dropdown you can also type into: the listed values are suggestions, and
+// anything else you type is kept as-is (normalize() snaps near-matches).
+function ComboEditor({ col, initial, finish }) {
+  const ref = useRef(null);
+  const listRef = useRef(null);
+  const [draft, setDraft] = useState(String(initial ?? ''));
+  // Start on the value the cell already holds, so opening a cell and pressing
+  // Enter leaves it alone.
+  const [hi, setHi] = useState(() => Math.max(0, col.options.indexOf(String(initial ?? ''))));
+
+  const q = draft.trim().toLowerCase();
+  // While the draft is still exactly the current value, show the whole list —
+  // opening a cell shouldn't hide the other choices.
+  const matches = !q || q === String(initial ?? '').trim().toLowerCase()
+    ? col.options
+    : col.options.filter((o) => o.toLowerCase().includes(q));
+
+  useLayoutEffect(() => {
+    ref.current?.focus();
+    ref.current?.setSelectionRange(draft.length, draft.length);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the highlighted option visible: the list scrolls past ten or so.
+  useEffect(() => {
+    listRef.current?.children[hi]?.scrollIntoView({ block: 'nearest' });
+  }, [hi]);
+
+  const keys = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); setHi((i) => Math.min(i + 1, matches.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((i) => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const step = e.key === 'Tab' ? [0, e.shiftKey ? -1 : 1] : [e.shiftKey ? -1 : 1, 0];
+      finish(true, matches[hi] ?? draft, step);
+    }
+  };
+
+  return (
+    <div className="combo">
+      <input
+        ref={ref}
+        className="cell-editor"
+        value={draft}
+        placeholder={REQUIRED.has(col.key) ? '' : 'Type or pick'}
+        onChange={(e) => { setDraft(e.target.value); setHi(0); }}
+        onKeyDown={keys}
+        onBlur={() => finish(true, draft)}
+      />
+      {matches.length > 0 && (
+        <ul className="combo-list" role="listbox" ref={listRef}>
+          {matches.map((o, i) => (
+            <li
+              key={o}
+              role="option"
+              aria-selected={i === hi}
+              className={i === hi ? 'hi' : ''}
+              onMouseEnter={() => setHi(i)}
+              // mousedown, not click: the input's blur would land first.
+              onMouseDown={(e) => { e.preventDefault(); finish(true, o, [0, 0]); }}
+            >
+              {o}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
