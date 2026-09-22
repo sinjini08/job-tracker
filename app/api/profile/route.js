@@ -4,7 +4,7 @@ import { isAvatar } from '@/lib/avatars';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, avatar, leaderboard_detail';
+const FIELDS = 'display_name, avatar, leaderboard_detail, hidden_columns';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -36,6 +36,17 @@ export async function PATCH(request) {
   }
   if ('leaderboard_detail' in body) {
     patch.leaderboard_detail = body.leaderboard_detail === 'points' ? 'points' : 'counts';
+  }
+  if ('hidden_columns' in body) {
+    // { sheet: [column id, ...] }. Anything else in the shape is dropped.
+    const raw = body.hidden_columns;
+    const out = {};
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      for (const [sheet, ids] of Object.entries(raw)) {
+        if (Array.isArray(ids)) out[sheet] = ids.filter((v) => typeof v === 'string').slice(0, 60);
+      }
+    }
+    patch.hidden_columns = out;
   }
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nothing to change' }, { status: 400 });
 

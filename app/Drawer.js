@@ -6,7 +6,7 @@ import { CHIP, fmtDate, todayISO } from '@/lib/format';
 
 const KIND_LABEL = { status: 'Status', note: 'Note', interview: 'Interview', follow_up: 'Follow-up', offer: 'Offer' };
 
-export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDelete, onClose }) {
+export default function Drawer({ row, apiBase = '/api', canEdit, custom = [], onPatch, onDelete, onClose }) {
   const [events, setEvents] = useState(null);
   const [note, setNote] = useState({ kind: 'note', event_date: todayISO(), detail: '' });
   const [err, setErr] = useState(null);
@@ -75,6 +75,20 @@ export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDele
               hint={`The date you sent it${row.outreach_method ? ` (via ${row.outreach_method})` : ''}. What you said goes in the history below.`} />
           </section>
 
+          {/* Columns the student added. They live on the row's custom blob, so
+              saving one rewrites the blob with the rest of it intact. */}
+          {custom.filter((c) => c.applies === 'both' || c.applies === row.type).length > 0 && (
+            <section className="contact-grid">
+              <h3>Your columns</h3>
+              {custom
+                .filter((c) => c.applies === 'both' || c.applies === row.type)
+                .map((c) => (
+                  <CustomField key={c.id} def={c} value={row.custom?.[c.id]} canEdit={canEdit}
+                    onSave={(v) => onPatch({ custom: { ...(row.custom ?? {}), [c.id]: v } })} />
+                ))}
+            </section>
+          )}
+
           <LongField label="Notes" value={row.notes} canEdit={canEdit}
             onSave={(v) => onPatch({ notes: v })} rows={3} />
           <LongField label="Key requirements" value={row.requirements} canEdit={canEdit}
@@ -134,6 +148,45 @@ export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDele
         </div>
       </aside>
     </>
+  );
+}
+
+// One of the student's own columns. Same save-on-blur as the rest, except a
+// tick box, which has nothing to wait for.
+function CustomField({ def, value, canEdit, onSave }) {
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => setDraft(value ?? ''), [value]);
+
+  if (def.kind === 'bool') {
+    return (
+      <label className="field check-field">
+        <span>{def.label}</span>
+        <input type="checkbox" checked={Boolean(value)} disabled={!canEdit}
+          onChange={(e) => onSave(e.target.checked)} />
+      </label>
+    );
+  }
+
+  const save = () => { if ((value ?? '') !== draft) onSave(draft === '' ? null : draft); };
+
+  return (
+    <label className="field">
+      <span>{def.label}</span>
+      {!canEdit ? (
+        <div className="readonly-text">{value == null || value === '' ? 'Not set' : String(value)}</div>
+      ) : def.kind === 'select' ? (
+        <input list={`opts-${def.id}`} value={draft}
+          onChange={(e) => setDraft(e.target.value)} onBlur={save} />
+      ) : (
+        <input type={def.kind === 'number' ? 'number' : def.kind === 'date' ? 'date' : 'text'}
+          value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={save} />
+      )}
+      {def.kind === 'select' && (
+        <datalist id={`opts-${def.id}`}>
+          {(def.options ?? []).map((o) => <option key={o} value={o} />)}
+        </datalist>
+      )}
+    </label>
   );
 }
 

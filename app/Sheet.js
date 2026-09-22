@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { SHEETS, columnLetter, isBlankRow, snapToKnown } from '@/lib/fields';
+import { ALWAYS_ON, allColumnsFor, columnsFor, columnLetter, isBlankRow, snapToKnown } from '@/lib/fields';
+import Columns from './Columns';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from './Logo';
@@ -25,7 +26,15 @@ const open = (row) => Boolean(row) && !CLOSED.has(row.status);
 function rawValue(row, col) {
   if (!row) return null;
   if (col.kind === 'computed') return daysSince(row.date_applied);
+  if (col.custom) return row.custom?.[col.id] ?? null;
   return row[col.key] ?? null;
+}
+
+// Writing to a custom column rewrites the whole blob, since that is what the
+// API stores. The row we already hold is the base, so nothing else is lost.
+function patchFor(row, col, next) {
+  if (!col.custom) return { [col.key]: next };
+  return { custom: { ...(row?.custom ?? {}), [col.id]: next } };
 }
 
 function plainText(row, col) {
@@ -110,8 +119,30 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const isCharts = tab === CHARTS;
   const isLeague = tab === LEAGUE;
   const isGrid = !isCharts && !isLeague;
-  const cols = SHEETS[tab] ?? SHEETS['On-Campus']; // the extra tabs have no grid; keep a harmless default
+  const [custom, setCustom] = useState([]);
+  const [hidden, setHidden] = useState({});
+  const [pickingCols, setPickingCols] = useState(false);
+  // The extra tabs have no grid, so an unknown name falls back to On-Campus.
+  const cols = useMemo(() => columnsFor(isGrid ? tab : 'On-Campus', { custom, hidden }),
+    [tab, isGrid, custom, hidden]);
   const [events, setEvents] = useState(null);
+
+  // Which columns this student keeps, and any they added. These follow the
+  // student rather than the browser, unlike the widths below.
+  const loadColumns = useCallback(async () => {
+    if (shared) return;
+    try {
+      const [cc, profile] = await Promise.all([api('/api/columns'), api('/api/profile')]);
+      setCustom(cc.columns ?? []);
+      setHidden(profile.hidden_columns ?? {});
+    } catch { /* the sheet still works with the built-in columns */ }
+  }, [shared]);
+  useEffect(() => { loadColumns(); }, [loadColumns]);
+
+  const saveHidden = (next) => {
+    setHidden(next);
+    api('/api/profile', 'PATCH', { hidden_columns: next }).catch((e) => setError(e.message));
+  };
 
   // Remember the last tab, the column widths and the row height per browser.
   useEffect(() => {
@@ -299,20 +330,21 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       // Checked before the no-change test so Delete also clears out a row that's
       // already empty apart from its status.
       const clearing = next === null || next === '';
-      if (clearing && isBlankRow({ ...row, [col.key]: next })) {
+      if (clearing && isBlankRow({ ...row, ...patchFor(row, col, next) })) {
         deleteRow(row.id);
         return;
       }
-      if ((row[col.key] ?? null) === next) return;
-      patchRow(row.id, withFollowUp(row, { [col.key]: next }));
+      if ((rawValue(row, col) ?? null) === next) return;
+      patchRow(row.id, withFollowUp(row, patchFor(row, col, next)));
       return;
     }
     if (next === null || next === '' || next === false) return;
     if (creating.current?.r === r) {
-      creating.current.promise.then((saved) => saved && patchRow(saved.id, withFollowUp(saved, { [col.key]: next })));
+      creating.current.promise.then((saved) =>
+        saved && patchRow(saved.id, withFollowUp(saved, patchFor(saved, col, next))));
       return;
     }
-    const promise = createRow(withFollowUp(null, { [col.key]: next }));
+    const promise = createRow(withFollowUp(null, patchFor(null, col, next)));
     creating.current = { r, promise };
     promise.finally(() => { if (creating.current?.promise === promise) creating.current = null; });
   };
@@ -387,7 +419,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         return;
       case 'Delete':
       case 'Backspace':
-        if (canEdit && col && col.kind !== 'computed' && !REQUIRED.has(col.key) && rowAt(sel.r)) {
+        if (canEdit && col && col.kind !== 'computed' && !REQUIRED.has(col.id) && rowAt(sel.r)) {
           e.preventDefault();
           commit(sel.r, sel.c, col.kind === 'bool' ? false : null);
         }
@@ -437,6 +469,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             onChange={(e) => setQuery(e.target.value)}
           />}
           {canEdit && isGrid && <button className="btn primary" onClick={addRow}>+ New row</button>}
+          {isGrid && !shared && (
+            <button className="btn ghost" onClick={() => setPickingCols(true)}>Columns</button>
+          )}
         </div>
         <div className="toolbar-right">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
@@ -576,11 +611,36 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>}
       </footer>
 
+      {pickingCols && (
+        <Columns
+          sheet={tab}
+          all={allColumnsFor(tab, custom)}
+          custom={custom}
+          hidden={hidden[tab] ?? []}
+          onToggle={(id, show) => {
+            const set = new Set(hidden[tab] ?? []);
+            if (show) set.delete(id); else set.add(id);
+            saveHidden({ ...hidden, [tab]: [...set] });
+          }}
+          onShowAll={() => saveHidden({ ...hidden, [tab]: [] })}
+          onAdd={async (def) => {
+            const made = await api('/api/columns', 'POST', def);
+            setCustom((c) => [...c, made]);
+          }}
+          onRemove={async (id) => {
+            await api(`/api/columns/${id}`, 'DELETE');
+            setCustom((c) => c.filter((x) => x.id !== id));
+          }}
+          onClose={() => setPickingCols(false)}
+        />
+      )}
+
       {drawerRow && (
         <Drawer
           apiBase={apiBase}
           row={drawerRow}
           canEdit={canEdit}
+          custom={custom}
           onPatch={(patch) => patchRow(drawerRow.id, patch)}
           onDelete={() => deleteRow(drawerRow.id)}
           onClose={() => {
@@ -684,13 +744,13 @@ function Editor({ col, initial, onEnd }) {
       <select
         ref={ref}
         className="list-editor"
-        size={Math.min(options.length + (REQUIRED.has(col.key) ? 0 : 1), 10)}
+        size={Math.min(options.length + (REQUIRED.has(col.id) ? 0 : 1), 10)}
         defaultValue={initial ?? ''}
         onKeyDown={keys}
         onClick={(e) => finish(true, ref.current.value, [0, 0])}
         onBlur={() => finish(false)}
       >
-        {!REQUIRED.has(col.key) && <option value="">Leave blank</option>}
+        {!REQUIRED.has(col.id) && <option value="">Leave blank</option>}
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     );
@@ -752,7 +812,7 @@ function ComboEditor({ col, initial, finish }) {
         ref={ref}
         className="cell-editor"
         value={draft}
-        placeholder={REQUIRED.has(col.key) ? '' : 'Type or pick'}
+        placeholder={REQUIRED.has(col.id) ? '' : 'Type or pick'}
         onChange={(e) => { setDraft(e.target.value); setHi(0); }}
         onKeyDown={keys}
         onBlur={() => finish(true, draft)}
