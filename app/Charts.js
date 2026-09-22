@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeStats, pct } from '@/lib/stats';
+import DayChart from './LeagueCharts';
 
 const PERIODS = [
   { id: 'all', label: 'All time', days: null },
@@ -20,7 +21,19 @@ const FUNNEL_RAMP = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-
 export default function Charts({ rows, events }) {
   const [sheet, setSheet] = useState('All');
   const [period, setPeriod] = useState('all');
+  const [daily, setDaily] = useState(null);
   const tip = useTooltip();
+
+  // Your own points per day. It needs no league — this is your history, and
+  // the same series the League tab draws for everyone.
+  useEffect(() => {
+    let live = true;
+    fetch('/api/points?days=35')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => live && d && setDaily(d.daily))
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
 
   const data = useMemo(
     () => computeStats(rows, events, { sheet, days: PERIODS.find((p) => p.id === period).days }),
@@ -57,6 +70,14 @@ export default function Charts({ rows, events }) {
                 rows: data.reached.map((r) => [r.label, r.value, `${pct(r.value, data.total)}%`]) }}>
               <HBars rows={data.reached.map((r, i) => ({ ...r, color: FUNNEL_RAMP[i], note: `${pct(r.value, data.total)}%` }))}
                 max={data.total} tip={tip} />
+            </Card>
+
+            <Card title="Points per day" subtitle="What you earned each day, and the days you were busiest"
+              full
+              table={{ cols: ['Day', 'Points'],
+                rows: (daily ?? []).map((d) => [d.day, d.pts]) }}>
+              <DayChart monthOnly={false}
+                series={daily ? [{ key: 'me', label: 'You', daily: daily.map((d) => d.pts) }] : []} />
             </Card>
 
             <Card title="Applications per week" subtitle="By the date you applied"
@@ -113,10 +134,10 @@ function Stat({ label, value, sub }) {
   );
 }
 
-function Card({ title, subtitle, table, children }) {
+function Card({ title, subtitle, table, children, full }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="viz-card">
+    <section className={`viz-card ${full ? 'span-all' : ''}`}>
       <header className="viz-card-head">
         <div>
           <h2>{title}</h2>

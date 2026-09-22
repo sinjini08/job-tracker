@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
+import { isAvatar } from '@/lib/avatars';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, leaderboard_detail';
+const FIELDS = 'display_name, avatar, leaderboard_detail';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -28,6 +29,10 @@ export async function PATCH(request) {
   const patch = {};
   if ('display_name' in body) {
     patch.display_name = String(body.display_name ?? '').trim().slice(0, 40) || null;
+  }
+  if ('avatar' in body) {
+    // Only a value from the list. Anything else clears it back to initials.
+    patch.avatar = isAvatar(body.avatar) ? body.avatar : null;
   }
   if ('leaderboard_detail' in body) {
     patch.leaderboard_detail = body.leaderboard_detail === 'points' ? 'points' : 'counts';

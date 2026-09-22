@@ -2,17 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
+import { AVATARS } from '@/lib/avatars';
+import Avatar from './Avatar';
+import DayChart from './LeagueCharts';
+import { useCelebration } from './Celebrate';
 
 // The friends leaderboard. Everything it shows comes from league_board(),
 // league_history() and league_settle() in the database, which return totals
 // and counts — never anyone's applications.
 //
-// Three tiers. Clear the league's daily target and you've won the day; do that
-// often enough and you win the week, then the month. A finished week is
-// settled once and kept, so last week's winner stops moving once it's over.
+// Three tiers. The daily target is a floor, not a cap: reach it and you've won
+// the day, and every point past it still counts toward the week and the month.
+// Weeks and months are settled when they end, so a past winner stops moving.
 //
-// The dense numbers live under Stats on purpose: Today, This week and This
-// month are meant to read like a scoreboard, not a spreadsheet.
+// The dense numbers live under Stats on purpose — Today, This week and This
+// month are meant to read like a scoreboard.
 
 const DEFAULT_TARGET = 10;
 
@@ -24,6 +28,11 @@ const VIEWS = [
   { id: 'points', label: 'How points work' },
   { id: 'settings', label: 'Settings' },
 ];
+
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
 
 const api = async (url, method = 'GET', body) => {
   const res = await fetch(url, {
@@ -48,6 +57,7 @@ export default function League() {
   const [view, setView] = useState('today');
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { celebrate, node: party } = useCelebration();
 
   const loadLeagues = useCallback(async (prefer) => {
     const data = await api('/api/leagues');
@@ -139,6 +149,27 @@ export default function League() {
   const ranked = useMemo(() => (board ? rankBoard(board, me, period) : null), [board, me, period]);
   const mine = ranked?.find((r) => r.is_me) ?? null;
 
+  // Confetti for a win, once ever — crossing today's target, and any week or
+  // month that settled in your favour while you weren't looking.
+  useEffect(() => {
+    if (!league || !mine || !wonToday(mine, target)) return;
+    const over = mine.points_today - target;
+    celebrate(`${league.id}-day-${todayKey()}`, 'You won today',
+      over > 0 ? `${mine.points_today} points — ${over} past the target.` : `${mine.points_today} points.`);
+  }, [league, mine, target, celebrate]);
+
+  useEffect(() => {
+    if (!league || !me || !history.length) return;
+    // Only the latest of each kind, or joining a busy league replays a year.
+    for (const kind of ['week', 'month']) {
+      const latest = history.filter((h) => h.period === kind)[0];
+      if (latest?.user_id !== me) continue;
+      celebrate(`${league.id}-${kind}-${latest.period_start}`,
+        kind === 'week' ? 'You won the week' : 'You won the month',
+        `${periodLabel(kind, latest.period_start)} · ${latest.points} points`);
+    }
+  }, [history, me, league, celebrate]);
+
   if (leagues == null) return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
   if (leagues.length === 0) {
     return (
@@ -150,6 +181,7 @@ export default function League() {
 
   return (
     <div className="charts viz-root league-root">
+      {party}
       <nav className="league-rail" aria-label="League sections">
         {leagues.length > 1 ? (
           <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
@@ -177,9 +209,13 @@ export default function League() {
         {!ranked ? <p className="viz-note">Loading…</p> : (
           <>
             {view === 'today' && <TodayPanel rows={ranked} mine={mine} target={target} />}
-            {(view === 'week' || view === 'month') && (
-              <PeriodPanel rows={ranked} mine={mine} target={target} period={view}
-                history={history.filter((h) => h.period === view)} />
+            {view === 'week' && (
+              <PeriodPanel rows={ranked} mine={mine} target={target} period="week"
+                history={history.filter((h) => h.period === 'week')} />
+            )}
+            {view === 'month' && (
+              <MonthPanel rows={ranked} mine={mine} target={target} me={me}
+                history={history.filter((h) => h.period === 'month')} />
             )}
             {view === 'stats' && <StatsPanel rows={ranked} target={target} />}
             {view === 'points' && <PointsPanel values={values} target={target} />}
@@ -196,28 +232,31 @@ export default function League() {
 }
 
 // ---------------------------------------------------------------------------
-// Today — a scoreboard, not a table.
+// Today — the target is a floor, and beating it is the point.
 // ---------------------------------------------------------------------------
 
 function TodayPanel({ rows, mine, target }) {
-  const progress = todayProgress(mine, target) ?? { done: 0, target, pct: 0, met: false };
+  const progress = todayProgress(mine, target) ?? { done: 0, target, met: false };
+  const over = Math.max(0, progress.done - target);
   const winners = rows.filter((r) => wonToday(r, target));
   const best = rows[0]?.points_today ?? 0;
 
   return (
     <>
       <section className={`hero ${progress.met ? 'won' : ''}`}>
-        <Ring done={progress.done} target={target} met={progress.met} />
+        <Ring done={progress.done} target={target} met={progress.met} over={over} />
         <div className="hero-copy">
           <h2>{progress.met ? 'You won today' : `${target - progress.done} to go`}</h2>
           <p>
             {progress.met
-              ? `${progress.done} points today against a target of ${target}. Keep it going tomorrow.`
-              : `${progress.done} of ${target} points today. Log an application and you’re a point closer.`}
+              ? over > 0
+                ? `${progress.done} points — ${over} past the target. Every extra one still counts toward the week and the month, so keep going.`
+                : `${progress.done} points, exactly on target. Anything more still counts toward the week.`
+              : `Reach ${target} points today and the day is yours. It’s a floor, not a cap — go past it and the extra counts toward the week.`}
           </p>
           <div className="hero-pills">
-            <Pill label={(mine?.streak_days ?? 0) === 1 ? 'day streak' : 'day streak'}
-              value={mine?.streak_days ?? 0} tone={(mine?.streak_days ?? 0) >= 3 ? 'hot' : null} />
+            <Pill label="day streak" value={mine?.streak_days ?? 0}
+              tone={(mine?.streak_days ?? 0) >= 3 ? 'hot' : null} />
             <Pill label={`of ${rows.length} won today`} value={winners.length} />
           </div>
         </div>
@@ -226,80 +265,162 @@ function TodayPanel({ rows, mine, target }) {
       <h3 className="panel-h">Today’s board</h3>
       <ol className="day-list">
         {rows.map((row) => {
-          const won = wonToday(row, target);
           const done = row.points_today ?? 0;
+          const won = wonToday(row, target);
+          const past = done - target;
           return (
             <li key={row.user_id} className={`day-row ${row.is_me ? 'me' : ''} ${won ? 'won' : ''}`}>
               <Rank n={row.rank} lead={done > 0 && done === best} scored={done > 0} />
+              <Avatar name={row.display_name} avatar={row.avatar} size={34} />
               <span className="day-name">
                 {row.display_name}{row.is_me && <span className="you">you</span>}
               </span>
-              <span className="day-bar">
+              <span className="day-bar" title={`${done} of ${target}`}>
                 <i style={{ width: `${Math.min(100, Math.round((done / target) * 100))}%` }} />
               </span>
               <span className="day-score">{done}</span>
               <span className="day-flag">
-                {won ? <b className="won-chip">won</b> : `${Math.max(0, target - done)} to go`}
+                {won
+                  ? <b className="won-chip">won{past > 0 ? ` +${past}` : ''}</b>
+                  : `${Math.max(0, target - done)} to go`}
               </span>
             </li>
           );
         })}
       </ol>
       <p className="league-fine">
-        Everyone who reaches {target} points wins the day — it isn’t one winner takes all. The
-        crown goes to whoever is highest.
+        {target} points wins the day, and everyone who gets there has won it — it isn’t one
+        winner takes all. The crown marks whoever is highest.
       </p>
     </>
   );
 }
 
-function Ring({ done, target, met, size = 116 }) {
+function Ring({ done, target, met, over = 0, size = 116 }) {
   const pct = Math.max(0, Math.min(1, target ? done / target : 0));
   const r = (size - 14) / 2;
   const c = 2 * Math.PI * r;
   return (
-    <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-      <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" />
-      <circle className={`ring-fill ${met ? 'met' : ''}`} cx={size / 2} cy={size / 2} r={r} fill="none"
-        strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      <text className="ring-num" x="50%" y="45%" textAnchor="middle" dominantBaseline="central">{done}</text>
-      <text className="ring-sub" x="50%" y="67%" textAnchor="middle" dominantBaseline="central">of {target}</text>
-    </svg>
+    <div className="ring-wrap">
+      <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+        <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" />
+        <circle className={`ring-fill ${met ? 'met' : ''}`} cx={size / 2} cy={size / 2} r={r} fill="none"
+          strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+        <text className="ring-num" x="50%" y="45%" textAnchor="middle" dominantBaseline="central">{done}</text>
+        <text className="ring-sub" x="50%" y="67%" textAnchor="middle" dominantBaseline="central">of {target}</text>
+      </svg>
+      {over > 0 && <span className="ring-over">+{over}</span>}
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// This week / this month — standings, then the winners already settled.
+// This week — podium, standings, and the weeks already settled.
 // ---------------------------------------------------------------------------
 
 function PeriodPanel({ rows, mine, target, period, history }) {
   const p = periodBy(period);
-  const top = rows[0]?.[p.points] ?? 0;
   return (
     <>
       <h3 className="panel-h">{p.label}</h3>
-      <ol className="day-list tall">
-        {rows.map((row) => {
-          const pts = row[p.points] ?? 0;
-          const won = row[p.hits] ?? 0;
-          return (
-            <li key={row.user_id} className={`day-row ${row.is_me ? 'me' : ''}`}>
-              <Rank n={row.rank} lead={pts > 0 && pts === top} scored={pts > 0} />
-              <span className="day-name">
-                {row.display_name}{row.is_me && <span className="you">you</span>}
-                <small>{won} {won === 1 ? 'day' : 'days'} won</small>
-              </span>
-              <span className="day-bar">
-                <i style={{ width: `${top ? Math.round((pts / top) * 100) : 0}%` }} />
-              </span>
-              <span className="day-score big">{pts}</span>
-            </li>
-          );
-        })}
-      </ol>
+      <Podium rows={rows} period={period} />
+      <Standings rows={rows} period={period} />
       <p className="league-fine">
-        {mine ? `You’re #${mine.rank} of ${rows.length}. ` : ''}A day counts as won at {target} points.
+        {mine ? `You’re #${mine.rank} of ${rows.length}. ` : ''}A day counts as won at {target} points,
+        and points past the target still add to this total.
+      </p>
+
+      <h3 className="panel-h">Past winners</h3>
+      <Winners rows={history} />
+    </>
+  );
+}
+
+// The classic three-step podium. Heights go by place, not by score — every
+// value is printed above its column, and a podium where second place is a
+// hair shorter than first doesn't read as a podium.
+function Podium({ rows, period }) {
+  const p = periodBy(period);
+  const top = rows.slice(0, 3);
+  if (top.length < 2 || !(top[0]?.[p.points] > 0)) return null;
+  const order = [top[1], top[0], top[2]].filter(Boolean);
+  const heights = { 1: 132, 2: 100, 3: 78 };
+  return (
+    <div className="podium">
+      {order.map((row) => (
+        <div key={row.user_id} className={`plinth place-${row.rank} ${row.is_me ? 'me' : ''}`}>
+          <div className="plinth-who">
+            <span className="plinth-av">
+              <Avatar name={row.display_name} avatar={row.avatar} size={row.rank === 1 ? 62 : 52} />
+              <b className={`crown c${row.rank}`} aria-hidden>♛</b>
+            </span>
+            <span className="plinth-name">{row.display_name}{row.is_me && <span className="you">you</span>}</span>
+            <span className="plinth-score">{row[p.points]}</span>
+          </div>
+          <div className="plinth-bar" style={{ height: heights[row.rank] ?? 70 }}>{row.rank}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Standings({ rows, period }) {
+  const p = periodBy(period);
+  const top = rows[0]?.[p.points] ?? 0;
+  return (
+    <ol className="day-list tall">
+      {rows.map((row) => {
+        const pts = row[p.points] ?? 0;
+        const won = row[p.hits] ?? 0;
+        return (
+          <li key={row.user_id} className={`day-row ${row.is_me ? 'me' : ''}`}>
+            <Rank n={row.rank} lead={pts > 0 && pts === top} scored={pts > 0} />
+            <Avatar name={row.display_name} avatar={row.avatar} size={34} />
+            <span className="day-name">
+              {row.display_name}{row.is_me && <span className="you">you</span>}
+              <small>{won} {won === 1 ? 'day' : 'days'} won</small>
+            </span>
+            <span className="day-bar">
+              <i style={{ width: `${top ? Math.round((pts / top) * 100) : 0}%` }} />
+            </span>
+            <span className="day-score big">{pts}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// This month — the shape of everyone's month, then the standings.
+// ---------------------------------------------------------------------------
+
+function MonthPanel({ rows, mine, target, history }) {
+  const series = rows
+    .filter((r) => Array.isArray(r.daily))
+    .map((r) => ({ key: r.user_id, label: r.display_name + (r.is_me ? ' (you)' : ''), daily: r.daily }));
+  const hidden = rows.length - series.length;
+
+  return (
+    <>
+      <h3 className="panel-h">This month, day by day</h3>
+      <div className="viz-card chart-card">
+        <DayChart series={series} target={target}
+          subtitle={`Points each day this month. Anything above the dashed line is a day won.`} />
+      </div>
+      {hidden > 0 && (
+        <p className="league-fine">
+          {hidden} {hidden === 1 ? 'member shows' : 'members show'} points only, so their daily shape isn’t drawn.
+        </p>
+      )}
+
+      <h3 className="panel-h">Standings</h3>
+      <Podium rows={rows} period="month" />
+      <Standings rows={rows} period="month" />
+      <p className="league-fine">
+        {mine ? `You’re #${mine.rank} of ${rows.length} this month. ` : ''}
+        {mine ? `${mine.days_hit_month ?? 0} days won so far.` : ''}
       </p>
 
       <h3 className="panel-h">Past winners</h3>
@@ -316,8 +437,9 @@ function Winners({ rows }) {
   return (
     <ul className="winner-list">
       {sorted.map((r) => (
-        <li key={`${r.period}-${r.period_start}-${r.winner}`}>
+        <li key={`${r.period}-${r.period_start}-${r.user_id}`}>
           <span className="cup" aria-hidden>🏆</span>
+          <Avatar name={r.winner} avatar={r.avatar} size={28} />
           <span className="winner-name">{r.winner}</span>
           <span className="winner-when">{periodLabel(r.period, r.period_start)}</span>
           <span className="winner-pts">{r.points} pts · {r.days_hit}d</span>
@@ -377,16 +499,17 @@ function StatsPanel({ rows, target }) {
   );
 }
 
-// Points per day for the last fortnight, drawn against the daily target, so a
-// bar that reaches the top is a day won. Steady beats spiky, and a week's work
-// done in one evening looks like exactly that.
+// The last fortnight of the daily series, drawn against the target: a bar that
+// reaches the top is a day won. Steady beats spiky, and a week's work done in
+// one evening looks like exactly that.
 function Trace({ daily, target }) {
   if (!daily) return <span className="hidden-cell" title="This member shows points only">·</span>;
-  const hit = daily.filter((n) => n >= target).length;
-  const total = daily.reduce((t, n) => t + n, 0);
+  const last = daily.slice(-14);
+  const hit = last.filter((n) => n >= target).length;
+  const total = last.reduce((t, n) => t + n, 0);
   return (
     <span className="trace" title={`${total} points in the last 14 days · ${hit} ${hit === 1 ? 'day' : 'days'} won`}>
-      {daily.map((n, i) => (
+      {last.map((n, i) => (
         // A day with something on it must not look like a day with nothing.
         <i key={i} className={n >= target ? 'hit' : n ? '' : 'empty'}
            style={{ height: n ? `${Math.max(20, Math.min(100, (n / target) * 100))}%` : undefined }} />
@@ -414,8 +537,9 @@ function PointsPanel({ values, target }) {
       <div className="rules">
         <h4>The rules</h4>
         <ul>
-          <li><b>Reach {target} points in a day and you’ve won it.</b> Everyone who clears the
-            target wins that day; the crown goes to whoever is highest.</li>
+          <li><b>{target} points in a day wins the day.</b> It’s a floor, not a cap — go past it
+            and the extra still counts toward the week and the month. Everyone who reaches it has
+            won that day; the crown goes to whoever is highest.</li>
           <li><b>Win a week or a month</b> by having the most points in it. When the period ends
             the result is recorded, and stops changing.</li>
           <li><b>Each milestone is earned once per application.</b> Getting to an interview is
@@ -452,7 +576,10 @@ function SettingsPanel({ league, profile, rows, busy, onProfile, onTarget, onRem
           <ul className="member-list">
             {rows.map((r) => (
               <li key={r.user_id}>
-                <span>{r.display_name}{r.is_me && <span className="you">you</span>}</span>
+                <span className="member-who">
+                  <Avatar name={r.display_name} avatar={r.avatar} size={26} />
+                  {r.display_name}{r.is_me && <span className="you">you</span>}
+                </span>
                 {league?.is_owner && !r.is_me && (
                   <button className="viz-toggle" disabled={busy} onClick={() => onRemove(r)}>Remove</button>
                 )}
@@ -489,16 +616,37 @@ function Settings({ profile, onSave, busy }) {
   const [name, setName] = useState(profile.display_name ?? '');
   return (
     <div className="league-settings">
+      <div className="field">
+        <span>Your avatar</span>
+        <div className="avatar-pick">
+          <Avatar name={profile.display_name} avatar={profile.avatar} size={52} />
+          <div className="avatar-grid">
+            {AVATARS.map((a) => (
+              <button key={a} type="button" disabled={busy}
+                className={`avatar-opt ${profile.avatar === a ? 'on' : ''}`}
+                aria-pressed={profile.avatar === a} title={`Use ${a}`}
+                onClick={() => onSave({ avatar: profile.avatar === a ? null : a })}>
+                {a}
+              </button>
+            ))}
+          </div>
+        </div>
+        <small className="league-fine">
+          Pick one, or click it again to go back to your initial.
+        </small>
+      </div>
+
       <label className="field">
         <span>Name on the board</span>
         <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
           onBlur={() => name !== (profile.display_name ?? '') && onSave({ display_name: name })} />
       </label>
+
       <fieldset className="field detail">
         <span>What friends see</span>
         {[
           ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
-          ['points', 'Points only', 'Points, streak and days won — not the counts behind them, and not your day-by-day trace.'],
+          ['points', 'Points only', 'Points, streak and days won — not the counts behind them, and not your daily shape.'],
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
