@@ -1519,17 +1519,30 @@ body:has(.login) { overflow: auto; }
 
 /* which assistant you're connecting: the tracker speaks one protocol, so this
    only switches which app's menus the steps describe */
-.assistant-pick { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: rgba(255,255,255,0.10); margin: 4px 0 14px; }
+/* This sits on a white card, so the pills need a tinted trough to read
+   against, not the translucent white that suited the dark header. */
+.assistant-pick {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--sand);
+  margin: 4px 0 16px;
+}
 .assistant-tab {
   border: 0;
   background: none;
-  color: inherit;
-  opacity: 0.75;
-  padding: 5px 14px;
+  color: var(--muted);
+  padding: 6px 16px;
   border-radius: 6px;
   cursor: pointer;
   font: inherit;
 }
-.assistant-tab:hover { opacity: 1; }
-.assistant-tab.on { background: #fff; color: var(--xl-green-dark); opacity: 1; font-weight: 600; }
+.assistant-tab:hover { color: var(--text); }
+.assistant-tab.on {
+  background: #fff;
+  color: var(--xl-green-dark);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
 .settings-note { font-size: 13px; opacity: 0.8; margin: 12px 0 0; line-height: 1.5; }

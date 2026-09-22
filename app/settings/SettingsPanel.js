@@ -94,8 +94,8 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
               <ol className="settings-steps" start={4}>
                 <li>Pick <b>OAuth</b> for authentication, then <b>Create</b>. You'll land back here
                   to approve it.</li>
-                <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i>
-                  ChatGPT asks before anything is written.</li>
+                <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i>{' '}
+                  ChatGPT asks you to confirm before anything is written.</li>
               </ol>
               <p className="settings-note">
                 Custom connectors need ChatGPT Plus, Pro, Business, Enterprise or Edu. They are not
