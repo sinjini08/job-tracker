@@ -19,10 +19,9 @@ which only ever sees this student's own applications. Its tools:
 | `delete_application` | delete (only after explicit confirmation) |
 | `get_stats` | the numbers behind the website's Charts tab |
 
-If these tools aren't available, tell the student to connect the tracker: in
-Claude, **Settings → Connectors → Add custom connector**, paste the tracker's
-`/api/mcp` URL (shown on the site under **Settings → Connect Claude**), then click
-**Connect** and approve it on the site. Don't pretend anything was saved.
+If these tools aren't available, tell the student to connect the tracker: on the
+site, **Settings → Connect an assistant** has the URL and the steps for both
+Claude and ChatGPT. Don't pretend anything was saved.
 
 Dates are `YYYY-MM-DD`. Most dropdowns (status, category, source, work mode,
 term, outreach method) list the usual choices but accept another value when the

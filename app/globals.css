@@ -55,16 +55,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--xl-green);
   color: #fff;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; }
 .brand img {
   /* Optical, not geometric: the dart's tip stretches the artwork upward, so the
      rings read a hair low when the box is centred. */
   transform: translateY(-1px);
 }
-.toolbar-mid { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; min-width: 0; }
-.toolbar-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.toolbar-mid { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; justify-content: center; min-width: 0; }
+.toolbar-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; flex: 0 0 auto; }
+/* flex-basis rather than width: with three buttons beside it the box was
+   free to shrink to nothing, and it did. */
 .search {
-  width: min(360px, 100%);
+  flex: 0 1 360px;
+  min-width: 150px;
   height: 26px;
   padding: 0 10px;
   border: 0;
@@ -619,7 +622,9 @@ body:has(.settings) { overflow: auto; }
 .settings .btn.danger:hover { background: #fdecea; }
 .copy-field { display: flex; gap: 8px; }
 .copy-field input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--head-line); border-radius: 4px; padding: 0 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--head-bg); }
-@media (max-width: 720px) { .whoami { display: none; } }
+@media (max-width: 1180px) { .whoami { display: none; } }
+@media (max-width: 1020px) { .save-state { display: none; } }
+@media (max-width: 860px) { .brand span, .brand { font-size: 0; gap: 0; } .brand img { font-size: 13px; } }
 
 /* ---------- OAuth consent + connected apps ---------- */
 .login-card.consent { width: min(460px, 100%); }
@@ -1288,3 +1293,243 @@ body:has(.login) { overflow: auto; }
 .add-col h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .check-field { flex-direction: row; align-items: center; justify-content: space-between; }
 .check-field input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--xl-green); }
+
+/* ---------- the front door: a dart, then the sheet ---------- */
+
+.landing { position: relative; height: 100dvh; }
+.landing-stage { height: 100%; }
+
+/* The sheet waits underneath at rest, then comes up as the splash dissolves.
+   The scale is small on purpose: this should read as the page settling into
+   place, not as a zoom.
+
+   The waiting state is opacity alone, with no transform. The sheet mounts
+   while the splash is still up and scrolls its selected cell into view as it
+   does; inside a scaled subtree that measurement is off by the height of the
+   sticky header, and the grid comes up already scrolled past its first two
+   rows. The scale belongs to the reveal, which happens after all that. */
+.landing-splash .landing-stage { opacity: 0; }
+.landing-opening .landing-stage {
+  animation: stage-open 620ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.landing-done .landing-stage { opacity: 1; }
+
+@keyframes stage-open {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: var(--paper);
+  color: var(--green);
+  opacity: 1;
+  transition: opacity 620ms ease;
+}
+.landing-opening .splash { opacity: 0; pointer-events: none; }
+
+.splash-skip {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  animation: bx-hint 500ms ease 900ms forwards;
+}
+@keyframes bx-hint { to { opacity: 0.55; } }
+
+/* ---- the throw ----
+   The rings land first so there is something to aim at, then the dart comes
+   in along its own 45° shaft, overshoots by a hair and settles. Impact is at
+   1.03s; everything is clear by 1.65s. */
+
+.bullseye { display: block; }
+.bullseye .bx-ring-outer,
+.bullseye .bx-ring-inner,
+.bullseye .bx-dot,
+.bullseye .bx-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* At rest (a skipped or reduced-motion splash) the mark is simply the logo. */
+.bullseye .bx-ripple { opacity: 0; }
+
+.bullseye.play .bx-ring-outer { animation: bx-ring-in 420ms cubic-bezier(0.2, 0.8, 0.3, 1) 0ms both; }
+.bullseye.play .bx-ring-inner { animation: bx-ring-in 420ms cubic-bezier(0.2, 0.8, 0.3, 1) 130ms both; }
+.bullseye.play .bx-dot {
+  animation:
+    bx-ring-in 400ms cubic-bezier(0.2, 0.8, 0.3, 1) 260ms both,
+    bx-dot-hit 340ms ease-out 1030ms;
+}
+.bullseye.play .bx-dart { animation: bx-throw 620ms cubic-bezier(0.22, 0.72, 0.2, 1) 550ms both; }
+.bullseye.play .bx-ripple { animation: bx-ripple 620ms cubic-bezier(0.15, 0.7, 0.3, 1) 1030ms both; }
+
+@keyframes bx-ring-in {
+  0%   { transform: scale(0.72); opacity: 0; }
+  62%  { transform: scale(1.035); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Off the top-right corner, down the line of the shaft, into the centre. */
+@keyframes bx-throw {
+  0%   { transform: translate(430px, -430px); opacity: 0; }
+  14%  { opacity: 1; }
+  78%  { transform: translate(0, 0); }
+  87%  { transform: translate(15px, -15px); }   /* the recoil, back along the shaft */
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes bx-dot-hit {
+  0%, 100% { transform: scale(1); }
+  34%      { transform: scale(1.14); }
+}
+
+@keyframes bx-ripple {
+  0%   { transform: scale(0.55); opacity: 0; }
+  12%  { opacity: 0.5; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* ---------- the visitor's hero, over the demo sheet ---------- */
+
+.hero-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(29, 35, 31, 0.44);
+  backdrop-filter: blur(3px);
+  animation: hero-in 460ms ease both;
+}
+@keyframes hero-in { from { opacity: 0; } to { opacity: 1; } }
+
+.hero-card {
+  width: min(460px, 100%);
+  padding: 34px 32px 26px;
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  animation: hero-card-in 460ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes hero-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-card img { margin: 0 auto; }
+.hero-card h1 {
+  margin: 14px 0 0;
+  font-size: 23px;
+  line-height: 1.2;
+  color: var(--green);
+}
+.hero-line {
+  margin: 10px 0 22px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.hero-actions { display: flex; gap: 10px; justify-content: center; }
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 18px;
+  border: 1px solid var(--head-line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.hero-btn:hover { background: var(--xl-green-tint); }
+.hero-btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.hero-btn.primary:hover { background: var(--xl-green-dark); }
+.hero-btn.sm { height: 28px; padding: 0 12px; font-size: 12px; }
+.hero-peek {
+  margin-top: 16px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.hero-peek:hover { color: var(--green); }
+
+/* Once the card is dismissed, one quiet strip so nobody forgets the rows
+   aren't theirs. */
+.demo-bar {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 46px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid var(--head-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  animation: hero-card-in 360ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.demo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bullseye.play * { animation: none !important; }
+  .landing-stage, .splash, .hero-scrim, .hero-card, .demo-bar {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-card { padding: 26px 20px 20px; }
+  .hero-actions { flex-direction: column; }
+  .hero-btn { justify-content: center; }
+  .demo-bar { white-space: normal; max-width: calc(100vw - 32px); }
+}
+
+/* which assistant you're connecting: the tracker speaks one protocol, so this
+   only switches which app's menus the steps describe */
+.assistant-pick { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: rgba(255,255,255,0.10); margin: 4px 0 14px; }
+.assistant-tab {
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.75;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+.assistant-tab:hover { opacity: 1; }
+.assistant-tab.on { background: #fff; color: var(--xl-green-dark); opacity: 1; font-weight: 600; }
+.settings-note { font-size: 13px; opacity: 0.8; margin: 12px 0 0; line-height: 1.5; }

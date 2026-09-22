@@ -28,6 +28,7 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
   const [shareUrl, setShareUrl] = useState(shareToken ? `/s/${shareToken}` : null);
   const [connectorOn, setConnectorOn] = useState(initialConnector);
   const [connectorUrl, setConnectorUrl] = useState(null); // shown once, right after creating
+  const [assistant, setAssistant] = useState('claude');
   const [connections, setConnections] = useState(initialConnections);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -55,19 +56,54 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
         {error && <p className="settings-error" role="alert">{error}</p>}
 
         <section className="settings-card">
-          <h2>Connect Claude</h2>
-          <p>Let Claude add jobs from postings you paste, update statuses, and answer questions about
-            your applications. Claude only ever sees <b>your</b> tracker, and you approve the connection
-            with a sign-in, so there's no secret to copy.</p>
-          <ol className="settings-steps">
-            <li>In Claude, open <b>Settings → Connectors → Add custom connector</b>.</li>
-            <li>Name it <b>Job Tracker</b> and paste this URL:</li>
-          </ol>
-          <CopyField value={`${origin}/api/mcp`} />
-          <ol className="settings-steps" start={3}>
-            <li>Click <b>Add</b>, then <b>Connect</b>. You'll land back here to approve it.</li>
-            <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i></li>
-          </ol>
+          <h2>Connect an assistant</h2>
+          <p>Let your assistant add jobs from postings you paste, update statuses, and answer
+            questions about your applications. It only ever sees <b>your</b> tracker, and you
+            approve the connection with a sign-in, so there's no secret to copy.</p>
+
+          {/* The tracker speaks one protocol; only the menus differ. */}
+          <div className="assistant-pick" role="tablist" aria-label="Which assistant">
+            {[['claude', 'Claude'], ['chatgpt', 'ChatGPT']].map(([id, label]) => (
+              <button key={id} role="tab" aria-selected={assistant === id}
+                className={`assistant-tab ${assistant === id ? 'on' : ''}`}
+                onClick={() => setAssistant(id)}>{label}</button>
+            ))}
+          </div>
+
+          {assistant === 'claude' ? (
+            <>
+              <ol className="settings-steps">
+                <li>In Claude, open <b>Settings → Connectors → Add custom connector</b>.</li>
+                <li>Name it <b>Job Tracker</b> and paste this URL:</li>
+              </ol>
+              <CopyField value={`${origin}/api/mcp`} />
+              <ol className="settings-steps" start={3}>
+                <li>Click <b>Add</b>, then <b>Connect</b>. You'll land back here to approve it.</li>
+                <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i></li>
+              </ol>
+            </>
+          ) : (
+            <>
+              <ol className="settings-steps">
+                <li>In ChatGPT on the web, open <b>Settings → Apps &amp; Connectors → Advanced
+                  settings</b> and turn on <b>Developer mode</b>.</li>
+                <li>Go back to <b>Apps &amp; Connectors</b> and choose <b>Create</b>.</li>
+                <li>Name it <b>Job Tracker</b> and paste this URL:</li>
+              </ol>
+              <CopyField value={`${origin}/api/mcp`} />
+              <ol className="settings-steps" start={4}>
+                <li>Pick <b>OAuth</b> for authentication, then <b>Create</b>. You'll land back here
+                  to approve it.</li>
+                <li>In a new chat, paste a job posting and say <i>“I'm applying to this.”</i>
+                  ChatGPT asks before anything is written.</li>
+              </ol>
+              <p className="settings-note">
+                Custom connectors need ChatGPT Plus, Pro, Business, Enterprise or Edu. They are not
+                available on the free plan. If ChatGPT won't finish the sign-in, use the personal
+                link below with <b>No authentication</b> instead.
+              </p>
+            </>
+          )}
 
           <h3 className="settings-sub">Connected apps</h3>
           {connections.length === 0 ? (
@@ -94,12 +130,14 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
           )}
 
           <button className="link-btn advanced-toggle" onClick={() => setShowAdvanced((v) => !v)}>
-            {showAdvanced ? 'Hide' : 'Show'} the old-style link (for tools without sign-in)
+            {showAdvanced ? 'Hide' : 'Show'} the personal link (for tools that can't sign in)
           </button>
           {showAdvanced && (
             <div className="settings-advanced">
-              <p>Some tools can't sign in. For those, use a personal link that works like a password.
-                Prefer the sign-in method above.</p>
+              <p>Some tools can't sign in, and ChatGPT's sign-in doesn't always go through. For
+                those, use a personal link: paste it as the connector URL and choose <b>No
+                authentication</b>. It works like a password, so prefer the sign-in method above
+                where you can.</p>
               {connectorUrl ? (
                 <>
                   <p className="settings-warn">Copy this link now. It won't be shown again, and anyone
