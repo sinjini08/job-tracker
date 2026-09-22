@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
-import { AVATARS } from '@/lib/avatars';
+import { AVATAR_GROUPS } from '@/lib/avatars';
 import Avatar from './Avatar';
 import { Check, Crown, Flame, Trophy } from './Icons';
 import DayChart from './LeagueCharts';
@@ -775,15 +775,22 @@ function Settings({ profile, onSave, busy }) {
       <div className="field">
         <span>Your avatar</span>
         <div className="avatar-pick">
-          <Avatar name={profile.display_name} avatar={profile.avatar} size={52} />
-          <div className="avatar-grid">
-            {AVATARS.map((a, i) => (
-              <button key={a} type="button" disabled={busy}
-                className={`avatar-opt ${profile.avatar === a ? 'on' : ''}`}
-                aria-pressed={profile.avatar === a} title={`Avatar ${i + 1}`}
-                onClick={() => onSave({ avatar: profile.avatar === a ? null : a })}>
-                <Avatar name={profile.display_name} avatar={a} size={40} />
-              </button>
+          <Avatar name={profile.display_name} avatar={profile.avatar} size={64} />
+          <div className="avatar-groups">
+            {AVATAR_GROUPS.map((group) => (
+              <div key={group.label}>
+                <small className="avatar-group-label">{group.label}</small>
+                <div className="avatar-grid">
+                  {group.keys.map((a, i) => (
+                    <button key={a} type="button" disabled={busy}
+                      className={`avatar-opt ${profile.avatar === a ? 'on' : ''}`}
+                      aria-pressed={profile.avatar === a} title={`${group.label} ${i + 1}`}
+                      onClick={() => onSave({ avatar: profile.avatar === a ? null : a })}>
+                      <Avatar name={profile.display_name} avatar={a} size={44} />
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

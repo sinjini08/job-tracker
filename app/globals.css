@@ -1066,11 +1066,22 @@ body:has(.login) { overflow: auto; }
 }
 
 /* avatar picker */
-.avatar-pick { display: flex; align-items: flex-start; gap: 14px; }
-.avatar-grid { display: grid; grid-template-columns: repeat(7, 44px); gap: 8px; }
+.avatar-pick { display: flex; align-items: flex-start; gap: 16px; }
+/* flex:1 gives auto-fill a width to divide up; min-width:0 alone lets it
+   collapse to one column. */
+.avatar-groups { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 0; }
+.avatar-group-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--viz-muted);
+}
+.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, 48px); gap: 6px; }
 .avatar-opt {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   border: 2px solid transparent;
