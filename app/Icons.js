@@ -38,6 +38,17 @@ export function Check({ size = 14, ...rest }) {
   );
 }
 
+// A side panel opening: what the row-number cell does when you click it.
+export function PanelOpen({ size = 14, ...rest }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor"
+      strokeWidth="1.6" aria-hidden {...rest}>
+      <rect x="1.6" y="2.6" width="12.8" height="10.8" rx="2" />
+      <path d="M9.4 2.6v10.8" />
+    </svg>
+  );
+}
+
 export function Crown({ size = 14, ...rest }) {
   return (
     <svg viewBox="0 0 18 14" width={size} height={size * (11 / 14)} fill="currentColor" aria-hidden {...rest}>

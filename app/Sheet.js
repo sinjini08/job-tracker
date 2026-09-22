@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ALWAYS_ON, allColumnsFor, columnsFor, columnLetter, isBlankRow, snapToKnown } from '@/lib/fields';
 import Columns from './Columns';
+import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from './Logo';
@@ -469,6 +470,14 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             onChange={(e) => setQuery(e.target.value)}
           />}
           {canEdit && isGrid && <button className="btn primary" onClick={addRow}>+ New row</button>}
+          {isGrid && (
+            <button className="btn ghost" disabled={!selRow}
+              title={selRow ? `Contact, notes and history for ${selRow.role || 'this row'}`
+                : 'Pick a row first'}
+              onClick={() => selRow && setDrawerId(selRow.id)}>
+              Row details
+            </button>
+          )}
           {isGrid && !shared && (
             <button className="btn ghost" onClick={() => setPickingCols(true)}>Columns</button>
           )}
@@ -551,9 +560,10 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
                   <th
                     className={`rownum ${r === sel.r ? 'hl' : ''} ${row ? 'has-row' : ''}`}
                     onClick={() => row && setDrawerId(row.id)}
-                    title={row ? 'Open details & history' : ''}
+                    title={row ? 'Open details, notes and history' : ''}
                   >
-                    {r + 2}
+                    <span className="rn-num">{r + 2}</span>
+                    {row && <span className="rn-open" aria-hidden><PanelOpen size={13} /></span>}
                     <span className="row-resizer" title="Drag to change row height" onPointerDown={startRowDrag} />
                   </th>
                   {cols.map((col, c) => (

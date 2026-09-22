@@ -186,8 +186,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .grid thead .corner, .grid thead .rownum { z-index: 4; }
 .grid .rownum.hl { background: var(--xl-green-tint); color: var(--xl-green-dark); box-shadow: inset -2px 0 0 var(--xl-green); }
+/* The row number is the way into the details panel, which nothing about a
+   grey number says. Hovering a row with something in it swaps the number for
+   a panel icon, so the click is discoverable once the pointer is near it. */
 .grid .rownum.has-row { cursor: pointer; }
-.grid .rownum.has-row:hover { background: #e3e3d5; }
+.grid .rownum.has-row:hover { background: var(--xl-green-tint); color: var(--xl-green-dark); }
+.rn-open { display: none; }
+.grid .rownum.has-row:hover .rn-num { display: none; }
+.grid .rownum.has-row:hover .rn-open { display: inline-grid; place-items: center; }
+.toolbar .btn.ghost:disabled { opacity: 0.45; cursor: default; }
+.toolbar .btn.ghost:disabled:hover { background: transparent; }
 
 .grid .sticky-col { position: sticky; left: var(--rownum-w); z-index: 1; background: var(--bg); }
 .grid thead .sticky-col { z-index: 3; }
