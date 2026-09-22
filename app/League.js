@@ -286,19 +286,22 @@ function TodayPanel({ rows, mine, target }) {
               <Avatar name={row.display_name} avatar={row.avatar} size={34} />
               <span className="day-name">
                 {row.display_name}{row.is_me && <span className="you">you</span>}
+                {/* The trophy belongs to the person, not to the score, so it
+                    sits with their name: this is the day's top scorer, and
+                    that is what earns the bonus point. */}
+                {done > 0 && done === best && (
+                  <span className="name-cup" title="Top score today, worth a bonus point on the month">
+                    <Trophy size={13} />
+                  </span>
+                )}
               </span>
               <span className="day-bar" title={`${done} of ${target}`}>
                 <i style={growBar(Math.min(100, Math.round((done / target) * 100)), row.rank)} />
               </span>
               <span className="day-score">{done}</span>
               <span className="day-flag">
-                {/* The trophy is the day's top score. Clearing the target is a
-                    tick: a win, but not the one worth a bonus point. */}
                 {won
-                  ? <b className={`won-chip ${done === best ? 'top' : ''}`}>
-                      {done === best ? <Trophy size={11} /> : <Check size={11} />}
-                      won{past > 0 ? ` +${past}` : ''}
-                    </b>
+                  ? <b className="won-chip">won{past > 0 ? ` +${past}` : ''}</b>
                   : `${Math.max(0, target - done)} to go`}
               </span>
             </li>

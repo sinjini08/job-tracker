@@ -1195,8 +1195,11 @@ body:has(.login) { overflow: auto; }
 .muted.small { font-size: 12px; }
 
 /* the day's top score wears the trophy; clearing the target wears a tick */
-.won-chip { background: var(--ord-4); }
-.won-chip.top { background: var(--series-1); }
+/* One colour for every win. The trophy beside the name is what marks the
+   day's top score, so the chip doesn't need to say it twice. */
+.won-chip { background: var(--series-1); }
+.name-cup { margin-left: 6px; color: #c79a2a; }
+.name-cup svg { vertical-align: -2px; }
 .pill.gold { background: #f7ecd7; color: #7a5a12; }
 .pill.gold b { color: #7a5a12; }
 
