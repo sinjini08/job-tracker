@@ -136,6 +136,11 @@ A row only scores once it has **both a role and a company**, and the same job
 logged twice scores once — so fill both in rather than saving a placeholder,
 and check for duplicates before adding (which you should be doing anyway).
 
+Each league also sets a daily points target (20 by default). Clearing it builds
+a streak, and the week's and the month's winners are recorded when the period
+ends. If a student asks "how many more today?", `get_stats` won't answer it —
+the League tab shows it.
+
 ## Other requests
 
 - "What should I follow up on?" Use `list_applications`, and list the open ones

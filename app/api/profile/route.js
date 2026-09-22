@@ -3,7 +3,7 @@ import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, leaderboard_detail, weekly_goal, monthly_goal';
+const FIELDS = 'display_name, leaderboard_detail';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -20,11 +20,6 @@ export async function GET() {
   });
 }
 
-const clampInt = (v, lo, hi, fallback) => {
-  const n = Math.round(Number(v));
-  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
-};
-
 export async function PATCH(request) {
   const user = await currentUserWithEmail();
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
@@ -37,8 +32,6 @@ export async function PATCH(request) {
   if ('leaderboard_detail' in body) {
     patch.leaderboard_detail = body.leaderboard_detail === 'points' ? 'points' : 'counts';
   }
-  if ('weekly_goal' in body) patch.weekly_goal = clampInt(body.weekly_goal, 0, 200, 5);
-  if ('monthly_goal' in body) patch.monthly_goal = clampInt(body.monthly_goal, 0, 800, 20);
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nothing to change' }, { status: 400 });
 
   const { data, error } = await user.sb.from('profiles')

@@ -760,3 +760,21 @@ body:has(.login) { overflow: auto; }
 /* The board is the point of the page: it gets the full row, and the smaller
    cards sit underneath it. */
 .league-grid > .board-card { grid-column: 1 / -1; }
+
+/* daily target: a day that clears the bar is drawn full height and green */
+.trace i.hit { background: var(--series-1); }
+.target-input {
+  width: 52px;
+  padding: 1px 4px;
+  border: 1px solid var(--viz-ring);
+  border-radius: 4px;
+  background: var(--viz-surface);
+  color: var(--viz-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.target-input:focus { outline: 2px solid var(--xl-green); outline-offset: -1px; border-color: transparent; }
+.stat.good .stat-value { color: var(--xl-green); }
+.league-board { min-width: 720px; }
+.winners td.period { white-space: nowrap; color: var(--viz-muted); }
+.winners td.winner { text-align: left; color: var(--viz-ink); font-weight: 500; }

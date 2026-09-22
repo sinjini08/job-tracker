@@ -17,7 +17,8 @@ export async function GET(_request, { params }) {
   if (denied) return denied;
   const { id } = await params;
   try {
-    return NextResponse.json({ me: user.id, board: await leagues.board(id) });
+    const [board, history] = await Promise.all([leagues.board(id), leagues.history(id)]);
+    return NextResponse.json({ me: user.id, board, history });
   } catch (e) {
     const outside = /Not a member/i.test(e.message);
     return NextResponse.json({ error: outside ? 'You are not in this league.' : e.message },
@@ -30,8 +31,8 @@ export async function PATCH(request, { params }) {
   if (denied) return denied;
   const { id } = await params;
   try {
-    const { name } = await request.json().catch(() => ({}));
-    return NextResponse.json(await leagues.rename(id, name));
+    const body = await request.json().catch(() => ({}));
+    return NextResponse.json(await leagues.update(id, body));
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }

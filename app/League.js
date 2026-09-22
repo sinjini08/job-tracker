@@ -1,10 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PERIODS, goalProgress, periodBy, rankBoard } from '@/lib/board';
+import { PERIODS, periodBy, periodLabel, rankBoard, todayProgress } from '@/lib/board';
 
-// The friends leaderboard. Everything it shows comes from league_board() in
-// the database, which returns totals and counts — never anyone's applications.
+// The friends leaderboard. Everything it shows comes from league_board(),
+// league_history() and league_settle() in the database, which return totals and
+// counts — never anyone's applications.
+//
+// Three tiers: clear the league's daily target today, build a streak of days
+// hit, and win the week or the month. A finished week is settled once and kept,
+// so last week's winner stops moving the moment the week is over.
 
 const api = async (url, method = 'GET', body) => {
   const res = await fetch(url, {
@@ -24,6 +29,7 @@ export default function League() {
   const [profile, setProfile] = useState(null);
   const [active, setActive] = useState(null);
   const [board, setBoard] = useState(null);
+  const [history, setHistory] = useState([]);
   const [me, setMe] = useState(null);
   const [period, setPeriod] = useState('week');
   const [err, setErr] = useState(null);
@@ -44,13 +50,15 @@ export default function League() {
     } catch {}
   }, [loadLeagues]);
 
-  // Reload the board when the league changes, and every time the tab regains
-  // focus — a friend logging an application should show up without a reload.
+  // Reload when the league changes and whenever the tab regains focus: a
+  // friend logging an application should show up without a reload, and the
+  // read is also what settles a week that ended while nobody was looking.
   const loadBoard = useCallback(async (id) => {
     if (!id) return;
     try {
       const data = await api(`/api/leagues/${id}`);
       setBoard(data.board);
+      setHistory(data.history ?? []);
       setMe(data.me);
       setErr(null);
     } catch (e) { setErr(e.message); }
@@ -93,14 +101,20 @@ export default function League() {
     await api(`/api/leagues/${active}/members/${encodeURIComponent(row.user_id)}`, 'DELETE');
     await Promise.all([loadBoard(active), loadLeagues(active)]);
   });
+  const setTarget = (daily_target) => act(async () => {
+    await api(`/api/leagues/${active}`, 'PATCH', { daily_target });
+    await Promise.all([loadLeagues(active), loadBoard(active)]);
+  });
   const saveProfile = (patch) => act(async () => {
     setProfile(await api('/api/profile', 'PATCH', patch));
     await loadBoard(active);
   });
 
   const league = leagues?.find((l) => l.id === active) ?? null;
+  const target = league?.daily_target ?? 20;
   const ranked = useMemo(() => (board ? rankBoard(board, me, period) : null), [board, me, period]);
   const mine = ranked?.find((r) => r.is_me) ?? null;
+  const today = todayProgress(mine, target);
 
   if (leagues == null) return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
 
@@ -122,12 +136,16 @@ export default function League() {
 
           {err && <p className="league-err">{err}</p>}
 
-          {mine && <div className="viz-kpis">
+          {mine && today && <div className="viz-kpis">
+            <Stat label="Today" value={`${today.done} / ${today.target}`}
+              sub={today.met ? '✓ target hit' : `${today.target - today.done} points to go`}
+              tone={today.met ? 'good' : null} />
+            <Stat label="Streak" value={mine.streak_days ?? 0}
+              sub={(mine.streak_days ?? 0) === 1 ? 'day in a row at target' : 'days in a row at target'} />
             <Stat label="Your place" value={ranked.length > 1 ? `#${mine.rank}` : '—'}
-              sub={ranked.length > 1 ? `of ${ranked.length} in ${league.name}` : 'nobody else has joined yet'} />
+              sub={ranked.length > 1 ? `of ${ranked.length}, ${periodBy(period).label.toLowerCase()}` : 'nobody else has joined yet'} />
             <Stat label={`Points ${periodBy(period).label.toLowerCase()}`} value={mine[periodBy(period).points]}
               sub={period === 'total' ? 'since you started' : `${mine.points_total} all time`} />
-            <GoalStat row={mine} period={period} profile={profile} onSave={saveProfile} />
           </div>}
 
           <div className="viz-grid league-grid">
@@ -135,7 +153,10 @@ export default function League() {
               <div className="viz-card-head">
                 <div>
                   <h2>{league?.name ?? 'Leaderboard'}</h2>
-                  <p>{periodBy(period).label} · {ranked?.length ?? 0} {ranked?.length === 1 ? 'member' : 'members'}</p>
+                  <p>
+                    {periodBy(period).label} · {ranked?.length ?? 0} {ranked?.length === 1 ? 'member' : 'members'} ·{' '}
+                    <TargetControl league={league} onSave={setTarget} busy={busy} />
+                  </p>
                 </div>
                 {league && (
                   <button className="viz-toggle" onClick={() => leave(league)} disabled={busy}>
@@ -143,8 +164,18 @@ export default function League() {
                   </button>
                 )}
               </div>
-              <Board rows={ranked} period={period}
+              <Board rows={ranked} period={period} target={target}
                 canRemove={Boolean(league?.is_owner)} onRemove={removeMember} busy={busy} />
+            </div>
+
+            <div className="viz-card">
+              <div className="viz-card-head">
+                <div>
+                  <h2>Past winners</h2>
+                  <p>Settled when the week or the month ends, and kept.</p>
+                </div>
+              </div>
+              <Winners rows={history} />
             </div>
 
             <div className="viz-card">
@@ -162,7 +193,8 @@ export default function League() {
                 </tbody>
               </table>
               <p className="league-fine">
-                Deleting an application takes its points back, so the board stays honest.
+                A row scores only once it names a role and a company, and the same job scores once.
+                Deleting an application takes its points back.
               </p>
             </div>
 
@@ -170,7 +202,7 @@ export default function League() {
               <div className="viz-card-head">
                 <div>
                   <h2>Your settings</h2>
-                  <p>What your friends see, and what you’re aiming for.</p>
+                  <p>What your friends see on the board.</p>
                 </div>
               </div>
               {profile && <Settings profile={profile} onSave={saveProfile} busy={busy} />}
@@ -194,15 +226,9 @@ export default function League() {
 
 // ---------------------------------------------------------------------------
 
-function Board({ rows, period, canRemove, onRemove, busy }) {
+function Board({ rows, period, target, canRemove, onRemove, busy }) {
   if (!rows) return <p className="viz-note">Loading…</p>;
   const p = periodBy(period);
-  // One scale across everyone, so the traces are comparable rather than each
-  // row being normalised to its own best day. The scale is capped, though:
-  // without that, a single thirty-in-an-evening spike flattens everybody
-  // else's week into stubs. Anything past the cap just reaches full height.
-  const busiest = Math.max(0, ...rows.flatMap((r) => r.daily ?? []));
-  const peak = Math.min(6, Math.max(3, busiest));
   return (
     // Scrolls sideways rather than spilling out of the card on a phone.
     <div className="board-wrap">
@@ -212,17 +238,19 @@ function Board({ rows, period, canRemove, onRemove, busy }) {
           <th className="rank-col">#</th>
           <th>Member</th>
           <th>Points</th>
+          <th title={`Points earned today, against the league's target of ${target}`}>Today</th>
+          <th title={`Days this period at ${target} points or more`}>Days hit</th>
+          <th title="Days in a row at target">Streak</th>
           <th>Applied</th>
           <th>Interviews</th>
           <th>Offers</th>
-          <th>Goal</th>
-          <th className="trace-col" title="Applications per day over the last two weeks">Last 2 weeks</th>
+          <th className="trace-col" title="Points per day over the last two weeks">Last 2 weeks</th>
           {canRemove && <th className="kick-col" aria-label="Remove" />}
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => {
-          const goal = goalProgress(row, period);
+          const today = todayProgress(row, target);
           return (
             <tr key={row.user_id} className={row.is_me ? 'me' : ''}>
               <td className="rank-col">{row.rank}</td>
@@ -230,19 +258,19 @@ function Board({ rows, period, canRemove, onRemove, busy }) {
                 {row.display_name}{row.is_me && <span className="you">you</span>}
               </td>
               <td><b>{row[p.points]}</b></td>
+              <td>
+                <span className={`goal ${today.met ? 'met' : ''}`} title={`${today.done} of ${target} today`}>
+                  <span className="goal-track"><span className="goal-fill" style={{ width: `${today.pct}%` }} /></span>
+                  {today.done}
+                </span>
+              </td>
+              <td>{p.hits ? (row[p.hits] ?? 0) : '—'}</td>
+              <td>{row.streak_days ?? 0}</td>
               {/* A member who chose "points only" has no counts to show. */}
-              <td>{p.applied ? cell(row[p.applied]) : '—'}</td>
+              <td>{cell(row[p.applied])}</td>
               <td>{cell(row.interviews)}</td>
               <td>{cell(row.offers)}</td>
-              <td>
-                {goal ? (
-                  <span className={`goal ${goal.met ? 'met' : ''}`} title={`${goal.done} of ${goal.target}`}>
-                    <span className="goal-track"><span className="goal-fill" style={{ width: `${goal.pct}%` }} /></span>
-                    {goal.done}/{goal.target}
-                  </span>
-                ) : '—'}
-              </td>
-              <td className="trace-col"><Trace daily={row.daily} peak={peak} /></td>
+              <td className="trace-col"><Trace daily={row.daily} target={target} /></td>
               {canRemove && (
                 <td className="kick-col">
                   {!row.is_me && (
@@ -260,25 +288,67 @@ function Board({ rows, period, canRemove, onRemove, busy }) {
   );
 }
 
-// Applications per day for the last fortnight. Steady beats spiky, and a
+// Points per day for the last fortnight, drawn against the daily target, so a
+// bar that reaches the top is a day you hit it. Steady beats spiky, and a
 // week's work done in one evening looks like exactly that.
-function Trace({ daily, peak }) {
+function Trace({ daily, target }) {
   if (!daily) return <span className="hidden-cell" title="This member shows points only">·</span>;
+  const hit = daily.filter((n) => n >= target).length;
   const total = daily.reduce((t, n) => t + n, 0);
-  const busiest = Math.max(0, ...daily);
   return (
-    <span className="trace" title={`${total} in the last 14 days · busiest day ${busiest}`}>
+    <span className="trace" title={`${total} points in the last 14 days · ${hit} ${hit === 1 ? 'day' : 'days'} at target`}>
       {daily.map((n, i) => (
-        // A day with one application must not look like a day with none, so
-        // any non-zero day gets a visible minimum.
-        <i key={i} className={n ? '' : 'empty'}
-           style={{ height: n ? `${Math.max(25, Math.min(100, (n / peak) * 100))}%` : undefined }} />
+        // A day with something on it must not look like a day with nothing.
+        <i key={i} className={n >= target ? 'hit' : n ? '' : 'empty'}
+           style={{ height: n ? `${Math.max(20, Math.min(100, (n / target) * 100))}%` : undefined }} />
       ))}
     </span>
   );
 }
 
 const cell = (v) => (v == null ? <span className="hidden-cell" title="This member shows points only">·</span> : v);
+
+function Winners({ rows }) {
+  if (!rows?.length) {
+    return <p className="muted">Nothing settled yet — the first winner is recorded once a week finishes.</p>;
+  }
+  // Newest first, and don't lean on the order the API happened to send.
+  const sorted = [...rows].sort((a, b) =>
+    String(b.period_start).localeCompare(String(a.period_start)) ||
+    String(a.period).localeCompare(String(b.period)));
+  return (
+    <table className="viz-table winners">
+      <tbody>
+        {sorted.map((r) => (
+          <tr key={`${r.period}-${r.period_start}-${r.winner}`}>
+            <td className="period">{periodLabel(r.period, r.period_start)}</td>
+            <td className="winner">🏆 {r.winner}</td>
+            <td>{r.points} pts</td>
+            <td title="days at target that period">{r.days_hit}d</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// The target belongs to the league, not to each member: a shared bar is the
+// only thing that makes "days hit" comparable between friends.
+function TargetControl({ league, onSave, busy }) {
+  const [draft, setDraft] = useState(league?.daily_target ?? 20);
+  useEffect(() => setDraft(league?.daily_target ?? 20), [league?.daily_target]);
+  if (!league?.is_owner) return <>target {league?.daily_target ?? 20} points a day</>;
+  return (
+    <>
+      target{' '}
+      <input className="target-input" type="number" min="1" max="500" value={draft} disabled={busy}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => Number(draft) !== league.daily_target && onSave(draft)}
+        title="Everyone in the league aims at the same number" />
+      {' '}points a day
+    </>
+  );
+}
 
 function InviteCode({ league }) {
   const [copied, setCopied] = useState(false);
@@ -308,8 +378,8 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
           <p className="viz-empty-title">Compete with your friends</p>
           <p className="league-intro">
             Make a league and send the code to a friend. You’ll both get a board with points for
-            every application and every round you reach — weekly, monthly and all time.
-            Your friends never see which jobs you applied to.
+            every application and every round you reach, a daily target to clear, and a winner
+            each week and month. Your friends never see which jobs you applied to.
           </p>
         </>
       )}
@@ -336,8 +406,6 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
 
 function Settings({ profile, onSave, busy }) {
   const [name, setName] = useState(profile.display_name ?? '');
-  const [week, setWeek] = useState(profile.weekly_goal);
-  const [month, setMonth] = useState(profile.monthly_goal);
   return (
     <div className="league-settings">
       <label className="field">
@@ -345,23 +413,11 @@ function Settings({ profile, onSave, busy }) {
         <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
           onBlur={() => name !== (profile.display_name ?? '') && onSave({ display_name: name })} />
       </label>
-      <label className="field">
-        <span>Applications a week</span>
-        <input type="number" min="0" max="200" value={week}
-          onChange={(e) => setWeek(e.target.value)}
-          onBlur={() => Number(week) !== profile.weekly_goal && onSave({ weekly_goal: week })} />
-      </label>
-      <label className="field">
-        <span>Applications a month</span>
-        <input type="number" min="0" max="800" value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          onBlur={() => Number(month) !== profile.monthly_goal && onSave({ monthly_goal: month })} />
-      </label>
       <fieldset className="field detail">
         <span>What friends see</span>
         {[
-          ['counts', 'Points and counts', 'Your points, plus how many applications, interviews and offers.'],
-          ['points', 'Points only', 'Just your total. Nobody sees the numbers behind it.'],
+          ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
+          ['points', 'Points only', 'Points, streak and days hit — not the counts behind them, and not your day-by-day trace.'],
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
@@ -376,19 +432,9 @@ function Settings({ profile, onSave, busy }) {
   );
 }
 
-function GoalStat({ row, period, profile, onSave }) {
-  const goal = goalProgress(row, period);
-  if (!goal) {
-    return <Stat label="Goal" value="—"
-      sub={period === 'total' ? 'goals run weekly and monthly' : 'set one in your settings'} />;
-  }
-  return <Stat label={`${periodBy(period).label} goal`} value={`${goal.done} / ${goal.target}`}
-    sub={goal.met ? '✓ goal met' : `${goal.target - goal.done} to go`} />;
-}
-
-function Stat({ label, value, sub }) {
+function Stat({ label, value, sub, tone }) {
   return (
-    <div className="stat">
+    <div className={`stat ${tone === 'good' ? 'good' : ''}`}>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value}</div>
       {sub && <div className="stat-sub">{sub}</div>}
