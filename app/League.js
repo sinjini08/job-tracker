@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
 import { AVATARS } from '@/lib/avatars';
 import Avatar from './Avatar';
-import { Crown, Flame, Trophy } from './Icons';
+import { Check, Crown, Flame, Trophy } from './Icons';
 import DayChart from './LeagueCharts';
 import { useCelebration } from './Celebrate';
 
@@ -54,6 +54,7 @@ export default function League() {
   const [active, setActive] = useState(null);
   const [board, setBoard] = useState(null);
   const [history, setHistory] = useState([]);
+  const [months, setMonths] = useState([]);
   const [me, setMe] = useState(null);
   const [view, setView] = useState('today');
   const [err, setErr] = useState(null);
@@ -86,6 +87,7 @@ export default function League() {
       const data = await api(`/api/leagues/${id}`);
       setBoard(data.board);
       setHistory(data.history ?? []);
+      setMonths(data.months ?? []);
       setMe(data.me);
       setErr(null);
     } catch (e) { setErr(e.message); }
@@ -223,7 +225,7 @@ export default function League() {
               <MonthPanel rows={ranked} mine={mine} target={target} me={me}
                 history={history.filter((h) => h.period === 'month')} />
             )}
-            {view === 'stats' && <StatsPanel rows={ranked} target={target} />}
+            {view === 'stats' && <StatsPanel rows={ranked} target={target} months={months} me={me} />}
             {view === 'points' && <PointsPanel values={values} target={target} />}
             {view === 'settings' && (
               <SettingsPanel league={league} leagues={leagues} profile={profile} rows={ranked}
@@ -264,7 +266,10 @@ function TodayPanel({ rows, mine, target }) {
           <div className="hero-pills">
             <Pill label="day streak" value={mine?.streak_days ?? 0} icon={<Flame />}
               tone={(mine?.streak_days ?? 0) >= 3 ? 'hot' : null} />
-            <Pill label={`of ${rows.length} won today`} value={winners.length} icon={<Trophy />} />
+            <Pill label={`of ${rows.length} cleared the target`} value={winners.length} icon={<Check />} />
+            {mine?.bonus_month > 0 && (
+              <Pill label="bonus this month" value={`+${mine.bonus_month}`} icon={<Trophy />} tone="gold" />
+            )}
           </div>
         </div>
       </section>
@@ -287,8 +292,13 @@ function TodayPanel({ rows, mine, target }) {
               </span>
               <span className="day-score">{done}</span>
               <span className="day-flag">
+                {/* The trophy is the day's top score. Clearing the target is a
+                    tick: a win, but not the one worth a bonus point. */}
                 {won
-                  ? <b className="won-chip"><Trophy size={11} />won{past > 0 ? ` +${past}` : ''}</b>
+                  ? <b className={`won-chip ${done === best ? 'top' : ''}`}>
+                      {done === best ? <Trophy size={11} /> : <Check size={11} />}
+                      won{past > 0 ? ` +${past}` : ''}
+                    </b>
                   : `${Math.max(0, target - done)} to go`}
               </span>
             </li>
@@ -297,7 +307,8 @@ function TodayPanel({ rows, mine, target }) {
       </ol>
       <p className="league-fine">
         Anyone who reaches {target} points has won the day, so you are not fighting over one
-        spot. The crown just marks whoever scored highest.
+        spot. The trophy marks whoever scored highest, and that is worth a bonus point on the
+        month!
       </p>
     </>
   );
@@ -456,8 +467,10 @@ function MonthPanel({ rows, mine, target, history }) {
       <Podium rows={rows} period="month" />
       <Standings rows={rows} period="month" />
       <p className="league-fine">
-        {mine ? `You’re #${mine.rank} of ${rows.length} this month. ` : ''}
-        {mine ? `${mine.days_hit_month ?? 0} days won so far.` : ''}
+        {mine ? `You are #${mine.rank} of ${rows.length} this month, with ${mine.days_hit_month ?? 0} days won. ` : ''}
+        {mine?.bonus_month > 0
+          ? `That includes ${mine.bonus_month} bonus ${mine.bonus_month === 1 ? 'point' : 'points'}: ${mine.day_wins_month} ${mine.day_wins_month === 1 ? 'day' : 'days'} topped and ${mine.week_wins_month} ${mine.week_wins_month === 1 ? 'week' : 'weeks'} won.`
+          : 'Top a day for a bonus point, or win a week for two.'}
       </p>
 
       <h3 className="panel-h">Past winners</h3>
@@ -490,9 +503,49 @@ function Winners({ rows }) {
 // Stats — where the dense numbers live now.
 // ---------------------------------------------------------------------------
 
-function StatsPanel({ rows, target }) {
+function StatsPanel({ rows, target, months, me }) {
+  // Settled months, newest first, each with its own little table.
+  const byMonth = [];
+  for (const row of months ?? []) {
+    const bucket = byMonth.find((b) => b.start === row.period_start);
+    if (bucket) bucket.rows.push(row);
+    else byMonth.push({ start: row.period_start, rows: [row] });
+  }
+
   return (
     <>
+      <h3 className="panel-h">Month by month</h3>
+      {byMonth.length === 0 ? (
+        <p className="muted">
+          No finished months yet. When this month ends the board resets to zero, and the whole
+          month lands here so you can still see how it went.
+        </p>
+      ) : (
+        <div className="months">
+          {byMonth.map((m) => (
+            <div className="month-card" key={m.start}>
+              <h4>{periodLabel('month', m.start)}</h4>
+              <ol className="month-rows">
+                {m.rows.map((r, i) => (
+                  <li key={r.user_id} className={r.user_id === me ? 'me' : ''}>
+                    <span className="mr-rank">{i + 1}</span>
+                    <Avatar name={r.member} avatar={r.avatar} size={24} />
+                    <span className="mr-name">{r.member}</span>
+                    {r.won && <span className="mr-cup"><Trophy size={13} /></span>}
+                    <span className="mr-days">{r.days_hit}d</span>
+                    <span className="mr-points">{r.points}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="league-fine">
+        Each month starts from zero, so nobody runs away with it forever. Finished months stay
+        here, bonus points included.
+      </p>
+
       <h3 className="panel-h">Everything, all time</h3>
       <div className="board-wrap">
         <table className="viz-table league-board">
@@ -503,6 +556,7 @@ function StatsPanel({ rows, target }) {
               <th title="Points earned today">Today</th>
               <th title="Days in a row at target">Streak</th>
               <th title={`Days this month at ${target} points or more`}>Days won</th>
+              <th title="Bonus points this month: one for topping a day, two for winning a week">Bonus</th>
               <th>Applied</th>
               <th>Interviews</th>
               <th>Offers</th>
@@ -519,6 +573,7 @@ function StatsPanel({ rows, target }) {
                 <td>{row.points_today ?? 0}</td>
                 <td>{row.streak_days ?? 0}</td>
                 <td>{row.days_hit_month ?? 0}</td>
+                <td>{row.bonus_month ? `+${row.bonus_month}` : 0}</td>
                 <td>{cell(row.applied_total)}</td>
                 <td>{cell(row.interviews)}</td>
                 <td>{cell(row.offers)}</td>
@@ -580,8 +635,12 @@ function PointsPanel({ values, target }) {
           <li><b>{target} points in a day wins the day.</b> That is the floor, not the ceiling, so
             everything past it still builds your week and your month. Anyone who reaches it has won
             that day, and the crown goes to whoever scored highest.</li>
+          <li><b>Top a day and you get a bonus point</b> on the month. Win a week and you get
+            two. Bonuses land on the monthly total only, so they never change who topped a day.</li>
           <li><b>Win a week or a month</b> by having the most points in it. When the period ends
             the result is recorded, and stops changing.</li>
+          <li><b>Every month starts from zero.</b> The finished month is kept, so you can still
+            see it under Stats.</li>
           <li><b>Each milestone is earned once per application.</b> Getting to an interview is worth
             8 points in total: one for applying, then the rounds along the way.</li>
           <li><b>A rejection never takes points back.</b> Deleting the application does, which is what

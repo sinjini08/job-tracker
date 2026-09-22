@@ -29,6 +29,15 @@ export function Flame({ size = 14, ...rest }) {
   );
 }
 
+export function Check({ size = 14, ...rest }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor"
+      strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden {...rest}>
+      <path d="M2.5 8.5 6.2 12 13.5 4" />
+    </svg>
+  );
+}
+
 export function Crown({ size = 14, ...rest }) {
   return (
     <svg viewBox="0 0 18 14" width={size} height={size * (11 / 14)} fill="currentColor" aria-hidden {...rest}>

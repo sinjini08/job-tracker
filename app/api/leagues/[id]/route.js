@@ -17,8 +17,10 @@ export async function GET(_request, { params }) {
   if (denied) return denied;
   const { id } = await params;
   try {
-    const [board, history] = await Promise.all([leagues.board(id), leagues.history(id)]);
-    return NextResponse.json({ me: user.id, board, history });
+    // board() settles first, so history and months are read after it.
+    const board = await leagues.board(id);
+    const [history, months] = await Promise.all([leagues.history(id), leagues.months(id)]);
+    return NextResponse.json({ me: user.id, board, history, months });
   } catch (e) {
     const outside = /Not a member/i.test(e.message);
     return NextResponse.json({ error: outside ? 'You are not in this league.' : e.message },
