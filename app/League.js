@@ -801,8 +801,10 @@ function Settings({ profile, onSave, busy }) {
       <fieldset className="field detail">
         <span>What friends see</span>
         {[
-          ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
-          ['points', 'Points only', 'Points, streak and days won. Not the counts behind them, and not your daily shape.'],
+          ['counts', 'Points and how you got them',
+            'Friends see your points, streak and days won, plus how many jobs you applied to, how many interviews you reached and how many offers you got. Your daily chart shows too.'],
+          ['points', 'Points only',
+            'Friends see your points, streak and days won, and nothing else. Not how many jobs you applied to, not your interviews or offers, and not your daily chart.'],
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
