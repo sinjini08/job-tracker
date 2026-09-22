@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
 import { AVATARS } from '@/lib/avatars';
 import Avatar from './Avatar';
+import { Crown, Flame, Trophy } from './Icons';
 import DayChart from './LeagueCharts';
 import { useCelebration } from './Celebrate';
 
@@ -132,6 +133,10 @@ export default function League() {
     await api(`/api/leagues/${active}/members/${encodeURIComponent(row.user_id)}`, 'DELETE');
     await Promise.all([loadBoard(active), loadLeagues(active)]);
   });
+  const rename = (name) => act(async () => {
+    await api(`/api/leagues/${active}`, 'PATCH', { name });
+    await loadLeagues(active);
+  });
   const setTarget = (daily_target) => act(async () => {
     await api(`/api/leagues/${active}`, 'PATCH', { daily_target });
     await Promise.all([loadLeagues(active), loadBoard(active)]);
@@ -221,9 +226,10 @@ export default function League() {
             {view === 'stats' && <StatsPanel rows={ranked} target={target} />}
             {view === 'points' && <PointsPanel values={values} target={target} />}
             {view === 'settings' && (
-              <SettingsPanel league={league} profile={profile} rows={ranked} busy={busy}
-                onProfile={saveProfile} onTarget={setTarget} onRemove={removeMember}
-                onLeave={() => leave(league)} onCreate={create} onJoin={join} />
+              <SettingsPanel league={league} leagues={leagues} profile={profile} rows={ranked}
+                busy={busy} onSwitch={setActive} onProfile={saveProfile} onRename={rename}
+                onTarget={setTarget} onRemove={removeMember} onLeave={() => leave(league)}
+                onCreate={create} onJoin={join} />
             )}
           </>
         )}
@@ -256,9 +262,9 @@ function TodayPanel({ rows, mine, target }) {
               : `Get to ${target} points today and the day is yours. And ${target} is only the floor, so everything past it still builds your week and your month.`}
           </p>
           <div className="hero-pills">
-            <Pill label="day streak" value={mine?.streak_days ?? 0}
+            <Pill label="day streak" value={mine?.streak_days ?? 0} icon={<Flame />}
               tone={(mine?.streak_days ?? 0) >= 3 ? 'hot' : null} />
-            <Pill label={`of ${rows.length} won today`} value={winners.length} />
+            <Pill label={`of ${rows.length} won today`} value={winners.length} icon={<Trophy />} />
           </div>
         </div>
       </section>
@@ -282,7 +288,7 @@ function TodayPanel({ rows, mine, target }) {
               <span className="day-score">{done}</span>
               <span className="day-flag">
                 {won
-                  ? <b className="won-chip">won{past > 0 ? ` +${past}` : ''}</b>
+                  ? <b className="won-chip"><Trophy size={11} />won{past > 0 ? ` +${past}` : ''}</b>
                   : `${Math.max(0, target - done)} to go`}
               </span>
             </li>
@@ -469,7 +475,7 @@ function Winners({ rows }) {
     <ul className="winner-list">
       {sorted.map((r) => (
         <li key={`${r.period}-${r.period_start}-${r.user_id}`}>
-          <span className="cup" aria-hidden>🏆</span>
+          <span className="cup"><Trophy size={15} /></span>
           <Avatar name={r.winner} avatar={r.avatar} size={28} />
           <span className="winner-name">{r.winner}</span>
           <span className="winner-when">{periodLabel(r.period, r.period_start)}</span>
@@ -590,36 +596,83 @@ function PointsPanel({ values, target }) {
 
 // ---------------------------------------------------------------------------
 
-function SettingsPanel({ league, profile, rows, busy, onProfile, onTarget, onRemove, onLeave, onCreate, onJoin }) {
+function SettingsPanel({ league, leagues, profile, rows, busy, onSwitch, onProfile, onRename,
+  onTarget, onRemove, onLeave, onCreate, onJoin }) {
+  const host = rows.find((r) => r.user_id === league?.owner_id) ?? null;
   return (
     <>
       <h3 className="panel-h">You</h3>
       {profile && <Settings profile={profile} onSave={onProfile} busy={busy} />}
 
+      {leagues.length > 1 && (
+        <>
+          <h3 className="panel-h">Your leagues</h3>
+          <ul className="member-list">
+            {leagues.map((l) => (
+              <li key={l.id} className={l.id === league?.id ? 'current' : ''}>
+                <span className="member-who">
+                  <b>{l.name}</b>
+                  <small>{l.members} {l.members === 1 ? 'member' : 'members'}</small>
+                  {l.is_owner && <span className="host">you host</span>}
+                </span>
+                {l.id === league?.id
+                  ? <span className="muted small">Showing</span>
+                  : <button className="viz-toggle" onClick={() => onSwitch(l.id)}>Show</button>}
+              </li>
+            ))}
+          </ul>
+          <p className="league-fine">
+            You can be in as many leagues as you like. Points are yours, so the same day counts in
+            every one of them.
+          </p>
+        </>
+      )}
+
       <h3 className="panel-h">{league?.name}</h3>
       <div className="league-settings">
+        <label className="field">
+          <span>League name</span>
+          {league?.is_owner
+            ? <NameInput league={league} onSave={onRename} busy={busy} />
+            : <div className="readonly-text">
+                {league?.name}. Only the host can rename it.
+              </div>}
+        </label>
+
         <label className="field">
           <span>Daily target</span>
           {league?.is_owner
             ? <TargetInput league={league} onSave={onTarget} busy={busy} />
-            : <div className="readonly-text">{league?.daily_target} points a day, set by whoever made the league.</div>}
+            : <div className="readonly-text">{league?.daily_target} points a day, set by the host.</div>}
         </label>
 
         <div className="field">
           <span>Members</span>
           <ul className="member-list">
-            {rows.map((r) => (
-              <li key={r.user_id}>
-                <span className="member-who">
-                  <Avatar name={r.display_name} avatar={r.avatar} size={26} />
-                  {r.display_name}{r.is_me && <span className="you">you</span>}
-                </span>
-                {league?.is_owner && !r.is_me && (
-                  <button className="viz-toggle" disabled={busy} onClick={() => onRemove(r)}>Remove</button>
-                )}
-              </li>
-            ))}
+            {rows.map((r) => {
+              const isHost = r.user_id === league?.owner_id;
+              return (
+                <li key={r.user_id}>
+                  <span className="member-who">
+                    <Avatar name={r.display_name} avatar={r.avatar} size={26} />
+                    {r.display_name}
+                    {r.is_me && <span className="you">you</span>}
+                    {isHost && <span className="host">host</span>}
+                  </span>
+                  {/* The host can remove anyone but themselves. Leaving is how
+                      the host gets out, and that deletes the league. */}
+                  {league?.is_owner && !isHost && (
+                    <button className="viz-toggle" disabled={busy} onClick={() => onRemove(r)}>Remove</button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
+          <small className="league-fine">
+            {league?.is_owner
+              ? 'You host this league, so you can rename it, set the target and remove anyone. Whoever you remove keeps all of their own data and can rejoin with the code.'
+              : `${host ? host.display_name : 'The host'} runs this league and sets the target.`}
+          </small>
         </div>
 
         <button className="btn danger" onClick={onLeave} disabled={busy}>
@@ -630,6 +683,16 @@ function SettingsPanel({ league, profile, rows, busy, onProfile, onTarget, onRem
       <h3 className="panel-h">Another league</h3>
       <Start onCreate={onCreate} onJoin={onJoin} busy={busy} compact />
     </>
+  );
+}
+
+function NameInput({ league, onSave, busy }) {
+  const [draft, setDraft] = useState(league?.name ?? '');
+  useEffect(() => setDraft(league?.name ?? ''), [league?.name]);
+  return (
+    <input value={draft} maxLength={60} disabled={busy}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => draft.trim() && draft !== league.name && onSave(draft)} />
   );
 }
 
@@ -708,19 +771,12 @@ function Rank({ n, lead, scored }) {
   );
 }
 
-// A drawn crown: the ♛ character renders at wildly different weights across
-// systems, and at 15px it mostly reads as a smudge.
-function Crown() {
+function Pill({ label, value, tone, icon }) {
   return (
-    <svg viewBox="0 0 18 14" width="14" height="11" aria-hidden>
-      <path d="M1 12V3l4.2 3L9 1l3.8 5L17 3v9z" fill="currentColor" />
-      <rect x="1" y="12" width="16" height="2" rx="1" fill="currentColor" />
-    </svg>
+    <span className={`pill ${tone === 'hot' ? 'hot' : ''}`}>
+      {icon}<b>{value}</b> {label}
+    </span>
   );
-}
-
-function Pill({ label, value, tone }) {
-  return <span className={`pill ${tone === 'hot' ? 'hot' : ''}`}><b>{value}</b> {label}</span>;
 }
 
 function InviteCode({ league }) {

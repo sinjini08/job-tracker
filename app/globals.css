@@ -1157,3 +1157,28 @@ body:has(.login) { overflow: auto; }
 @media (prefers-reduced-motion: reduce) {
   .plinth-bar, .plinth-who, .day-bar i, .chart-rise { animation: none; }
 }
+
+/* icons sit on the text baseline rather than floating above it */
+.pill svg, .won-chip svg, .cup svg { vertical-align: -2px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; }
+.pill svg { flex: none; }
+.won-chip { display: inline-flex; align-items: center; gap: 4px; }
+.cup { display: inline-grid; place-items: center; color: #c79a2a; }
+.cup-big { color: #d9a327; font-size: 0; line-height: 0; }
+
+/* who runs the league */
+.host {
+  margin-left: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #f1e3c4;
+  color: #7a5a12;
+  vertical-align: middle;
+}
+.member-list li.current { border-color: var(--xl-green); background: var(--xl-green-tint); }
+.member-list .member-who b { font-weight: 600; color: var(--viz-ink); }
+.member-list .member-who small { color: var(--viz-muted); margin-left: 8px; }
+.muted.small { font-size: 12px; }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Trophy } from './Icons';
 
 // A trophy and a burst of confetti across the screen for a couple of seconds
 // when you win a day, a week or a month.
@@ -81,7 +82,7 @@ function Celebration({ title, detail, onDone }) {
         ))}
       </div>
       <div className="celebrate-card">
-        <div className="cup-big" aria-hidden>🏆</div>
+        <div className="cup-big"><Trophy size={62} /></div>
         <h2>{title}</h2>
         {detail && <p>{detail}</p>}
       </div>
