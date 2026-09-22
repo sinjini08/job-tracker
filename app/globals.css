@@ -9,7 +9,7 @@
   --xl-green: var(--green);
   --xl-green-dark: #14472a;
   --xl-green-tint: #dcece1;
-  --grid-line: var(--sand);
+  --grid-line: #e4e4db;
   --head-bg: var(--paper);
   --head-line: #d8d8ca;
   --head-text: #4a4a42;
@@ -18,18 +18,24 @@
   --bg: #ffffff;
   --chrome: var(--paper);
   --due: #c0392b;
-  --row-h: 24px;
+  --row-h: 28px;
   --rownum-w: 44px;
-  --font: "Aptos", "Calibri", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* The machine's own interface font: SF on a Mac, Segoe UI Variable on
+     Windows, Roboto on Android. It used to lead with Aptos and Calibri to
+     look like Excel, which meant the sheet and the League tab were set in
+     two different typefaces on any machine with Office installed. */
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  font: 13px/1.3 var(--font);
+  font: 13px/1.4 var(--font);
   color: var(--text);
   background: var(--bg);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 
@@ -133,7 +139,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .grid th, .grid td {
   height: var(--row-h);
-  padding: 0 6px;
+  padding: 0 10px;
   border-right: 1px solid var(--grid-line);
   border-bottom: 1px solid var(--grid-line);
   white-space: nowrap;
@@ -151,7 +157,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-color: var(--head-line);
   z-index: 2;
 }
-.grid thead tr.letters th { top: 0; height: 22px; text-align: center; font-size: 12px; }
+.grid thead tr.letters th { top: 0; height: 20px; text-align: center; font-size: 11px; }
 .grid thead tr.headers th {
   top: 22px;
   background: #fbfbf7;
@@ -223,7 +229,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   width: 100%;
   height: 100%;
   border: 0;
-  padding: 0 6px;
+  padding: 0 10px;
   background: #fff;
   outline: 2px solid var(--xl-green);
   outline-offset: -2px;
@@ -491,7 +497,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow: auto;
   background: var(--viz-page);
   padding: 16px;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 .viz-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 16px; }
 .seg { display: inline-flex; align-items: center; gap: 2px; background: var(--viz-surface); border: 1px solid var(--viz-ring); border-radius: 6px; padding: 2px; }

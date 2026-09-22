@@ -16,7 +16,7 @@ const CHARTS = 'Charts';
 const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
 const MIN_COL_W = 48, MAX_COL_W = 640;
-const MIN_ROW_H = 18, MAX_ROW_H = 120;
+const MIN_ROW_H = 18, MAX_ROW_H = 120, DEFAULT_ROW_H = 28;
 const DEADLINE_WARN_DAYS = 3;
 const POLL_MS = 20000;
 const REQUIRED = new Set(['status']); // NOT NULL in the schema: never offer a blank
@@ -112,7 +112,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
   const [drawerId, setDrawerId] = useState(null);
   const [colWidths, setColWidths] = useState({});   // { [column id]: px }, per sheet
-  const [rowHeight, setRowHeight] = useState(24);
+  const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_H);
   const gridRef = useRef(null);
   const drawerOpenRef = useRef(false);
 
@@ -215,7 +215,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
   const resetSizes = () => {
     saveWidths({});
-    saveRowHeight(24);
+    saveRowHeight(DEFAULT_ROW_H);
   };
   const switchTab = (t) => {
     setTab(t);
@@ -593,7 +593,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             </button>
           ))}
         </div>
-        {isGrid && (Object.keys(colWidths).length > 0 || rowHeight !== 24) && (
+        {isGrid && (Object.keys(colWidths).length > 0 || rowHeight !== DEFAULT_ROW_H) && (
           <button className="reset-sizes" onClick={resetSizes} title="Back to default column widths and row height">
             Reset sizes
           </button>
