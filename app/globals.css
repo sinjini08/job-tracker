@@ -1228,3 +1228,6 @@ body:has(.login) { overflow: auto; }
 .mr-cup { color: #c79a2a; display: inline-grid; place-items: center; }
 .mr-days { color: var(--viz-muted); font-size: 12px; }
 .mr-points { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--viz-ink); }
+.points-list .pv-label { display: inline-flex; align-items: center; gap: 8px; }
+.pv-cup { color: #c79a2a; display: inline-grid; place-items: center; }
+.points-list.bonus .pv-points { color: #a8801f; }

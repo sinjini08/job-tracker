@@ -632,14 +632,36 @@ function PointsPanel({ values, target }) {
           </li>
         ))}
       </ul>
+
+      <h3 className="panel-h">Bonus points</h3>
+      <ul className="points-list bonus">
+        <li>
+          <span className="pv-label">
+            <span className="pv-cup"><Trophy size={15} /></span>
+            Top the day, by scoring highest of anyone
+          </span>
+          <span className="pv-points">+1</span>
+        </li>
+        <li>
+          <span className="pv-label">
+            <span className="pv-cup"><Trophy size={15} /></span>
+            Win the week, by having the most points in it
+          </span>
+          <span className="pv-points">+2</span>
+        </li>
+      </ul>
+      <p className="league-fine">
+        Bonus points go on your monthly total and nowhere else. That keeps them out of the day
+        they were won on, so a bonus can never decide who topped that day. You can see what you
+        have banked on the monthly board.
+      </p>
+
       <div className="rules">
         <h4>The rules</h4>
         <ul>
           <li><b>{target} points in a day wins the day.</b> That is the floor, not the ceiling, so
             everything past it still builds your week and your month. Anyone who reaches it has won
-            that day, and the crown goes to whoever scored highest.</li>
-          <li><b>Top a day and you get a bonus point</b> on the month. Win a week and you get
-            two. Bonuses land on the monthly total only, so they never change who topped a day.</li>
+            that day, and the trophy goes to whoever scored highest.</li>
           <li><b>Win a week or a month</b> by having the most points in it. When the period ends
             the result is recorded, and stops changing.</li>
           <li><b>Every month starts from zero.</b> The finished month is kept, so you can still
