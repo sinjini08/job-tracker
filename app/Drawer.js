@@ -53,7 +53,7 @@ export default function Drawer({ row, apiBase = '/api', canEdit, onPatch, onDele
           <div>
             <div className="drawer-title">{row.role || 'Untitled role'}</div>
             <div className="drawer-sub">
-              {row.company || '—'} · {row.type}
+              {row.company || 'No company yet'} · {row.type}
               <span className="chip" style={{ background: bg, color: fg, marginLeft: 8 }}>{row.status}</span>
             </div>
           </div>
@@ -152,10 +152,9 @@ function ShortField({ label, value, canEdit, onSave, type = 'text', hint }) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => { if ((value ?? '') !== draft) onSave(draft); }}
-          placeholder="—"
         />
       ) : (
-        <div className="readonly-text">{shown || '—'}</div>
+        <div className="readonly-text">{shown || 'Not set'}</div>
       )}
     </label>
   );
@@ -173,10 +172,9 @@ function LongField({ label, value, canEdit, onSave, rows }) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => { if ((value ?? '') !== draft) onSave(draft); }}
-          placeholder="—"
         />
       ) : (
-        <div className="readonly-text">{value || '—'}</div>
+        <div className="readonly-text">{value || 'Nothing here yet'}</div>
       )}
     </label>
   );

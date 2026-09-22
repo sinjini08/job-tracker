@@ -690,7 +690,7 @@ function Editor({ col, initial, onEnd }) {
         onClick={(e) => finish(true, ref.current.value, [0, 0])}
         onBlur={() => finish(false)}
       >
-        {!REQUIRED.has(col.key) && <option value="">—</option>}
+        {!REQUIRED.has(col.key) && <option value="">Leave blank</option>}
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     );

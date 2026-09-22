@@ -155,7 +155,8 @@ export default function League() {
     if (!league || !mine || !wonToday(mine, target)) return;
     const over = mine.points_today - target;
     celebrate(`${league.id}-day-${todayKey()}`, 'You won today',
-      over > 0 ? `${mine.points_today} points — ${over} past the target.` : `${mine.points_today} points.`);
+      over > 0 ? `${mine.points_today} points today, ${over} more than you needed.`
+        : `${mine.points_today} points today.`);
   }, [league, mine, target, celebrate]);
 
   useEffect(() => {
@@ -250,9 +251,9 @@ function TodayPanel({ rows, mine, target }) {
           <p>
             {progress.met
               ? over > 0
-                ? `${progress.done} points — ${over} past the target. Every extra one still counts toward the week and the month, so keep going.`
-                : `${progress.done} points, exactly on target. Anything more still counts toward the week.`
-              : `Reach ${target} points today and the day is yours. It’s a floor, not a cap — go past it and the extra counts toward the week.`}
+                ? `You needed ${target} and you got ${progress.done}. Those ${over} extra points still count toward your week and your month, so keep them coming.`
+                : `${progress.done} points, right on target. Anything more still builds your week and your month.`
+              : `Get to ${target} points today and the day is yours. And ${target} is only the floor, so everything past it still builds your week and your month.`}
           </p>
           <div className="hero-pills">
             <Pill label="day streak" value={mine?.streak_days ?? 0}
@@ -289,8 +290,8 @@ function TodayPanel({ rows, mine, target }) {
         })}
       </ol>
       <p className="league-fine">
-        {target} points wins the day, and everyone who gets there has won it — it isn’t one
-        winner takes all. The crown marks whoever is highest.
+        Anyone who reaches {target} points has won the day, so you are not fighting over one
+        spot. The crown just marks whoever scored highest.
       </p>
     </>
   );
@@ -327,8 +328,8 @@ function PeriodPanel({ rows, mine, target, period, history }) {
       <Podium rows={rows} period={period} />
       <Standings rows={rows} period={period} />
       <p className="league-fine">
-        {mine ? `You’re #${mine.rank} of ${rows.length}. ` : ''}A day counts as won at {target} points,
-        and points past the target still add to this total.
+        {mine ? `You are #${mine.rank} of ${rows.length}. ` : ''}A day is won at {target} points, and
+        anything you score past that still adds to this total.
       </p>
 
       <h3 className="panel-h">Past winners</h3>
@@ -461,7 +462,7 @@ function MonthPanel({ rows, mine, target, history }) {
 
 function Winners({ rows }) {
   if (!rows?.length) {
-    return <p className="muted">Nothing settled yet — the first winner is recorded once the period ends.</p>;
+    return <p className="muted">Nothing settled yet. The first winner gets recorded as soon as a period ends.</p>;
   }
   const sorted = [...rows].sort((a, b) => String(b.period_start).localeCompare(String(a.period_start)));
   return (
@@ -523,7 +524,7 @@ function StatsPanel({ rows, target }) {
       </div>
       <p className="league-fine">
         A dot means that member shows points only. The trace is points per day over the last
-        fortnight against the {target}-point target, so a full bar is a day they won.
+        fortnight against the {target} point target, so a full bar is a day they won.
       </p>
     </>
   );
@@ -570,15 +571,15 @@ function PointsPanel({ values, target }) {
       <div className="rules">
         <h4>The rules</h4>
         <ul>
-          <li><b>{target} points in a day wins the day.</b> It’s a floor, not a cap — go past it
-            and the extra still counts toward the week and the month. Everyone who reaches it has
-            won that day; the crown goes to whoever is highest.</li>
+          <li><b>{target} points in a day wins the day.</b> That is the floor, not the ceiling, so
+            everything past it still builds your week and your month. Anyone who reaches it has won
+            that day, and the crown goes to whoever scored highest.</li>
           <li><b>Win a week or a month</b> by having the most points in it. When the period ends
             the result is recorded, and stops changing.</li>
-          <li><b>Each milestone is earned once per application.</b> Getting to an interview is
-            worth 8 points altogether — one for applying, then the rounds on the way.</li>
-          <li><b>A rejection never takes points back.</b> Deleting the application does, which is
-            what stops anyone padding the board and then tidying up.</li>
+          <li><b>Each milestone is earned once per application.</b> Getting to an interview is worth
+            8 points in total: one for applying, then the rounds along the way.</li>
+          <li><b>A rejection never takes points back.</b> Deleting the application does, which is what
+            stops anyone stuffing the board and then tidying up after themselves.</li>
           <li><b>A row scores only once it names a role and a company</b>, and the same job logged
             twice scores once.</li>
         </ul>
@@ -640,7 +641,7 @@ function TargetInput({ league, onSave, busy }) {
       <input className="target-input" type="number" min="1" max="500" value={draft} disabled={busy}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => Number(draft) !== league.daily_target && onSave(draft)} />
-      <small>points a day, the same for everyone — that’s what makes days won comparable.</small>
+      <small>points a day, the same for everyone in the league. That is what makes days won worth comparing.</small>
     </span>
   );
 }
@@ -679,7 +680,7 @@ function Settings({ profile, onSave, busy }) {
         <span>What friends see</span>
         {[
           ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
-          ['points', 'Points only', 'Points, streak and days won — not the counts behind them, and not your daily shape.'],
+          ['points', 'Points only', 'Points, streak and days won. Not the counts behind them, and not your daily shape.'],
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
@@ -749,10 +750,10 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
         <>
           <p className="viz-empty-title">Compete with your friends</p>
           <p className="league-intro">
-            Make a league and send the code to a friend. Every application earns points and every
-            round you reach earns more; clear the daily target and you’ve won the day. Weekly and
-            monthly winners are recorded when the period ends. Your friends never see which jobs
-            you applied to.
+            Make a league and send the code to a friend. Every application earns points, every round
+            you reach earns more, and clearing the daily target wins you the day. Weekly and monthly
+            winners get recorded when the period ends. Your friends never see which jobs you
+            applied to.
           </p>
         </>
       )}

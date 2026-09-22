@@ -61,7 +61,7 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   }, [series, target, monthOnly, showTarget]);
 
   if (!lines.length || dates.length < 2) {
-    return <p className="muted">No days to draw yet — points will appear here as you log applications.</p>;
+    return <p className="muted">No days to draw yet. Points show up here as you log applications.</p>;
   }
 
   const plotW = W - PAD.left - PAD.right;
@@ -161,7 +161,7 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
           ))}
         </div>
       )}
-      {hidden > 0 && <p className="league-fine">Showing the top {MAX_SERIES}; {hidden} more in the league.</p>}
+      {hidden > 0 && <p className="league-fine">Showing the top {MAX_SERIES}. There are {hidden} more in the league.</p>}
     </figure>
   );
 }
