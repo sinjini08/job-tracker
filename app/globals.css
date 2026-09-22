@@ -1199,7 +1199,7 @@ body:has(.login) { overflow: auto; }
    day's top score, so the chip doesn't need to say it twice. */
 .won-chip { background: var(--series-1); }
 .name-cup { margin-left: 6px; color: #c79a2a; }
-.name-cup svg { vertical-align: -2px; }
+.name-cup svg { vertical-align: -4px; }
 .pill.gold { background: #f7ecd7; color: #7a5a12; }
 .pill.gold b { color: #7a5a12; }
 

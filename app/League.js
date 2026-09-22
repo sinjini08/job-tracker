@@ -291,7 +291,7 @@ function TodayPanel({ rows, mine, target }) {
                     that is what earns the bonus point. */}
                 {done > 0 && done === best && (
                   <span className="name-cup" title="Top score today, worth a bonus point on the month">
-                    <Trophy size={13} />
+                    <Trophy size={17} />
                   </span>
                 )}
               </span>
