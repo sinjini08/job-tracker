@@ -11,6 +11,10 @@ import { PERIODS, periodBy, periodLabel, rankBoard, todayProgress } from '@/lib/
 // hit, and win the week or the month. A finished week is settled once and kept,
 // so last week's winner stops moving the moment the week is over.
 
+// Only a fallback for the instant before the league loads; the real number
+// lives on the league row.
+const DEFAULT_TARGET = 10;
+
 const api = async (url, method = 'GET', body) => {
   const res = await fetch(url, {
     method,
@@ -111,7 +115,7 @@ export default function League() {
   });
 
   const league = leagues?.find((l) => l.id === active) ?? null;
-  const target = league?.daily_target ?? 20;
+  const target = league?.daily_target ?? DEFAULT_TARGET;
   const ranked = useMemo(() => (board ? rankBoard(board, me, period) : null), [board, me, period]);
   const mine = ranked?.find((r) => r.is_me) ?? null;
   const today = todayProgress(mine, target);
@@ -335,9 +339,9 @@ function Winners({ rows }) {
 // The target belongs to the league, not to each member: a shared bar is the
 // only thing that makes "days hit" comparable between friends.
 function TargetControl({ league, onSave, busy }) {
-  const [draft, setDraft] = useState(league?.daily_target ?? 20);
-  useEffect(() => setDraft(league?.daily_target ?? 20), [league?.daily_target]);
-  if (!league?.is_owner) return <>target {league?.daily_target ?? 20} points a day</>;
+  const [draft, setDraft] = useState(league?.daily_target ?? DEFAULT_TARGET);
+  useEffect(() => setDraft(league?.daily_target ?? DEFAULT_TARGET), [league?.daily_target]);
+  if (!league?.is_owner) return <>target {league?.daily_target ?? DEFAULT_TARGET} points a day</>;
   return (
     <>
       target{' '}

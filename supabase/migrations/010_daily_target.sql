@@ -9,7 +9,11 @@
 -- target: one bar, the same for everyone in the league, so days hit are
 -- comparable between friends.
 
-alter table public.leagues add column if not exists daily_target int not null default 20;
+-- 10 points is about ten applications, or seven plus an interview: a focused
+-- evening clears it, an ordinary class day doesn't. The owner can change it
+-- per league, so this is only where a new league starts.
+alter table public.leagues add column if not exists daily_target int not null default 10;
+alter table public.leagues alter column daily_target set default 10;
 alter table public.leagues drop constraint if exists leagues_target_check;
 alter table public.leagues add constraint leagues_target_check
   check (daily_target between 1 and 500);
