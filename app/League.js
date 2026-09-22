@@ -1,19 +1,29 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PERIODS, periodBy, periodLabel, rankBoard, todayProgress } from '@/lib/board';
+import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
 
 // The friends leaderboard. Everything it shows comes from league_board(),
-// league_history() and league_settle() in the database, which return totals and
-// counts — never anyone's applications.
+// league_history() and league_settle() in the database, which return totals
+// and counts — never anyone's applications.
 //
-// Three tiers: clear the league's daily target today, build a streak of days
-// hit, and win the week or the month. A finished week is settled once and kept,
-// so last week's winner stops moving the moment the week is over.
+// Three tiers. Clear the league's daily target and you've won the day; do that
+// often enough and you win the week, then the month. A finished week is
+// settled once and kept, so last week's winner stops moving once it's over.
+//
+// The dense numbers live under Stats on purpose: Today, This week and This
+// month are meant to read like a scoreboard, not a spreadsheet.
 
-// Only a fallback for the instant before the league loads; the real number
-// lives on the league row.
 const DEFAULT_TARGET = 10;
+
+const VIEWS = [
+  { id: 'today', label: 'Today' },
+  { id: 'week', label: 'This week' },
+  { id: 'month', label: 'This month' },
+  { id: 'stats', label: 'Stats' },
+  { id: 'points', label: 'How points work' },
+  { id: 'settings', label: 'Settings' },
+];
 
 const api = async (url, method = 'GET', body) => {
   const res = await fetch(url, {
@@ -35,7 +45,7 @@ export default function League() {
   const [board, setBoard] = useState(null);
   const [history, setHistory] = useState([]);
   const [me, setMe] = useState(null);
-  const [period, setPeriod] = useState('week');
+  const [view, setView] = useState('today');
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -49,8 +59,10 @@ export default function League() {
   useEffect(() => {
     Promise.all([loadLeagues(), api('/api/profile').then(setProfile)]).catch((e) => setErr(e.message));
     try {
-      const saved = localStorage.getItem('jt_league');
-      if (saved) setActive((cur) => cur ?? saved);
+      const savedLeague = localStorage.getItem('jt_league');
+      if (savedLeague) setActive((cur) => cur ?? savedLeague);
+      const savedView = localStorage.getItem('jt_league_view');
+      if (VIEWS.some((v) => v.id === savedView)) setView(savedView);
     } catch {}
   }, [loadLeagues]);
 
@@ -76,6 +88,11 @@ export default function League() {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [active, loadBoard]);
+
+  const show = (id) => {
+    setView(id);
+    try { localStorage.setItem('jt_league_view', id); } catch {}
+  };
 
   const act = async (fn) => {
     setBusy(true);
@@ -116,191 +133,259 @@ export default function League() {
 
   const league = leagues?.find((l) => l.id === active) ?? null;
   const target = league?.daily_target ?? DEFAULT_TARGET;
+  // The three scoreboard views each rank by their own period; the rest just
+  // need the rows, so they borrow today's ordering.
+  const period = view === 'week' || view === 'month' ? view : 'today';
   const ranked = useMemo(() => (board ? rankBoard(board, me, period) : null), [board, me, period]);
   const mine = ranked?.find((r) => r.is_me) ?? null;
-  const today = todayProgress(mine, target);
 
   if (leagues == null) return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
+  if (leagues.length === 0) {
+    return (
+      <div className="charts viz-root">
+        <Start onCreate={create} onJoin={join} busy={busy} err={err} />
+      </div>
+    );
+  }
 
   return (
-    <div className="charts viz-root">
-      {leagues.length === 0 ? (
-        <Start onCreate={create} onJoin={join} busy={busy} err={err} />
-      ) : (
-        <>
-          <div className="viz-filters">
-            {leagues.length > 1 && (
-              <Segmented label="League" value={active} onChange={setActive}
-                options={leagues.map((l) => ({ id: l.id, label: l.name }))} />
+    <div className="charts viz-root league-root">
+      <nav className="league-rail" aria-label="League sections">
+        {leagues.length > 1 ? (
+          <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
+            aria-label="Which league">
+            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        ) : <div className="rail-title">{league?.name}</div>}
+
+        <ul className="rail-tabs">
+          {VIEWS.map((v) => (
+            <li key={v.id}>
+              <button className={`rail-tab ${view === v.id ? 'on' : ''}`} onClick={() => show(v.id)}
+                aria-current={view === v.id ? 'page' : undefined}>
+                {v.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {league && <InviteCode league={league} />}
+      </nav>
+
+      <div className="league-panel">
+        {err && <p className="league-err">{err}</p>}
+        {!ranked ? <p className="viz-note">Loading…</p> : (
+          <>
+            {view === 'today' && <TodayPanel rows={ranked} mine={mine} target={target} />}
+            {(view === 'week' || view === 'month') && (
+              <PeriodPanel rows={ranked} mine={mine} target={target} period={view}
+                history={history.filter((h) => h.period === view)} />
             )}
-            <Segmented label="Period" value={period} onChange={setPeriod}
-              options={PERIODS.map((p) => ({ id: p.id, label: p.label }))} />
-            {league && <InviteCode league={league} />}
-          </div>
-
-          {err && <p className="league-err">{err}</p>}
-
-          {mine && today && <div className="viz-kpis">
-            <Stat label="Today" value={`${today.done} / ${today.target}`}
-              sub={today.met ? '✓ target hit' : `${today.target - today.done} points to go`}
-              tone={today.met ? 'good' : null} />
-            <Stat label="Streak" value={mine.streak_days ?? 0}
-              sub={(mine.streak_days ?? 0) === 1 ? 'day in a row at target' : 'days in a row at target'} />
-            <Stat label="Your place" value={ranked.length > 1 ? `#${mine.rank}` : '—'}
-              sub={ranked.length > 1 ? `of ${ranked.length}, ${periodBy(period).label.toLowerCase()}` : 'nobody else has joined yet'} />
-            <Stat label={`Points ${periodBy(period).label.toLowerCase()}`} value={mine[periodBy(period).points]}
-              sub={period === 'total' ? 'since you started' : `${mine.points_total} all time`} />
-          </div>}
-
-          <div className="viz-grid league-grid">
-            <div className="viz-card board-card">
-              <div className="viz-card-head">
-                <div>
-                  <h2>{league?.name ?? 'Leaderboard'}</h2>
-                  <p>
-                    {periodBy(period).label} · {ranked?.length ?? 0} {ranked?.length === 1 ? 'member' : 'members'} ·{' '}
-                    <TargetControl league={league} onSave={setTarget} busy={busy} />
-                  </p>
-                </div>
-                {league && (
-                  <button className="viz-toggle" onClick={() => leave(league)} disabled={busy}>
-                    {league.is_owner ? 'Delete league' : 'Leave'}
-                  </button>
-                )}
-              </div>
-              <Board rows={ranked} period={period} target={target}
-                canRemove={Boolean(league?.is_owner)} onRemove={removeMember} busy={busy} />
-            </div>
-
-            <div className="viz-card">
-              <div className="viz-card-head">
-                <div>
-                  <h2>Past winners</h2>
-                  <p>Settled when the week or the month ends, and kept.</p>
-                </div>
-              </div>
-              <Winners rows={history} />
-            </div>
-
-            <div className="viz-card">
-              <div className="viz-card-head">
-                <div>
-                  <h2>How points work</h2>
-                  <p>Earned once per application. A rejection never takes them away.</p>
-                </div>
-              </div>
-              <table className="viz-table">
-                <tbody>
-                  {values.map((v) => (
-                    <tr key={v.milestone}><td>{v.label}</td><td>+{v.points}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="league-fine">
-                A row scores only once it names a role and a company, and the same job scores once.
-                Deleting an application takes its points back.
-              </p>
-            </div>
-
-            <div className="viz-card">
-              <div className="viz-card-head">
-                <div>
-                  <h2>Your settings</h2>
-                  <p>What your friends see on the board.</p>
-                </div>
-              </div>
-              {profile && <Settings profile={profile} onSave={saveProfile} busy={busy} />}
-            </div>
-
-            <div className="viz-card">
-              <div className="viz-card-head">
-                <div>
-                  <h2>Add a league</h2>
-                  <p>Start one, or join a friend’s with their code.</p>
-                </div>
-              </div>
-              <Start onCreate={create} onJoin={join} busy={busy} compact />
-            </div>
-          </div>
-        </>
-      )}
+            {view === 'stats' && <StatsPanel rows={ranked} target={target} />}
+            {view === 'points' && <PointsPanel values={values} target={target} />}
+            {view === 'settings' && (
+              <SettingsPanel league={league} profile={profile} rows={ranked} busy={busy}
+                onProfile={saveProfile} onTarget={setTarget} onRemove={removeMember}
+                onLeave={() => leave(league)} onCreate={create} onJoin={join} />
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
+// Today — a scoreboard, not a table.
+// ---------------------------------------------------------------------------
 
-function Board({ rows, period, target, canRemove, onRemove, busy }) {
-  if (!rows) return <p className="viz-note">Loading…</p>;
-  const p = periodBy(period);
+function TodayPanel({ rows, mine, target }) {
+  const progress = todayProgress(mine, target) ?? { done: 0, target, pct: 0, met: false };
+  const winners = rows.filter((r) => wonToday(r, target));
+  const best = rows[0]?.points_today ?? 0;
+
   return (
-    // Scrolls sideways rather than spilling out of the card on a phone.
-    <div className="board-wrap">
-    <table className="viz-table league-board">
-      <thead>
-        <tr>
-          <th className="rank-col">#</th>
-          <th>Member</th>
-          <th>Points</th>
-          <th title={`Points earned today, against the league's target of ${target}`}>Today</th>
-          <th title={`Days this period at ${target} points or more`}>Days hit</th>
-          <th title="Days in a row at target">Streak</th>
-          <th>Applied</th>
-          <th>Interviews</th>
-          <th>Offers</th>
-          <th className="trace-col" title="Points per day over the last two weeks">Last 2 weeks</th>
-          {canRemove && <th className="kick-col" aria-label="Remove" />}
-        </tr>
-      </thead>
-      <tbody>
+    <>
+      <section className={`hero ${progress.met ? 'won' : ''}`}>
+        <Ring done={progress.done} target={target} met={progress.met} />
+        <div className="hero-copy">
+          <h2>{progress.met ? 'You won today' : `${target - progress.done} to go`}</h2>
+          <p>
+            {progress.met
+              ? `${progress.done} points today against a target of ${target}. Keep it going tomorrow.`
+              : `${progress.done} of ${target} points today. Log an application and you’re a point closer.`}
+          </p>
+          <div className="hero-pills">
+            <Pill label={(mine?.streak_days ?? 0) === 1 ? 'day streak' : 'day streak'}
+              value={mine?.streak_days ?? 0} tone={(mine?.streak_days ?? 0) >= 3 ? 'hot' : null} />
+            <Pill label={`of ${rows.length} won today`} value={winners.length} />
+          </div>
+        </div>
+      </section>
+
+      <h3 className="panel-h">Today’s board</h3>
+      <ol className="day-list">
         {rows.map((row) => {
-          const today = todayProgress(row, target);
+          const won = wonToday(row, target);
+          const done = row.points_today ?? 0;
           return (
-            <tr key={row.user_id} className={row.is_me ? 'me' : ''}>
-              <td className="rank-col">{row.rank}</td>
-              <td className="member">
+            <li key={row.user_id} className={`day-row ${row.is_me ? 'me' : ''} ${won ? 'won' : ''}`}>
+              <Rank n={row.rank} lead={done > 0 && done === best} scored={done > 0} />
+              <span className="day-name">
                 {row.display_name}{row.is_me && <span className="you">you</span>}
-              </td>
-              <td><b>{row[p.points]}</b></td>
-              <td>
-                <span className={`goal ${today.met ? 'met' : ''}`} title={`${today.done} of ${target} today`}>
-                  <span className="goal-track"><span className="goal-fill" style={{ width: `${today.pct}%` }} /></span>
-                  {today.done}
-                </span>
-              </td>
-              <td>{p.hits ? (row[p.hits] ?? 0) : '—'}</td>
-              <td>{row.streak_days ?? 0}</td>
-              {/* A member who chose "points only" has no counts to show. */}
-              <td>{cell(row[p.applied])}</td>
-              <td>{cell(row.interviews)}</td>
-              <td>{cell(row.offers)}</td>
-              <td className="trace-col"><Trace daily={row.daily} target={target} /></td>
-              {canRemove && (
-                <td className="kick-col">
-                  {!row.is_me && (
-                    <button className="kick" title={`Remove ${row.display_name}`} disabled={busy}
-                      onClick={() => onRemove(row)}>×</button>
-                  )}
-                </td>
-              )}
-            </tr>
+              </span>
+              <span className="day-bar">
+                <i style={{ width: `${Math.min(100, Math.round((done / target) * 100))}%` }} />
+              </span>
+              <span className="day-score">{done}</span>
+              <span className="day-flag">
+                {won ? <b className="won-chip">won</b> : `${Math.max(0, target - done)} to go`}
+              </span>
+            </li>
           );
         })}
-      </tbody>
-    </table>
-    </div>
+      </ol>
+      <p className="league-fine">
+        Everyone who reaches {target} points wins the day — it isn’t one winner takes all. The
+        crown goes to whoever is highest.
+      </p>
+    </>
+  );
+}
+
+function Ring({ done, target, met, size = 116 }) {
+  const pct = Math.max(0, Math.min(1, target ? done / target : 0));
+  const r = (size - 14) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" />
+      <circle className={`ring-fill ${met ? 'met' : ''}`} cx={size / 2} cy={size / 2} r={r} fill="none"
+        strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      <text className="ring-num" x="50%" y="45%" textAnchor="middle" dominantBaseline="central">{done}</text>
+      <text className="ring-sub" x="50%" y="67%" textAnchor="middle" dominantBaseline="central">of {target}</text>
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// This week / this month — standings, then the winners already settled.
+// ---------------------------------------------------------------------------
+
+function PeriodPanel({ rows, mine, target, period, history }) {
+  const p = periodBy(period);
+  const top = rows[0]?.[p.points] ?? 0;
+  return (
+    <>
+      <h3 className="panel-h">{p.label}</h3>
+      <ol className="day-list tall">
+        {rows.map((row) => {
+          const pts = row[p.points] ?? 0;
+          const won = row[p.hits] ?? 0;
+          return (
+            <li key={row.user_id} className={`day-row ${row.is_me ? 'me' : ''}`}>
+              <Rank n={row.rank} lead={pts > 0 && pts === top} scored={pts > 0} />
+              <span className="day-name">
+                {row.display_name}{row.is_me && <span className="you">you</span>}
+                <small>{won} {won === 1 ? 'day' : 'days'} won</small>
+              </span>
+              <span className="day-bar">
+                <i style={{ width: `${top ? Math.round((pts / top) * 100) : 0}%` }} />
+              </span>
+              <span className="day-score big">{pts}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="league-fine">
+        {mine ? `You’re #${mine.rank} of ${rows.length}. ` : ''}A day counts as won at {target} points.
+      </p>
+
+      <h3 className="panel-h">Past winners</h3>
+      <Winners rows={history} />
+    </>
+  );
+}
+
+function Winners({ rows }) {
+  if (!rows?.length) {
+    return <p className="muted">Nothing settled yet — the first winner is recorded once the period ends.</p>;
+  }
+  const sorted = [...rows].sort((a, b) => String(b.period_start).localeCompare(String(a.period_start)));
+  return (
+    <ul className="winner-list">
+      {sorted.map((r) => (
+        <li key={`${r.period}-${r.period_start}-${r.winner}`}>
+          <span className="cup" aria-hidden>🏆</span>
+          <span className="winner-name">{r.winner}</span>
+          <span className="winner-when">{periodLabel(r.period, r.period_start)}</span>
+          <span className="winner-pts">{r.points} pts · {r.days_hit}d</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stats — where the dense numbers live now.
+// ---------------------------------------------------------------------------
+
+function StatsPanel({ rows, target }) {
+  return (
+    <>
+      <h3 className="panel-h">Everything, all time</h3>
+      <div className="board-wrap">
+        <table className="viz-table league-board">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Points</th>
+              <th title="Points earned today">Today</th>
+              <th title="Days in a row at target">Streak</th>
+              <th title={`Days this month at ${target} points or more`}>Days won</th>
+              <th>Applied</th>
+              <th>Interviews</th>
+              <th>Offers</th>
+              <th className="trace-col" title="Points per day over the last two weeks">Last 2 weeks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...rows].sort((a, b) => b.points_total - a.points_total).map((row) => (
+              <tr key={row.user_id} className={row.is_me ? 'me' : ''}>
+                <td className="member">
+                  {row.display_name}{row.is_me && <span className="you">you</span>}
+                </td>
+                <td><b>{row.points_total}</b></td>
+                <td>{row.points_today ?? 0}</td>
+                <td>{row.streak_days ?? 0}</td>
+                <td>{row.days_hit_month ?? 0}</td>
+                <td>{cell(row.applied_total)}</td>
+                <td>{cell(row.interviews)}</td>
+                <td>{cell(row.offers)}</td>
+                <td className="trace-col"><Trace daily={row.daily} target={target} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="league-fine">
+        A dot means that member shows points only. The trace is points per day over the last
+        fortnight against the {target}-point target, so a full bar is a day they won.
+      </p>
+    </>
   );
 }
 
 // Points per day for the last fortnight, drawn against the daily target, so a
-// bar that reaches the top is a day you hit it. Steady beats spiky, and a
-// week's work done in one evening looks like exactly that.
+// bar that reaches the top is a day won. Steady beats spiky, and a week's work
+// done in one evening looks like exactly that.
 function Trace({ daily, target }) {
   if (!daily) return <span className="hidden-cell" title="This member shows points only">·</span>;
   const hit = daily.filter((n) => n >= target).length;
   const total = daily.reduce((t, n) => t + n, 0);
   return (
-    <span className="trace" title={`${total} points in the last 14 days · ${hit} ${hit === 1 ? 'day' : 'days'} at target`}>
+    <span className="trace" title={`${total} points in the last 14 days · ${hit} ${hit === 1 ? 'day' : 'days'} won`}>
       {daily.map((n, i) => (
         // A day with something on it must not look like a day with nothing.
         <i key={i} className={n >= target ? 'hit' : n ? '' : 'empty'}
@@ -312,46 +397,137 @@ function Trace({ daily, target }) {
 
 const cell = (v) => (v == null ? <span className="hidden-cell" title="This member shows points only">·</span> : v);
 
-function Winners({ rows }) {
-  if (!rows?.length) {
-    return <p className="muted">Nothing settled yet — the first winner is recorded once a week finishes.</p>;
-  }
-  // Newest first, and don't lean on the order the API happened to send.
-  const sorted = [...rows].sort((a, b) =>
-    String(b.period_start).localeCompare(String(a.period_start)) ||
-    String(a.period).localeCompare(String(b.period)));
+// ---------------------------------------------------------------------------
+
+function PointsPanel({ values, target }) {
   return (
-    <table className="viz-table winners">
-      <tbody>
-        {sorted.map((r) => (
-          <tr key={`${r.period}-${r.period_start}-${r.winner}`}>
-            <td className="period">{periodLabel(r.period, r.period_start)}</td>
-            <td className="winner">🏆 {r.winner}</td>
-            <td>{r.points} pts</td>
-            <td title="days at target that period">{r.days_hit}d</td>
-          </tr>
+    <>
+      <h3 className="panel-h">What earns a point</h3>
+      <ul className="points-list">
+        {values.map((v) => (
+          <li key={v.milestone}>
+            <span className="pv-label">{v.label}</span>
+            <span className="pv-points">+{v.points}</span>
+          </li>
         ))}
-      </tbody>
-    </table>
+      </ul>
+      <div className="rules">
+        <h4>The rules</h4>
+        <ul>
+          <li><b>Reach {target} points in a day and you’ve won it.</b> Everyone who clears the
+            target wins that day; the crown goes to whoever is highest.</li>
+          <li><b>Win a week or a month</b> by having the most points in it. When the period ends
+            the result is recorded, and stops changing.</li>
+          <li><b>Each milestone is earned once per application.</b> Getting to an interview is
+            worth 8 points altogether — one for applying, then the rounds on the way.</li>
+          <li><b>A rejection never takes points back.</b> Deleting the application does, which is
+            what stops anyone padding the board and then tidying up.</li>
+          <li><b>A row scores only once it names a role and a company</b>, and the same job logged
+            twice scores once.</li>
+        </ul>
+      </div>
+    </>
   );
 }
 
-// The target belongs to the league, not to each member: a shared bar is the
-// only thing that makes "days hit" comparable between friends.
-function TargetControl({ league, onSave, busy }) {
-  const [draft, setDraft] = useState(league?.daily_target ?? DEFAULT_TARGET);
-  useEffect(() => setDraft(league?.daily_target ?? DEFAULT_TARGET), [league?.daily_target]);
-  if (!league?.is_owner) return <>target {league?.daily_target ?? DEFAULT_TARGET} points a day</>;
+// ---------------------------------------------------------------------------
+
+function SettingsPanel({ league, profile, rows, busy, onProfile, onTarget, onRemove, onLeave, onCreate, onJoin }) {
   return (
     <>
-      target{' '}
-      <input className="target-input" type="number" min="1" max="500" value={draft} disabled={busy}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => Number(draft) !== league.daily_target && onSave(draft)}
-        title="Everyone in the league aims at the same number" />
-      {' '}points a day
+      <h3 className="panel-h">You</h3>
+      {profile && <Settings profile={profile} onSave={onProfile} busy={busy} />}
+
+      <h3 className="panel-h">{league?.name}</h3>
+      <div className="league-settings">
+        <label className="field">
+          <span>Daily target</span>
+          {league?.is_owner
+            ? <TargetInput league={league} onSave={onTarget} busy={busy} />
+            : <div className="readonly-text">{league?.daily_target} points a day, set by whoever made the league.</div>}
+        </label>
+
+        <div className="field">
+          <span>Members</span>
+          <ul className="member-list">
+            {rows.map((r) => (
+              <li key={r.user_id}>
+                <span>{r.display_name}{r.is_me && <span className="you">you</span>}</span>
+                {league?.is_owner && !r.is_me && (
+                  <button className="viz-toggle" disabled={busy} onClick={() => onRemove(r)}>Remove</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <button className="btn danger" onClick={onLeave} disabled={busy}>
+          {league?.is_owner ? 'Delete this league' : 'Leave this league'}
+        </button>
+      </div>
+
+      <h3 className="panel-h">Another league</h3>
+      <Start onCreate={onCreate} onJoin={onJoin} busy={busy} compact />
     </>
   );
+}
+
+function TargetInput({ league, onSave, busy }) {
+  const [draft, setDraft] = useState(league?.daily_target ?? DEFAULT_TARGET);
+  useEffect(() => setDraft(league?.daily_target ?? DEFAULT_TARGET), [league?.daily_target]);
+  return (
+    <span className="target-row">
+      <input className="target-input" type="number" min="1" max="500" value={draft} disabled={busy}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => Number(draft) !== league.daily_target && onSave(draft)} />
+      <small>points a day, the same for everyone — that’s what makes days won comparable.</small>
+    </span>
+  );
+}
+
+function Settings({ profile, onSave, busy }) {
+  const [name, setName] = useState(profile.display_name ?? '');
+  return (
+    <div className="league-settings">
+      <label className="field">
+        <span>Name on the board</span>
+        <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
+          onBlur={() => name !== (profile.display_name ?? '') && onSave({ display_name: name })} />
+      </label>
+      <fieldset className="field detail">
+        <span>What friends see</span>
+        {[
+          ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
+          ['points', 'Points only', 'Points, streak and days won — not the counts behind them, and not your day-by-day trace.'],
+        ].map(([id, label, hint]) => (
+          <label key={id} className="radio">
+            <input type="radio" name="detail" value={id} disabled={busy}
+              checked={profile.leaderboard_detail === id}
+              onChange={() => onSave({ leaderboard_detail: id })} />
+            <span><b>{label}</b><small>{hint}</small></span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="league-fine">Your job titles, companies, pay and notes are never shared, either way.</p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+// Gold, silver and bronze — but only for a score worth having. Three people
+// tied on nothing shouldn't all be wearing medals.
+function Rank({ n, lead, scored }) {
+  return (
+    <span className={`rank r${scored && n <= 3 ? n : 'x'} ${lead ? 'lead' : ''}`}
+      title={lead ? 'Top of the board' : undefined}>
+      {n}
+    </span>
+  );
+}
+
+function Pill({ label, value, tone }) {
+  return <span className={`pill ${tone === 'hot' ? 'hot' : ''}`}><b>{value}</b> {label}</span>;
 }
 
 function InviteCode({ league }) {
@@ -364,11 +540,11 @@ function InviteCode({ league }) {
     } catch { /* clipboard blocked; the code is on screen anyway */ }
   };
   return (
-    <span className="invite">
-      <span className="seg-label">Invite code</span>
+    <div className="rail-invite">
+      <span>Invite a friend</span>
       <code>{league.join_code}</code>
-      <button className="viz-toggle" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
-    </span>
+      <button className="viz-toggle" onClick={copy}>{copied ? 'Copied' : 'Copy code'}</button>
+    </div>
   );
 }
 
@@ -381,9 +557,10 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
         <>
           <p className="viz-empty-title">Compete with your friends</p>
           <p className="league-intro">
-            Make a league and send the code to a friend. You’ll both get a board with points for
-            every application and every round you reach, a daily target to clear, and a winner
-            each week and month. Your friends never see which jobs you applied to.
+            Make a league and send the code to a friend. Every application earns points and every
+            round you reach earns more; clear the daily target and you’ve won the day. Weekly and
+            monthly winners are recorded when the period ends. Your friends never see which jobs
+            you applied to.
           </p>
         </>
       )}
@@ -404,58 +581,6 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
         <button className="btn" type="submit" disabled={busy || code.trim().length < 4}>Join</button>
       </form>
       {err && <p className="league-err">{err}</p>}
-    </div>
-  );
-}
-
-function Settings({ profile, onSave, busy }) {
-  const [name, setName] = useState(profile.display_name ?? '');
-  return (
-    <div className="league-settings">
-      <label className="field">
-        <span>Name on the board</span>
-        <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
-          onBlur={() => name !== (profile.display_name ?? '') && onSave({ display_name: name })} />
-      </label>
-      <fieldset className="field detail">
-        <span>What friends see</span>
-        {[
-          ['counts', 'Points and counts', 'Your points and streak, plus how many applications, interviews and offers.'],
-          ['points', 'Points only', 'Points, streak and days hit — not the counts behind them, and not your day-by-day trace.'],
-        ].map(([id, label, hint]) => (
-          <label key={id} className="radio">
-            <input type="radio" name="detail" value={id} disabled={busy}
-              checked={profile.leaderboard_detail === id}
-              onChange={() => onSave({ leaderboard_detail: id })} />
-            <span><b>{label}</b><small>{hint}</small></span>
-          </label>
-        ))}
-      </fieldset>
-      <p className="league-fine">Your job titles, companies, pay and notes are never shared, either way.</p>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub, tone }) {
-  return (
-    <div className={`stat ${tone === 'good' ? 'good' : ''}`}>
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
-    </div>
-  );
-}
-
-function Segmented({ label, options, value, onChange }) {
-  return (
-    <div className="seg" role="radiogroup" aria-label={label}>
-      <span className="seg-label">{label}</span>
-      {options.map((o) => (
-        <button key={o.id} role="radio" aria-checked={value === o.id}
-          className={`seg-btn ${value === o.id ? 'on' : ''}`} onClick={() => onChange(o.id)}>
-          {o.label}
-        </button>
-      ))}
     </div>
   );
 }
