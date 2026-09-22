@@ -1132,3 +1132,28 @@ body:has(.login) { overflow: auto; }
   .celebrate-card, .cup-big { animation: none; }
 }
 .viz-grid > .viz-card.span-all { grid-column: 1 / -1; }
+
+/* ---------- the scoreboard arriving ---------- */
+/* Opening This week or This month remounts the panel, so these run again each
+   time — the columns grow, then the faces and scores land on top of them. */
+.plinth-bar { overflow: hidden; animation: grow-up 0.62s cubic-bezier(0.2, 0.85, 0.3, 1) both; }
+.place-3 .plinth-bar { animation-delay: 0.04s; }
+.place-2 .plinth-bar { animation-delay: 0.12s; }
+.place-1 .plinth-bar { animation-delay: 0.2s; }
+.plinth-who { animation: land 0.42s cubic-bezier(0.18, 1.2, 0.5, 1) both; animation-delay: 0.6s; }
+@keyframes grow-up { from { height: 0; } to { height: var(--h); } }
+@keyframes land {
+  from { opacity: 0; transform: translateY(14px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+.day-bar i { animation: sweep 0.55s cubic-bezier(0.2, 0.85, 0.3, 1) both; animation-delay: calc(var(--i, 1) * 70ms); }
+@keyframes sweep { from { width: 0; } to { width: var(--w); } }
+
+.chart-rise { animation: lift 0.75s cubic-bezier(0.2, 0.85, 0.3, 1) both; }
+@keyframes lift { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* Someone who asked for less movement gets the finished state, immediately. */
+@media (prefers-reduced-motion: reduce) {
+  .plinth-bar, .plinth-who, .day-bar i, .chart-rise { animation: none; }
+}

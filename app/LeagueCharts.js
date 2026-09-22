@@ -119,15 +119,20 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
           <text key={v + '-' + i} className="chart-axis" x={PAD.left - 8} y={y(v)} textAnchor="end" dominantBaseline="middle">{v}</text>
         ))}
 
-        {lines.map((l) => (
-          <path key={`a-${l.key ?? l.label}`} d={area(l.values)} fill={l.color} opacity="0.12" />
-        ))}
+        {/* Grouped so the fills and lines rise together off the baseline.
+            non-scaling-stroke keeps the 2px line 2px while it's mid-scale. */}
+        <g className="chart-rise" style={{ transformOrigin: `0px ${PAD.top + plotH}px` }}>
+          {lines.map((l) => (
+            <path key={`a-${l.key ?? l.label}`} d={area(l.values)} fill={l.color} opacity="0.12" />
+          ))}
         {/* The target sits above the fills so it never gets lost under them. */}
         {showTarget && <line className="chart-target" x1={PAD.left} x2={W - PAD.right} y1={y(target)} y2={y(target)} />}
-        {lines.map((l) => (
-          <path key={`l-${l.key ?? l.label}`} d={path(l.values)} fill="none" stroke={l.color}
-            strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        ))}
+          {lines.map((l) => (
+            <path key={`l-${l.key ?? l.label}`} d={path(l.values)} fill="none" stroke={l.color}
+              strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
+              vectorEffect="non-scaling-stroke" />
+          ))}
+        </g>
 
         {hover != null && (
           <>

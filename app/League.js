@@ -276,7 +276,7 @@ function TodayPanel({ rows, mine, target }) {
                 {row.display_name}{row.is_me && <span className="you">you</span>}
               </span>
               <span className="day-bar" title={`${done} of ${target}`}>
-                <i style={{ width: `${Math.min(100, Math.round((done / target) * 100))}%` }} />
+                <i style={growBar(Math.min(100, Math.round((done / target) * 100)), row.rank)} />
               </span>
               <span className="day-score">{done}</span>
               <span className="day-flag">
@@ -348,21 +348,51 @@ function Podium({ rows, period }) {
   const heights = { 1: 132, 2: 100, 3: 78 };
   return (
     <div className="podium">
-      {order.map((row) => (
-        <div key={row.user_id} className={`plinth place-${row.rank} ${row.is_me ? 'me' : ''}`}>
-          <div className="plinth-who">
-            <span className="plinth-av">
-              <Avatar name={row.display_name} avatar={row.avatar} size={row.rank === 1 ? 62 : 52} />
-              <b className={`crown c${row.rank}`} aria-hidden><Crown /></b>
-            </span>
-            <span className="plinth-name">{row.display_name}{row.is_me && <span className="you">you</span>}</span>
-            <span className="plinth-score">{row[p.points]}</span>
+      {order.map((row) => {
+        const h = heights[row.rank] ?? 70;
+        return (
+          <div key={row.user_id} className={`plinth place-${row.rank} ${row.is_me ? 'me' : ''}`}>
+            <div className="plinth-who">
+              <span className="plinth-av">
+                <Avatar name={row.display_name} avatar={row.avatar} size={row.rank === 1 ? 62 : 52} />
+                <b className={`crown c${row.rank}`} aria-hidden><Crown /></b>
+              </span>
+              <span className="plinth-name">{row.display_name}{row.is_me && <span className="you">you</span>}</span>
+              <span className="plinth-score"><CountUp value={row[p.points]} delay={620} /></span>
+            </div>
+            {/* --h drives the keyframe, and the inline height is what it lands
+                on — so the column is the right size even without animation. */}
+            <div className="plinth-bar" style={{ height: h, '--h': `${h}px` }}>{row.rank}</div>
           </div>
-          <div className="plinth-bar" style={{ height: heights[row.rank] ?? 70 }}>{row.rank}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+// Counts from zero once the bars have finished growing. Reduced motion, or a
+// browser without rAF, just shows the number.
+function CountUp({ value, delay = 0, ms = 520 }) {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    if (typeof window === 'undefined' ||
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShown(value);
+      return;
+    }
+    setShown(0);
+    let frame;
+    const start = performance.now() + delay;
+    const tick = (now) => {
+      const t = Math.min(1, Math.max(0, (now - start) / ms));
+      // Ease out, so it sprints then settles rather than crawling to the end.
+      setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value, delay, ms]);
+  return <>{shown}</>;
 }
 
 function Standings({ rows, period }) {
@@ -382,7 +412,7 @@ function Standings({ rows, period }) {
               <small>{won} {won === 1 ? 'day' : 'days'} won</small>
             </span>
             <span className="day-bar">
-              <i style={{ width: `${top ? Math.round((pts / top) * 100) : 0}%` }} />
+              <i style={growBar(top ? Math.round((pts / top) * 100) : 0, row.rank)} />
             </span>
             <span className="day-score big">{pts}</span>
           </li>
@@ -517,6 +547,9 @@ function Trace({ daily, target }) {
     </span>
   );
 }
+
+// The width the bar lands on, plus the stagger for its place in the list.
+const growBar = (pct, rank) => ({ width: `${pct}%`, '--w': `${pct}%`, '--i': rank ?? 1 });
 
 const cell = (v) => (v == null ? <span className="hidden-cell" title="This member shows points only">·</span> : v);
 
