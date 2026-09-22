@@ -31,7 +31,14 @@ export function useCelebration() {
 
   const current = queue[0] ?? null;
   const dismiss = () => setQueue((q) => q.slice(1));
-  return { celebrate, node: current ? <Celebration {...current} onDone={dismiss} /> : null };
+  // `key` is destructured out rather than spread: React treats it specially
+  // and warns when it arrives as part of a props object.
+  return {
+    celebrate,
+    node: current
+      ? <Celebration key={current.key} title={current.title} detail={current.detail} onDone={dismiss} />
+      : null,
+  };
 }
 
 function Celebration({ title, detail, onDone }) {

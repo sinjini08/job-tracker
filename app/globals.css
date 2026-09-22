@@ -960,6 +960,8 @@ body:has(.login) { overflow: auto; }
 }
 
 /* ---------- avatars, podium, charts, confetti ---------- */
+/* The drawn portraits are SVG; the initials fallback is a styled span. */
+.avatar.art { border-radius: 50%; display: block; flex: none; }
 .avatar {
   display: inline-grid;
   place-items: center;
@@ -988,8 +990,7 @@ body:has(.login) { overflow: auto; }
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  font-size: 15px;
-  line-height: 1;
+  line-height: 0;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 .crown.c1 { background: #d9a327; }
@@ -1066,19 +1067,20 @@ body:has(.login) { overflow: auto; }
 
 /* avatar picker */
 .avatar-pick { display: flex; align-items: flex-start; gap: 14px; }
-.avatar-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; flex: 1; max-width: 420px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 8px; }
 .avatar-opt {
-  aspect-ratio: 1;
-  border: 1px solid var(--viz-ring);
-  border-radius: 8px;
-  background: var(--viz-surface);
-  font-size: 18px;
-  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
   cursor: pointer;
   padding: 0;
 }
-.avatar-opt:hover { background: var(--sand); }
-.avatar-opt.on { border-color: var(--xl-green); box-shadow: inset 0 0 0 1px var(--xl-green); background: var(--xl-green-tint); }
+.avatar-opt:hover { border-color: var(--viz-base); }
+.avatar-opt.on { border-color: var(--xl-green); }
 .member-who { display: inline-flex; align-items: center; gap: 8px; }
 
 /* the win: trophy and confetti, ~2.5s, then gone */

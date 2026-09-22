@@ -353,7 +353,7 @@ function Podium({ rows, period }) {
           <div className="plinth-who">
             <span className="plinth-av">
               <Avatar name={row.display_name} avatar={row.avatar} size={row.rank === 1 ? 62 : 52} />
-              <b className={`crown c${row.rank}`} aria-hidden>♛</b>
+              <b className={`crown c${row.rank}`} aria-hidden><Crown /></b>
             </span>
             <span className="plinth-name">{row.display_name}{row.is_me && <span className="you">you</span>}</span>
             <span className="plinth-score">{row[p.points]}</span>
@@ -621,12 +621,12 @@ function Settings({ profile, onSave, busy }) {
         <div className="avatar-pick">
           <Avatar name={profile.display_name} avatar={profile.avatar} size={52} />
           <div className="avatar-grid">
-            {AVATARS.map((a) => (
+            {AVATARS.map((a, i) => (
               <button key={a} type="button" disabled={busy}
                 className={`avatar-opt ${profile.avatar === a ? 'on' : ''}`}
-                aria-pressed={profile.avatar === a} title={`Use ${a}`}
+                aria-pressed={profile.avatar === a} title={`Avatar ${i + 1}`}
                 onClick={() => onSave({ avatar: profile.avatar === a ? null : a })}>
-                {a}
+                <Avatar name={profile.display_name} avatar={a} size={40} />
               </button>
             ))}
           </div>
@@ -671,6 +671,17 @@ function Rank({ n, lead, scored }) {
       title={lead ? 'Top of the board' : undefined}>
       {n}
     </span>
+  );
+}
+
+// A drawn crown: the ♛ character renders at wildly different weights across
+// systems, and at 15px it mostly reads as a smudge.
+function Crown() {
+  return (
+    <svg viewBox="0 0 18 14" width="14" height="11" aria-hidden>
+      <path d="M1 12V3l4.2 3L9 1l3.8 5L17 3v9z" fill="currentColor" />
+      <rect x="1" y="12" width="16" height="2" rx="1" fill="currentColor" />
+    </svg>
   );
 }
 
