@@ -812,9 +812,9 @@ function Settings({ profile, onSave, busy }) {
         <span>What friends see</span>
         {[
           ['counts', 'Points and how you got them',
-            'Friends see your points, streak and days won, plus how many jobs you applied to, how many interviews you reached and how many offers you got. Your daily chart shows too.'],
+            'Friends see your points, streak and days won, plus how many jobs you applied to, how many interviews you reached and how many offers you got. Your points for each day are drawn as a line on the This month chart.'],
           ['points', 'Points only',
-            'Friends see your points, streak and days won, and nothing else. Not how many jobs you applied to, not your interviews or offers, and not your daily chart.'],
+            'Friends see your points, streak and days won, and nothing else. Not how many jobs you applied to, not your interviews or offers, and no line for you on the This month chart.'],
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
