@@ -9,10 +9,6 @@
 //   'dark'  — the green mark, for white or paper backgrounds
 // `badge`  — the full rounded-square icon instead of the bare mark.
 
-// The product's name, in one place. The landing hero, the app bar and the
-// browser tab all read it from here, so renaming the thing is a one-line change.
-export const PRODUCT_NAME = 'Job Application Tracker';
-
 export const BRAND = {
   green: '#1d5c36',
   greenDeep: '#14472a',
@@ -26,7 +22,7 @@ export const BRAND = {
 // and CDNs can't serve a stale mark.
 const V = '67ffaf7a';
 
-export default function Logo({ size = 28, tone = 'light', badge = false, title = PRODUCT_NAME }) {
+export default function Logo({ size = 28, tone = 'light', badge = false, title = 'Job Tracker' }) {
   const file = badge ? 'icon-green' : tone === 'dark' ? 'mark-green' : 'mark-white';
   return (
     // A plain <img>: these are small PNGs, and skipping the image optimizer

@@ -6,7 +6,7 @@ import Columns from './Columns';
 import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
-import Logo, { PRODUCT_NAME } from './Logo';
+import Logo from './Logo';
 import Drawer from './Drawer';
 import Charts from './Charts';
 import League from './League';
@@ -101,7 +101,7 @@ async function api(url, method = 'GET', body) {
   return data;
 }
 
-export default function Sheet({ initialRows, role, apiBase = '/api', email, shared = false, demo = false, loadError }) {
+export default function Sheet({ initialRows, role, apiBase = '/api', email, shared = false, loadError }) {
   const canEdit = role === 'edit';
   const [rows, setRows] = useState(initialRows);
   const [tab, setTab] = useState(TABS[0]);
@@ -257,7 +257,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const onCharts = useRef(false);
   onCharts.current = isCharts;
   const refresh = useCallback(async () => {
-    if (demo || busy.current || document.visibilityState !== 'visible') return;
+    if (busy.current || document.visibilityState !== 'visible') return;
     try {
       const [data, evs] = await Promise.all([
         api(`${apiBase}/applications`),
@@ -268,11 +268,11 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     } catch (e) {
       setError(e.message);
     }
-  }, [apiBase, demo]);
+  }, [apiBase]);
   // Load history the first time the Charts tab opens (the funnel needs it).
   useEffect(() => {
-    if (isCharts && !demo) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
-  }, [isCharts, apiBase, demo]);
+    if (isCharts) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
+  }, [isCharts, apiBase]);
   useEffect(() => {
     const t = setInterval(refresh, POLL_MS);
     window.addEventListener('focus', refresh);
@@ -460,7 +460,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   return (
     <div className="app">
       <header className="toolbar">
-        <div className="brand"><Logo size={24} />{PRODUCT_NAME}</div>
+        <div className="brand"><Logo size={24} />Job Application Tracker</div>
         <div className="toolbar-mid">
           {isGrid && <input
             className="search"
@@ -484,7 +484,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>
         <div className="toolbar-right">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
-            {error ? `⚠ ${error}` : demo ? 'Sample data · read-only' : shared ? 'Shared view · read-only' : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
+            {error ? `⚠ ${error}` : shared ? 'Shared view · read-only' : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
           </span>
           {!shared && (
             <>
@@ -591,7 +591,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
       <footer className="tabs-bar">
         <div className="tabs" role="tablist">
-          {(demo ? TABS.filter((t) => t !== LEAGUE) : TABS).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t}
               role="tab"
