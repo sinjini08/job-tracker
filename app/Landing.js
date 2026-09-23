@@ -42,8 +42,11 @@ export default function Landing() {
                 Join the waitlist
               </button>
             </div>
+            {/* A return path, not a third way in. Sign-ups are closed at Clerk,
+                so this door is locked to anyone who has not already been
+                through the code. Worded so it reads that way. */}
             <p className="land-foot">
-              Already have an account? <Link href="/sign-in">Sign in</Link>
+              Been here before? <Link href="/sign-in">Sign in</Link>
             </p>
           </>
         )}
