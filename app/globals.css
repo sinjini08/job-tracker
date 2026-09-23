@@ -1220,14 +1220,13 @@ body:has(.login) { overflow: auto; }
    six pixels apart, with the two groups almost touching. Everything here is
    about giving the faces room to read as faces. */
 .avatar-pick { display: flex; align-items: flex-start; gap: 28px; }
+/* A hairline ring on the circle itself, not a card around it. The card read
+   as a thick white border and fought the avatar it was framing. */
 .avatar-now {
   flex: none;
-  display: grid;
-  place-items: center;
-  padding: 10px;
-  background: var(--viz-surface);
-  border: 1px solid var(--viz-ring);
-  border-radius: 14px;
+  line-height: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--viz-ink);
 }
 /* flex:1 gives auto-fill a width to divide up; min-width:0 alone lets it
    collapse to one column. */

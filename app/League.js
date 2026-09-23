@@ -783,7 +783,8 @@ function SettingsPanel({ league, leagues, profile, rows, busy, onSwitch, onProfi
   const host = rows.find((r) => r.user_id === league?.owner_id) ?? null;
   return (
     <>
-      <h3 className="panel-h">You</h3>
+      {/* No heading. The panel opens on your avatar and your name, which says
+          "you" more clearly than the word does. */}
       {profile && <Settings profile={profile} onSave={onProfile} busy={busy} />}
 
       {leagues.length > 1 && (
