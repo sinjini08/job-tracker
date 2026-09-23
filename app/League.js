@@ -937,24 +937,30 @@ function Settings({ profile, onSave, busy }) {
   return (
     <div className="league-settings">
       <div className="field">
-        <span className="field-head">Your avatar {actions('avatar')}</span>
+        <span className="field-head">Your avatar</span>
         <div className="avatar-pick">
           <div className="avatar-now">
             <Avatar name={draft.display_name} avatar={draft.avatar} size={76} />
           </div>
           <div className="avatar-groups">
-            {AVATAR_GROUPS.map((group) => (
+            {AVATAR_GROUPS.map((group, gi) => (
               <div key={group.label}>
                 <small className="avatar-group-label">{group.label}</small>
-                <div className="avatar-grid">
-                  {group.keys.map((a, i) => (
-                    <button key={a} type="button" disabled={busy}
-                      className={`avatar-opt ${draft.avatar === a ? 'on' : ''}`}
-                      aria-pressed={draft.avatar === a} title={`${group.label} ${i + 1}`}
-                      onClick={() => set({ avatar: draft.avatar === a ? null : a })}>
-                      <Avatar name={draft.display_name} avatar={a} size={44} />
-                    </button>
-                  ))}
+                <div className="avatar-row">
+                  <div className="avatar-grid">
+                    {group.keys.map((a, i) => (
+                      <button key={a} type="button" disabled={busy}
+                        className={`avatar-opt ${draft.avatar === a ? 'on' : ''}`}
+                        aria-pressed={draft.avatar === a} title={`${group.label} ${i + 1}`}
+                        onClick={() => set({ avatar: draft.avatar === a ? null : a })}>
+                        <Avatar name={draft.display_name} avatar={a} size={44} />
+                      </button>
+                    ))}
+                  </div>
+                  {/* Beside the last row of faces, not up by the heading: that
+                      is a long way from the one you just clicked, and on a wide
+                      screen it is the far corner of the panel. */}
+                  {gi === AVATAR_GROUPS.length - 1 && actions('avatar')}
                 </div>
               </div>
             ))}

@@ -1283,6 +1283,11 @@ body:has(.login) { overflow: auto; }
   letter-spacing: 0.05em;
   color: var(--viz-muted);
 }
+/* The last group shares its line with Save and Cancel. Wrapping rather than
+   crushing, so on a narrow panel the buttons drop below the faces instead of
+   squeezing them off the end. */
+.avatar-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.avatar-row > .avatar-grid { flex: 1 1 auto; min-width: 0; }
 .avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: 10px 8px; }
 .avatar-opt {
   width: 56px;
