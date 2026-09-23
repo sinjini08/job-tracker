@@ -1,0 +1,8 @@
+-- 016: reverts 015. Superseded within the hour by 017, and kept so this folder
+-- replays into the state production is actually in rather than skipping a step.
+--
+-- 015 stopped applications dated before signup from scoring. It was reverted
+-- on a real case: a member applied on the Monday and joined on the Wednesday.
+-- The reasoning then flipped again, and 017 is where it landed.
+--
+-- Nothing here is worth reading on its own. Read 017.

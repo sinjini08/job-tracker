@@ -741,9 +741,11 @@ function PointsPanel({ values, target }) {
             stops anyone stuffing the board and then tidying up after themselves.</li>
           <li><b>A row scores only once it names a role and a company</b>, and the same job logged
             twice scores once.</li>
-          <li><b>Applications from before you joined are recorded, but do not score.</b> They still
-            sit in your sheet and your charts, which is where your real history belongs. Moving one
-            forward does score, because that part happened while you were here.</li>
+          <li><b>Applications from before you first signed in never score.</b> Log them anyway.
+            They sit in your sheet and your charts, which is where the honest history of your
+            search belongs. They simply earn nothing in a league, and moving one forward later
+            earns nothing either. Only jobs you applied to from your first day here can win you
+            a day, so nobody can arrive with a backlog and jump the queue.</li>
           <li><b>A stage counts on the day you record it.</b> Applying keeps the date you applied,
             so filling in last week's applications adds to last week, but reaching a screening or
             an interview lands on today.</li>
