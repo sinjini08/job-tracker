@@ -2127,3 +2127,36 @@ body:has(.land) { overflow: auto; }
   .ins-num { display: inline; font-size: 26px; }
   .ins-side small { display: inline; margin-left: 6px; }
 }
+
+/* The written read. Set apart from the cards above it, because those are
+   arithmetic and this is an opinion, and the page should not pretend they
+   carry the same weight. */
+.ins-read {
+  padding: 16px 18px;
+  background: var(--viz-base);
+  border: 1px solid var(--viz-ring);
+  border-radius: 10px;
+}
+.ins-read-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ins-read-top h3 { margin: 0; flex: 1 1 auto; font-size: 15px; color: var(--viz-ink); }
+.ins-read-hint, .ins-read-body {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--viz-ink-2);
+}
+.ins-read-body { color: var(--viz-ink); }
+.ins-read-err { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--due); }
+.ins-moves { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ins-moves li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  border-radius: 8px;
+}
+.ins-moves b { font-size: 13px; color: var(--viz-ink); }
+.ins-moves span { font-size: 12px; line-height: 1.55; color: var(--viz-muted); }
+.ins-read-fine { display: block; margin-top: 12px; font-size: 11px; line-height: 1.5; color: var(--viz-muted); }

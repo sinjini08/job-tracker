@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildInsights, LIMITS } from '@/lib/insights';
 import { computeStats } from '@/lib/stats';
 
@@ -36,6 +36,8 @@ export default function Insights({ rows, events, onOpen }) {
             through to.
           </p>
         </header>
+
+        <Read applied={applied} />
 
         {cards.length === 0 && (
           <div className="ins-empty">
@@ -79,5 +81,83 @@ export default function Insights({ rows, events, onOpen }) {
         )}
       </div>
     </div>
+  );
+}
+
+// The one part of this page that isn't arithmetic: a short written read of
+// what the figures add up to.
+//
+// Nothing is sent anywhere until the button is pressed, and the button only
+// exists when the feature is switched on at the server. Asking again with
+// nothing changed returns the read already paid for rather than writing a new
+// one, so the cost lands once per change rather than once per visit.
+function Read({ applied }) {
+  const [state, setState] = useState({ status: 'loading' });
+
+  useEffect(() => {
+    let live = true;
+    fetch('/api/insights')
+      .then((r) => r.json())
+      .then((d) => live && setState(d.enabled
+        ? { status: 'ready', read: d.read?.body ?? null, at: d.read?.created_at ?? null }
+        : { status: 'off' }))
+      .catch(() => live && setState({ status: 'off' }));
+    return () => { live = false; };
+  }, []);
+
+  const write = useCallback(async (force) => {
+    setState((s) => ({ ...s, status: 'writing' }));
+    try {
+      const res = await fetch(`/api/insights${force ? '?force=1' : ''}`, { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Could not write a read just now.');
+      setState({ status: 'ready', read: d.read?.body ?? null, at: d.read?.created_at ?? null });
+    } catch (e) {
+      setState((s) => ({ ...s, status: 'ready', error: e.message }));
+    }
+  }, []);
+
+  if (state.status === 'off' || state.status === 'loading') return null;
+
+  const { read, error } = state;
+  const busy = state.status === 'writing';
+
+  return (
+    <section className="ins-read">
+      <div className="ins-read-top">
+        <h3>A read of your search</h3>
+        <button type="button" className="viz-toggle" disabled={busy || applied === 0}
+          onClick={() => write(Boolean(read))}>
+          {busy ? 'Reading…' : read ? 'Read it again' : 'Write me a read'}
+        </button>
+      </div>
+
+      {error && <p className="ins-read-err" role="alert">{error}</p>}
+
+      {!read && !error && (
+        <p className="ins-read-hint">
+          {applied === 0
+            ? 'Once you have logged a few applications, this can look at what they add up to.'
+            : 'The cards above are each one number. This looks at them together and says what they mean for the week ahead. Your companies, pay, links, contacts and notes are never part of it.'}
+        </p>
+      )}
+
+      {read && (
+        <>
+          <p className="ins-read-body">{read.read}</p>
+          {read.moves?.length > 0 && (
+            <ol className="ins-moves">
+              {read.moves.map((m, i) => (
+                <li key={i}><b>{m.do}</b><span>{m.because}</span></li>
+              ))}
+            </ol>
+          )}
+          <small className="ins-read-fine">
+            Written by Claude from a summary of your figures, so read it as a second opinion rather
+            than a fact. The numbers above are the facts.
+          </small>
+        </>
+      )}
+    </section>
   );
 }

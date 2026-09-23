@@ -46,22 +46,33 @@ export default function PrivacyPage() {
         By default, only you. Every row is tied to your account in the database and access rules
         are enforced at the database itself, not just in the app code.
       </p>
-      <p>There are exactly three ways anything leaves your own account, and you control all three:</p>
+      <p>There are exactly four ways anything leaves your own account, and you control all four:</p>
       <ul>
         <li><b>A league.</b> If you join one, the other members see your display name, your chosen
-          avatar, your points, your streak and the days you won. They never see a company, a role,
-          pay, a link or a note. Those are not in the leaderboard data at all. You can set your
-          league profile to show points only, and you can leave a league whenever you like.</li>
+          avatar, your points, your streak and the days you won. They also see your real name if
+          you filled that field in, which is blank unless you do and can be cleared again. They
+          never see a company, a role, pay, a link or a note. Those are not in the leaderboard data
+          at all. You can set your league profile to show points only, and you can leave a league
+          whenever you like.</li>
         <li><b>A share link.</b> Only if you create one. It is read-only and you can revoke it.</li>
         <li><b>An assistant.</b> If you connect Claude or ChatGPT, it can read and write your
           applications, and only yours. You approve the connection with a sign-in and can revoke
           it in Settings at any time.</li>
+        <li><b>A written read.</b> On the Insights tab you can ask for a short written read of how
+          your search is going. Only then, and only when you press the button, a summary goes to
+          Anthropic to be turned into that paragraph. The summary is counts and rates, the findings
+          already shown on the page, the job titles you applied for, and, where you pasted one in
+          yourself, the first few hundred characters of a posting. Your companies, pay, links,
+          contacts and notes are never in it. Everything else on that tab is worked out here and
+          goes nowhere.</li>
       </ul>
 
       <h2>Who else is involved</h2>
       <p>
         Three services make this work: <b>Clerk</b> for sign-in, <b>Supabase</b> for the database,
-        and <b>Vercel</b> for hosting. They process your data so the app can run.
+        and <b>Vercel</b> for hosting. They process your data so the app can run. A fourth,
+        <b>Anthropic</b>, sees the summary described above, and only when you ask for a written
+        read.
       </p>
       <p>
         Nothing is sold, and nothing is shared with advertisers. There is no analytics or tracking
