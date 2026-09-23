@@ -303,7 +303,7 @@ function TodayPanel({ rows, mine, target }) {
               <Rank n={row.rank} lead={done > 0 && done === best} scored={done > 0} />
               <Avatar name={row.display_name} avatar={row.avatar} size={34} />
               <span className="day-name">
-                {row.display_name}{row.is_me && <span className="you">you</span>}
+                {row.display_name}
                 {/* The trophy belongs to the person, not to the score, so it
                     sits with their name: this is the day's top scorer, and
                     that is what earns the bonus point. */}
@@ -396,7 +396,7 @@ function Podium({ rows, period }) {
                 <Avatar name={row.display_name} avatar={row.avatar} size={row.rank === 1 ? 62 : 52} />
                 <b className={`crown c${row.rank}`} aria-hidden><Crown /></b>
               </span>
-              <span className="plinth-name">{row.display_name}{row.is_me && <span className="you">you</span>}</span>
+              <span className="plinth-name">{row.display_name}</span>
               <span className="plinth-score"><CountUp value={row[p.points]} delay={620} /></span>
             </div>
             {/* --h drives the keyframe, and the inline height is what it lands
@@ -447,7 +447,7 @@ function Standings({ rows, period }) {
             <Rank n={row.rank} lead={pts > 0 && pts === top} scored={pts > 0} />
             <Avatar name={row.display_name} avatar={row.avatar} size={34} />
             <span className="day-name">
-              {row.display_name}{row.is_me && <span className="you">you</span>}
+              {row.display_name}
               <small>{won} {won === 1 ? 'day' : 'days'} won</small>
             </span>
             <span className="day-bar">
@@ -588,7 +588,7 @@ function StatsPanel({ rows, target, months, me }) {
             {[...rows].sort((a, b) => b.points_total - a.points_total).map((row) => (
               <tr key={row.user_id} className={row.is_me ? 'me' : ''}>
                 <td className="member">
-                  {row.display_name}{row.is_me && <span className="you">you</span>}
+                  {row.display_name}
                 </td>
                 <td><b>{row.points_total}</b></td>
                 <td>{row.points_today ?? 0}</td>
@@ -835,11 +835,10 @@ function SettingsPanel({ league, leagues, profile, rows, busy, onSwitch, onProfi
             {rows.map((r) => {
               const isHost = r.user_id === league?.owner_id;
               return (
-                <li key={r.user_id}>
+                <li key={r.user_id} className={r.is_me ? 'me' : ''}>
                   <span className="member-who">
                     <Avatar name={r.display_name} avatar={r.avatar} size={26} />
                     {r.display_name}
-                    {r.is_me && <span className="you">you</span>}
                     {isHost && <span className="host">host</span>}
                   </span>
                   {/* The host can remove anyone but themselves. Leaving is how

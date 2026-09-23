@@ -830,12 +830,14 @@ body:has(.login) { overflow: auto; }
 }
 /* min-width: 0 or the scrolling tab strip stretches its own grid column and
    the whole page picks up a horizontal scrollbar on a phone. */
-.league-rail { position: sticky; top: 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+/* Every block spans the rail and every piece of content sits 10px in, so
+   the name, the picker and the tabs share one left edge instead of three. */
+.league-rail { position: sticky; top: 0; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .rail-league {
   width: 100%;
   font: inherit;
   font-weight: 600;
-  padding: 7px 8px;
+  padding: 8px 10px;
   border: 1px solid var(--viz-ring);
   border-radius: 6px;
   background: var(--viz-surface);
@@ -965,17 +967,9 @@ body:has(.login) { overflow: auto; }
 .rank.r2 { background: #dcdce2; color: #4a4a52; }
 .rank.r3 { background: #e8c8a8; color: #6d4520; }
 .rank.lead { box-shadow: 0 0 0 2px var(--xl-green); }
-.you {
-  margin-left: 6px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 5px;
-  border-radius: 8px;
-  background: var(--xl-green);
-  color: #fff;
-  vertical-align: middle;
-}
+/* You are marked one way everywhere: a green tint on your row. A badge
+   saying "you" beside the highlight said the same thing twice. */
+.member-list li.me { border-color: #bfe0cb; background: var(--xl-green-tint); }
 
 /* past winners */
 .winner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -1808,7 +1802,7 @@ body:has(.land) { overflow: auto; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 2px 10px 10px;
+  padding: 0 10px;
   min-width: 0;
 }
 .rail-me b { font-size: 14px; color: var(--viz-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
