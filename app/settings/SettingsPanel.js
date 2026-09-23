@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from '../Logo';
-import { BUILTIN_SHEETS, SHEET_DEFAULTS, enabledSheets, isCustomSheet, newSheetKey, sheetLabel } from '@/lib/fields';
+import { BUILTIN_SHEETS, SHEET_DEFAULTS, enabledSheets, isCustomSheet, newSheetKey } from '@/lib/fields';
 
 async function call(url, method) {
   const res = await fetch(url, { method });
@@ -17,7 +17,13 @@ async function call(url, method) {
 // the rows are still there, and switching it back on brings them back.
 function SheetSettings() {
   const [prefs, setPrefs] = useState(null);
+  // What is saved, edited by the checkboxes and by adding or removing a sheet.
   const [draft, setDraft] = useState(null);
+  // What is typed in the boxes on the right, which are rename fields rather
+  // than name fields: blank means leave this sheet called what it is called.
+  // That is the only way a sheet you made can work, because it has no built-in
+  // name to fall back to, and it reads the same for both kinds.
+  const [edits, setEdits] = useState({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -38,13 +44,21 @@ function SheetSettings() {
   if (err) return <section className="settings-card"><h2>Your sheets</h2><p className="settings-error">{err}</p></section>;
   if (!draft) return null;
 
+  // What a sheet would be called if this were saved now: whatever is in its
+  // box, else the name it already has. Null for a sheet you have just added
+  // and not named, which is the one case with nothing to show.
+  const nameOf = (key) => edits[key]?.trim() || draft.names[key]?.trim() || null;
+  const label = (key) => nameOf(key) ?? SHEET_DEFAULTS[key]?.name ?? null;
+
   const on = (key) => draft.enabled.includes(key);
   const mine = draft.enabled.filter(isCustomSheet);
   // A sheet you made is only a sheet because it has a name, so an unnamed one
   // doesn't count toward the one you have to keep.
-  const kept = draft.enabled.filter((k) => !isCustomSheet(k) || draft.names[k]?.trim());
+  const kept = draft.enabled.filter((k) => !isCustomSheet(k) || nameOf(k));
   const last = kept.length <= 1;
-  const dirty = JSON.stringify(draft) !== JSON.stringify(prefs);
+  const renamed = (key) => Boolean(nameOf(key)) && nameOf(key) !== SHEET_DEFAULTS[key]?.name;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(prefs)
+    || Object.entries(edits).some(([k, v]) => v.trim() && v.trim() !== draft.names[k]);
 
   // Built-ins keep their fixed order however they are toggled, so the tab
   // strip never reshuffles under someone who just unticked and reticked one.
@@ -55,34 +69,56 @@ function SheetSettings() {
     return { ...d, enabled: [...BUILTIN_SHEETS.filter((k) => next.includes(k)), ...next.filter(isCustomSheet)] };
   });
 
-  const rename = (key, value) => setDraft((d) => ({ ...d, names: { ...d.names, [key]: value } }));
+  const rename = (key, value) => setEdits((e) => ({ ...e, [key]: value }));
+
+  // The way back for a built-in someone renamed. A sheet you made has Remove
+  // in the same place, and no default to go back to.
+  const useDefault = (key) => {
+    setEdits((e) => ({ ...e, [key]: '' }));
+    setDraft((d) => {
+      const names = { ...d.names };
+      delete names[key];
+      return { ...d, names };
+    });
+  };
 
   const addSheet = () => setDraft((d) => ({ ...d, enabled: [...d.enabled, newSheetKey()] }));
 
-  const removeSheet = (key) => setDraft((d) => {
-    const names = { ...d.names };
-    delete names[key];
-    return { enabled: d.enabled.filter((k) => k !== key), names };
-  });
+  const removeSheet = (key) => {
+    setEdits((e) => { const next = { ...e }; delete next[key]; return next; });
+    setDraft((d) => {
+      const names = { ...d.names };
+      delete names[key];
+      return { enabled: d.enabled.filter((k) => k !== key), names };
+    });
+  };
 
   const save = async () => {
     setBusy(true);
     setErr(null);
     try {
+      // A blank box leaves a sheet called what it is called; the server drops a
+      // built-in whose name is just its own default.
+      const names = {};
+      for (const key of draft.enabled) {
+        const name = nameOf(key);
+        if (name) names[key] = name;
+      }
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sheets_enabled: draft.enabled, sheet_names: draft.names }),
+        body: JSON.stringify({ sheets_enabled: draft.enabled, sheet_names: names }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not save');
       const next = { enabled: enabledSheets(data.sheets_enabled), names: data.sheet_names ?? {} };
       setPrefs(next);
       setDraft(next);
+      setEdits({});
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
-  const tabsRead = kept.map((k) => sheetLabel(k, draft.names));
+  const cancel = () => { setDraft(prefs); setEdits({}); };
 
   return (
     <section className="settings-card">
@@ -97,38 +133,41 @@ function SheetSettings() {
               <input type="checkbox" checked={on(key)} disabled={busy || (on(key) && last)}
                 onChange={() => toggle(key)} />
               <span>
-                <b>{SHEET_DEFAULTS[key].name}</b>
+                <b>{label(key)}</b>
                 <small>{SHEET_DEFAULTS[key].hint}</small>
               </span>
             </label>
             <input type="text" maxLength={30} disabled={busy || !on(key)}
-              value={draft.names[key] ?? ''} placeholder="Call it something else"
-              aria-label={`What to call the ${SHEET_DEFAULTS[key].name} sheet`}
+              value={edits[key] ?? ''} placeholder="Call it something else"
+              aria-label={`Rename the ${label(key)} sheet`}
               onChange={(e) => rename(key, e.target.value)} />
-            {/* The third cell. A built-in has nothing to put in it, but the
-                grid still needs it: see .sheet-row in globals.css. */}
-            <span aria-hidden />
+            {/* The third cell. Empty unless this one has been renamed and can
+                go back; the grid needs it either way. See globals.css. */}
+            {renamed(key) && on(key)
+              ? <button className="tiny-btn" type="button" disabled={busy}
+                  onClick={() => useDefault(key)}>Use default</button>
+              : <span aria-hidden />}
           </div>
         ))}
 
         {mine.map((key) => {
-          const name = draft.names[key]?.trim();
+          const name = nameOf(key);
           return (
             <div className="sheet-row own" key={key}>
               <span className="sheet-keep">
                 <span>
-                  {/* Once it has a name it goes by that name, the way the
-                      built-ins do. The box beside it keeps the name rather
-                      than a ghost of it, because there is no default to fall
-                      back to: empty it and the sheet has nothing to be called. */}
-                  <b>{name || 'A sheet of your own'}</b>
+                  {/* It goes by its name the moment it has one, the way the
+                      built-ins do, and the box beside it goes back to being a
+                      rename field. */}
+                  <b>{name ?? 'A sheet of your own'}</b>
                   <em className="sheet-badge">Custom</em>
                   <small>Same columns to start with. Add or hide them from the Columns button.</small>
                 </span>
               </span>
               <input type="text" maxLength={30} disabled={busy} autoFocus={!name}
-                value={draft.names[key] ?? ''} placeholder="Internships, Grad schemes, Dream jobs"
-                aria-label={name ? `What to call the ${name} sheet` : 'What to call this sheet'}
+                value={edits[key] ?? ''}
+                placeholder={name ? 'Call it something else' : 'Internships, Grad schemes, Dream jobs'}
+                aria-label={name ? `Rename the ${name} sheet` : 'Name this sheet'}
                 onChange={(e) => rename(key, e.target.value)} />
               <button className="tiny-btn" type="button" disabled={busy}
                 onClick={() => removeSheet(key)}>Remove</button>
@@ -144,7 +183,7 @@ function SheetSettings() {
       <p className="settings-note">
         Turning a sheet off hides the tab. Nothing in it is deleted, and turning it back on brings
         it back, and the same goes for removing a sheet you made. You always keep at least one.
-        {tabsRead.length > 0 && <> Right now your tabs read <b>{list(tabsRead)}</b>.</>}
+        {kept.length > 0 && <> Right now your tabs read <b>{list(kept.map(label))}</b>.</>}
       </p>
 
       {dirty && (
@@ -152,8 +191,7 @@ function SheetSettings() {
           <button className="btn primary" disabled={busy} onClick={save}>
             {busy ? 'Saving…' : 'Save sheets'}
           </button>
-          <button className="tiny-btn" type="button" disabled={busy}
-            onClick={() => setDraft(prefs)}>Cancel</button>
+          <button className="tiny-btn" type="button" disabled={busy} onClick={cancel}>Cancel</button>
         </div>
       )}
     </section>
