@@ -1673,11 +1673,13 @@ body:has(.land) { overflow: auto; }
 .land-inner { width: min(560px, 100%); text-align: center; color: #fff; }
 .land-mark { display: flex; justify-content: center; line-height: 0; }
 .land h1 {
-  margin: 18px 0 10px;
-  font-size: clamp(26px, 5vw, 36px);
-  line-height: 1.15;
+  margin: 18px auto 14px;
+  max-width: 20ch;
+  font-size: clamp(24px, 4.4vw, 33px);
+  line-height: 1.25;
   letter-spacing: -0.02em;
 }
+.land h1 span { display: block; text-wrap: balance; }
 .land-sub {
   margin: 0 auto 30px;
   max-width: 44ch;

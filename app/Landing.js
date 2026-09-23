@@ -21,10 +21,15 @@ export default function Landing() {
     <main className="land">
       <div className="land-inner">
         <div className="land-mark"><Logo size={64} /></div>
-        <h1>Every application you send, in one place.</h1>
+        {/* One line per clause. Left to wrap on its own the breaks land mid
+            sentence, which fights the rhythm the three clauses are doing. */}
+        <h1>
+          <span>Your applications, organized.</span>
+          <span>Your progress, visible.</span>
+          <span>Your job hunt, more fun.</span>
+        </h1>
         <p className="land-sub">
-          Paste a job posting and it files itself. See what is actually working.
-          Bring friends and make it a race.
+          Free for students. Paste a job posting and it files itself.
         </p>
 
         {door === null && (

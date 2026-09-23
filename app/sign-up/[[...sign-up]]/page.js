@@ -10,8 +10,8 @@ export default function SignUpPage() {
       <div className="login-intro">
         <div className="login-mark"><Logo size={64} /></div>
         <h1>Job Application Tracker</h1>
-        <p>Paste a job posting and it files itself. See what is actually working.
-          Bring friends and make it a race.</p>
+        <p>Your applications, organized. Your progress, visible. Your job hunt,
+          more fun.</p>
       </div>
       <SignUp appearance={appearance} signInUrl="/sign-in" fallbackRedirectUrl="/" />
     </main>
