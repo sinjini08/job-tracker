@@ -16,7 +16,7 @@ const CHOICES = [
   { id: 'off', keys: ['Off-Campus'], title: 'Just job applications',
     hint: 'One sheet for everything you apply to. The usual choice if you are not working on campus.' },
   { id: 'on', keys: ['On-Campus'], title: 'Just campus jobs',
-    hint: 'One sheet, for roles within your university. Only if you are enrolled somewhere.' },
+    hint: 'One sheet, for roles with your university itself. Only if you are enrolled somewhere.' },
 ];
 
 export default function SheetSetup({ onChoose }) {
