@@ -653,8 +653,8 @@ function MyPointsPanel({ target }) {
       <h3 className="panel-h">Your points, day by day</h3>
       {daily.length === 0 ? (
         <p className="muted">
-          Nothing in the last 30 days. Log an application and it shows up here with
-          the points it earned.
+          Nothing in the last 30 days. Log an application you sent since you joined and it
+          shows up here with the points it earned.
         </p>
       ) : (
         <ul className="breakdown">
@@ -680,8 +680,10 @@ function MyPointsPanel({ target }) {
         </ul>
       )}
       <p className="league-fine">
-        A day counts from the date you applied, not the day you typed it in, so
-        filling in last week's applications adds to last week.
+        Applying counts on the day you applied, so filling in last week's applications adds
+        to last week. Reaching a screening or an interview counts on the day you record it.
+        Anything you applied to before you first signed in is kept in your sheet but earns
+        nothing here.
       </p>
     </>
   );
