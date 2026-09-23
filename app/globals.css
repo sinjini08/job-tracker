@@ -847,6 +847,10 @@ body:has(.login) { overflow: auto; }
   align-items: center;
   gap: 8px;
   max-width: 100%;
+  /* The same height as .rail-me across the way. The two columns start at the
+     same y, so unless their first blocks also END at the same y, everything
+     below them steps down out of step by the difference. */
+  min-height: 34px;
   margin: 0 0 6px;
   padding: 2px 4px 2px 0;
   border-radius: 6px;
@@ -902,7 +906,9 @@ body:has(.login) { overflow: auto; }
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  padding: 12px 10px;
+  /* 9, not 10: the 1px border makes up the difference, so the label inside
+     lines up with the tab labels and the avatar above it. */
+  padding: 12px 9px;
   border-radius: 8px;
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
@@ -925,9 +931,10 @@ body:has(.login) { overflow: auto; }
   color: var(--viz-muted);
 }
 .league-panel > .panel-h:first-child { margin-top: 0; }
-/* The league name already opens the panel, so the section heading under it
-   does not need a full break as well. */
-.league-panel > .league-pick + .panel-h { margin-top: 8px; }
+/* The league name already opens the panel, so the heading under it takes no
+   break of its own: it starts level with the first tab in the rail, exactly
+   where a card starts on the views that open with one. */
+.league-panel > .league-pick + .panel-h { margin-top: 0; }
 
 /* today's hero */
 .hero {
