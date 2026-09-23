@@ -47,7 +47,7 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
         <a className="brand" href="/"><Logo size={24} />Job Application Tracker</a>
         <div className="toolbar-mid" />
         <div className="toolbar-right">
-          <a className="btn ghost" href="/">Back to my sheet</a>
+          <a className="btn ghost" href="/?sheet=1">Back to my sheet</a>
         </div>
       </header>
 

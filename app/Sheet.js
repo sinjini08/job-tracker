@@ -146,10 +146,22 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   };
 
   // Remember the last tab, the column widths and the row height per browser.
+  //
+  // ?sheet=1 overrides the remembered tab. Settings links back here saying
+  // "Back to my sheet", and restoring the last tab made that land on Charts or
+  // the League, which is not what the link said it would do. The remembered
+  // tab is still used when it is a sheet, so you return to the one you were
+  // actually working in.
   useEffect(() => {
     try {
       const saved = localStorage.getItem('jt_tab');
-      if (TABS.includes(saved)) setTab(saved);
+      const wantsSheet = new URLSearchParams(window.location.search).has('sheet');
+      if (wantsSheet) {
+        setTab(saved === 'Off-Campus' ? 'Off-Campus' : 'On-Campus');
+        window.history.replaceState(null, '', window.location.pathname);
+      } else if (TABS.includes(saved)) {
+        setTab(saved);
+      }
       const h = Number(localStorage.getItem('jt_rowh'));
       if (h >= MIN_ROW_H && h <= MAX_ROW_H) setRowHeight(h);
     } catch {}
