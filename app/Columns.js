@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ALWAYS_ON } from '@/lib/fields';
+import { ALWAYS_ON, SHEET_KEYS, sheetLabel } from '@/lib/fields';
 
 // Choose which columns this sheet shows, and add columns of your own.
 //
@@ -17,7 +17,7 @@ const KINDS = [
   { id: 'select', label: 'Pick from a list' },
 ];
 
-export default function Columns({ sheet, all, custom, hidden, onToggle, onShowAll, onAdd, onRemove, onClose }) {
+export default function Columns({ sheet, all, custom, hidden, sheets = SHEET_KEYS, names = {}, onToggle, onShowAll, onAdd, onRemove, onClose }) {
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -140,9 +140,10 @@ function AddColumn({ sheet, busy, onSave, onCancel }) {
       <label className="field">
         <span>Show it on</span>
         <select value={applies} onChange={(e) => setApplies(e.target.value)}>
-          <option value="both">Both sheets</option>
-          <option value="On-Campus">On-Campus only</option>
-          <option value="Off-Campus">Off-Campus only</option>
+          {sheets.length > 1 && <option value="both">Both sheets</option>}
+          {sheets.map((k) => (
+            <option key={k} value={k}>{sheetLabel(k, names)} only</option>
+          ))}
         </select>
       </label>
 

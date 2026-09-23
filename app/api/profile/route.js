@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { isAvatar } from '@/lib/avatars';
+import { SHEET_KEYS } from '@/lib/fields';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, avatar, leaderboard_detail, hidden_columns';
+const FIELDS = 'display_name, avatar, leaderboard_detail, hidden_columns, sheets_enabled, sheet_names';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -47,6 +48,24 @@ export async function PATCH(request) {
       }
     }
     patch.hidden_columns = out;
+  }
+  if ('sheets_enabled' in body) {
+    // Only the two known values, and never an empty list: a student with no
+    // sheets at all would have nowhere to type.
+    const kept = SHEET_KEYS.filter((k) => Array.isArray(body.sheets_enabled) && body.sheets_enabled.includes(k));
+    patch.sheets_enabled = kept.length ? kept : SHEET_KEYS;
+  }
+  if ('sheet_names' in body) {
+    // A label per sheet key. A blank name clears back to the built-in one.
+    const raw = body.sheet_names;
+    const out = {};
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      for (const key of SHEET_KEYS) {
+        const name = String(raw[key] ?? '').trim().slice(0, 30);
+        if (name && name !== key) out[key] = name;
+      }
+    }
+    patch.sheet_names = out;
   }
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nothing to change' }, { status: 400 });
 

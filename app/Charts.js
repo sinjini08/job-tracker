@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLOSED, STAGES, computeStats, pct } from '@/lib/stats';
+import { SHEET_KEYS, sheetLabel } from '@/lib/fields';
 import DayChart from './LeagueCharts';
 
 const PERIODS = [
@@ -9,7 +10,8 @@ const PERIODS = [
   { id: '90', label: 'Last 90 days', days: 90 },
   { id: '30', label: 'Last 30 days', days: 30 },
 ];
-const SHEET_FILTERS = ['All', 'On-Campus', 'Off-Campus'];
+// Built from the student's own sheets, so a renamed or hidden one reads the
+// same here as it does on the tab strip.
 // One step per pipeline stage, so the ring darkens the further along it goes.
 // A sequential ramp rather than a set of hues, because the stages are ordered:
 // unrelated colours would say they are different kinds of thing rather than
@@ -22,7 +24,7 @@ const BREAKDOWNS = [
   { id: 'byWorkMode', label: 'Work mode', title: 'On-site, hybrid or remote' },
 ];
 
-export default function Charts({ rows, events }) {
+export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }) {
   const [sheet, setSheet] = useState('All');
   const [period, setPeriod] = useState('all');
   const [daily, setDaily] = useState(null);
@@ -48,7 +50,11 @@ export default function Charts({ rows, events }) {
   return (
     <div className="charts viz-root">
       <div className="viz-filters" role="toolbar" aria-label="Chart filters">
-        <Segmented label="Sheet" options={SHEET_FILTERS.map((s) => ({ id: s, label: s }))} value={sheet} onChange={setSheet} />
+        {sheets.length > 1 && (
+          <Segmented label="Sheet"
+            options={[{ id: 'All', label: 'All' }, ...sheets.map((k) => ({ id: k, label: sheetLabel(k, names) }))]}
+            value={sheet} onChange={setSheet} />
+        )}
         <Segmented label="Period" options={PERIODS} value={period} onChange={setPeriod} />
         {events == null && <span className="viz-note">Loading history…</span>}
       </div>

@@ -1,14 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from '../Logo';
+import { SHEET_KEYS, sheetLabel } from '@/lib/fields';
 
 async function call(url, method) {
   const res = await fetch(url, { method });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
   return data;
+}
+
+// Which sheets you keep, and what you call them. The stored value behind a
+// sheet never changes, so a rename is a label and turning one off is a hide:
+// the rows are still there, and switching it back on brings them back.
+function SheetSettings() {
+  const [prefs, setPrefs] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch('/api/profile')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Could not load your settings'))))
+      .then((p) => {
+        if (!live) return;
+        const next = { enabled: p.sheets_enabled ?? SHEET_KEYS, names: p.sheet_names ?? {} };
+        setPrefs(next);
+        setDraft(next);
+      })
+      .catch((e) => live && setErr(e.message));
+    return () => { live = false; };
+  }, []);
+
+  if (err) return <section className="settings-card"><h2>Your sheets</h2><p className="settings-error">{err}</p></section>;
+  if (!draft) return null;
+
+  const on = (key) => draft.enabled.includes(key);
+  const only = draft.enabled.length === 1;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(prefs);
+
+  const toggle = (key) => setDraft((d) => ({
+    ...d,
+    enabled: d.enabled.includes(key) ? d.enabled.filter((k) => k !== key) : [...SHEET_KEYS.filter((k) => k === key || d.enabled.includes(k))],
+  }));
+  const rename = (key, value) => setDraft((d) => ({ ...d, names: { ...d.names, [key]: value } }));
+
+  const save = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheets_enabled: draft.enabled, sheet_names: draft.names }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not save');
+      const next = { enabled: data.sheets_enabled ?? SHEET_KEYS, names: data.sheet_names ?? {} };
+      setPrefs(next);
+      setDraft(next);
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="settings-card">
+      <h2>Your sheets</h2>
+      <p>Keep the sheets you use and call them whatever you like. The tabs follow.</p>
+      <div className="sheet-rows">
+        {SHEET_KEYS.map((key) => (
+          <div className="sheet-row" key={key}>
+            <label>
+              <input type="checkbox" checked={on(key)} disabled={busy || (on(key) && only)}
+                onChange={() => toggle(key)} />
+              {key}
+            </label>
+            <input type="text" maxLength={30} disabled={busy || !on(key)}
+              value={draft.names[key] ?? ''} placeholder={key}
+              aria-label={`What to call the ${key} sheet`}
+              onChange={(e) => rename(key, e.target.value)} />
+          </div>
+        ))}
+      </div>
+      <p className="settings-note">
+        Turning a sheet off hides the tab. Nothing in it is deleted, and turning it back on brings
+        it back. You always keep at least one.
+        {' '}Right now your tabs read{' '}
+        <b>{SHEET_KEYS.filter(on).map((k) => sheetLabel(k, draft.names)).join(' and ')}</b>.
+      </p>
+      {dirty && (
+        <button className="btn primary" disabled={busy} onClick={save}>
+          {busy ? 'Saving…' : 'Save sheets'}
+        </button>
+      )}
+    </section>
+  );
 }
 
 function CopyField({ value }) {
@@ -54,6 +142,8 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
       <main className="settings-body">
         <h1>Settings</h1>
         {error && <p className="settings-error" role="alert">{error}</p>}
+
+        <SheetSettings />
 
         <section className="settings-card">
           <h2>Connect an assistant</h2>

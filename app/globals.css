@@ -1811,3 +1811,61 @@ body:has(.land) { overflow: auto; }
   min-width: 0;
 }
 .rail-me b { font-size: 14px; color: var(--viz-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- the one-time sheet question ---------- */
+.setup {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background:
+    radial-gradient(105% 80% at 50% 45%, var(--green-mid), var(--xl-green) 52%, var(--xl-green-dark) 100%);
+}
+.setup-card {
+  width: min(560px, 100%);
+  background: var(--viz-surface);
+  border-radius: 14px;
+  padding: 30px 28px;
+  box-shadow: 0 18px 50px rgba(11, 11, 11, 0.24);
+}
+.setup-card h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; color: var(--viz-ink); }
+.setup-sub { margin: 8px 0 22px; font-size: 14px; color: var(--viz-muted); line-height: 1.5; }
+.setup-choices { display: flex; flex-direction: column; gap: 10px; }
+.setup-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: 14px 16px;
+  border: 1px solid var(--viz-ring);
+  border-radius: 10px;
+  background: var(--viz-surface);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.setup-choice:hover { border-color: var(--xl-green); background: var(--xl-green-tint); }
+.setup-choice:disabled { opacity: 0.6; cursor: default; }
+.setup-choice b { font-size: 15px; color: var(--viz-ink); }
+.setup-choice small { font-size: 13px; line-height: 1.45; color: var(--viz-muted); }
+.setup-err { margin: 14px 0 0; font-size: 13px; color: var(--due); }
+
+/* ---------- renaming your sheets, in Settings ---------- */
+.sheet-rows { display: flex; flex-direction: column; gap: 10px; margin: 0 0 6px; }
+.sheet-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sheet-row > label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+.sheet-row input[type="text"] {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--viz-ring);
+  border-radius: 7px;
+  background: var(--viz-surface);
+  color: var(--ink);
+}
+.sheet-row input[type="text"]:disabled { opacity: 0.55; }

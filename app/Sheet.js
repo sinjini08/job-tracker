@@ -1,18 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ALWAYS_ON, allColumnsFor, columnsFor, columnLetter, isBlankRow, snapToKnown } from '@/lib/fields';
+import { ALWAYS_ON, SHEET_KEYS, allColumnsFor, columnsFor, columnLetter, enabledSheets, isBlankRow, sheetLabel, snapToKnown } from '@/lib/fields';
 import Columns from './Columns';
 import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from './Logo';
+import SheetSetup from './SheetSetup';
 import Drawer from './Drawer';
 import Charts from './Charts';
 import League from './League';
 import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 
-const TABS = ['On-Campus', 'Off-Campus', 'Charts', 'League'];
+// The extra tabs. The sheet tabs in front of these come from the student's
+// own choice, so TABS is built at render time rather than being a constant.
+const EXTRA_TABS = ['Charts', 'League'];
 const CHARTS = 'Charts';
 const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
@@ -104,7 +107,14 @@ async function api(url, method = 'GET', body) {
 export default function Sheet({ initialRows, role, apiBase = '/api', email, shared = false, loadError }) {
   const canEdit = role === 'edit';
   const [rows, setRows] = useState(initialRows);
-  const [tab, setTab] = useState(TABS[0]);
+  // A plain default, not TABS[0]: TABS is derived from the profile further
+  // down, so reading it here is a temporal dead zone. Whichever sheet this
+  // lands on, the effect below moves it to one the student actually keeps.
+  const [tab, setTab] = useState(SHEET_KEYS[0]);
+  // Which sheets this student keeps and what they call them. Null until the
+  // profile lands; a null sheets_enabled inside it means never asked. Declared
+  // here because the tab list is derived from it a few lines down.
+  const [sheetPrefs, setSheetPrefs] = useState(null);
   const [sel, setSel] = useState({ r: 0, c: 0 });
   const [editing, setEditing] = useState(null); // { r, c, draft }
   const [pending, setPending] = useState(0);
@@ -117,6 +127,15 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const gridRef = useRef(null);
   const drawerOpenRef = useRef(false);
 
+  const sheets = enabledSheets(sheetPrefs?.enabled);
+  const names = sheetPrefs?.names ?? {};
+  const TABS = useMemo(() => [...sheets, ...EXTRA_TABS], [sheets.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Turning a sheet off while standing on it would leave an empty grid and a
+  // tab strip with nothing selected, so move to whatever they still have.
+  useEffect(() => {
+    if (sheetPrefs && !TABS.includes(tab)) setTab(TABS[0]);
+  }, [TABS, tab, sheetPrefs]);
+
   const isCharts = tab === CHARTS;
   const isLeague = tab === LEAGUE;
   const isGrid = !isCharts && !isLeague;
@@ -124,6 +143,12 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const [hidden, setHidden] = useState({});
   const [pickingCols, setPickingCols] = useState(false);
   // The extra tabs have no grid, so an unknown name falls back to On-Campus.
+  const chooseSheets = async (keys) => {
+    const saved = await api('/api/profile', 'PATCH', { sheets_enabled: keys });
+    setSheetPrefs({ enabled: saved.sheets_enabled, names: saved.sheet_names ?? {} });
+    setTab(saved.sheets_enabled?.[0] ?? 'Off-Campus');
+  };
+
   const cols = useMemo(() => columnsFor(isGrid ? tab : 'On-Campus', { custom, hidden }),
     [tab, isGrid, custom, hidden]);
   const [events, setEvents] = useState(null);
@@ -134,6 +159,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     if (shared) return;
     try {
       const [cc, profile] = await Promise.all([api('/api/columns'), api('/api/profile')]);
+      setSheetPrefs({ enabled: profile.sheets_enabled, names: profile.sheet_names ?? {} });
       setCustom(cc.columns ?? []);
       setHidden(profile.hidden_columns ?? {});
     } catch { /* the sheet still works with the built-in columns */ }
@@ -469,6 +495,13 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const drawerRow = rows.find((r) => r.id === drawerId) || null;
   drawerOpenRef.current = Boolean(drawerRow);
 
+  // sheets_enabled is null only for someone who has never been asked, so this
+  // shows once and never again. It waits for the profile rather than guessing,
+  // or every returning student would see it flash on the way in.
+  if (canEdit && sheetPrefs && sheetPrefs.enabled == null) {
+    return <SheetSetup onChoose={chooseSheets} />;
+  }
+
   return (
     <div className="app">
       <header className="toolbar">
@@ -508,7 +541,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>
       </header>
 
-      {isCharts ? <Charts rows={rows} events={events} /> : isLeague ? <League /> : <>
+      {isCharts ? <Charts rows={rows} events={events} sheets={sheets} names={names} /> : isLeague ? <League /> : <>
       <div className="formula-bar">
         <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
         <div className="fx" aria-hidden>fx</div>
@@ -611,7 +644,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               className={`tab ${tab === t ? 'active' : ''}`}
               onClick={() => switchTab(t)}
             >
-              {t === CHARTS || t === LEAGUE ? t : <>{t} <span className="tab-count">{tabCount(t)}</span></>}
+              {t === CHARTS || t === LEAGUE
+                ? t
+                : <>{sheetLabel(t, names)} <span className="tab-count">{tabCount(t)}</span></>}
             </button>
           ))}
         </div>
@@ -635,6 +670,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
       {pickingCols && (
         <Columns
+          sheets={sheets} names={names}
           sheet={tab}
           all={allColumnsFor(tab, custom)}
           custom={custom}
