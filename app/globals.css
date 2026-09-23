@@ -1626,6 +1626,11 @@ body:has(.login) { overflow: auto; }
 }
 
 /* ---------- the privacy page ---------- */
+/* body is overflow:hidden for the sheet, which is a full-height app. Any page
+   that is ordinary prose has to opt back into scrolling, the same way the
+   sign-in and settings pages already do. */
+body:has(.legal) { overflow: auto; }
+
 /* Plain prose on paper: it is read once, by someone deciding whether to trust
    the thing, and by Google's reviewer. Measure capped near 70 characters. */
 .legal {
