@@ -1624,3 +1624,31 @@ body:has(.login) { overflow: auto; }
   .splash-mark, .splash.out .splash-mark { transition: none; transform: none; }
   .splash.out .splash-mark { opacity: 0; }
 }
+
+/* ---------- the privacy page ---------- */
+/* Plain prose on paper: it is read once, by someone deciding whether to trust
+   the thing, and by Google's reviewer. Measure capped near 70 characters. */
+.legal {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+  color: var(--ink, #1d231f);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.legal-head { margin-bottom: 28px; }
+.legal-mark { display: inline-block; line-height: 0; margin-bottom: 14px; }
+.legal h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
+.legal-sub { margin: 4px 0 0; font-size: 13px; color: var(--muted, #6b6b60); }
+.legal-lede { font-size: 16px; color: var(--ink, #1d231f); }
+.legal h2 {
+  margin: 34px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.legal p { margin: 0 0 12px; }
+.legal ul { margin: 0 0 12px; padding-left: 20px; }
+.legal li { margin-bottom: 8px; }
+.legal a { color: var(--xl-green, #1d5c36); }
+.legal-foot { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--sand, #e8e8dc); font-size: 14px; }
