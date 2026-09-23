@@ -672,6 +672,9 @@ function PointsPanel({ values, target }) {
             stops anyone stuffing the board and then tidying up after themselves.</li>
           <li><b>A row scores only once it names a role and a company</b>, and the same job logged
             twice scores once.</li>
+          <li><b>Points are yours either way.</b> Everything in the first list above scores from
+            the moment you log it, league or no league, and you can see your own run of them on
+            the Charts tab. A league adds who you are measured against, and the two bonuses.</li>
         </ul>
       </div>
     </>
