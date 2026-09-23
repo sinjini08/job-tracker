@@ -5,7 +5,7 @@ import { normalizeSheetPrefs } from '@/lib/fields';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, avatar, leaderboard_detail, hidden_columns, sheets_enabled, sheet_names';
+const FIELDS = 'display_name, full_name, avatar, leaderboard_detail, hidden_columns, sheets_enabled, sheet_names';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -30,6 +30,11 @@ export async function PATCH(request) {
   const patch = {};
   if ('display_name' in body) {
     patch.display_name = String(body.display_name ?? '').trim().slice(0, 40) || null;
+  }
+  if ('full_name' in body) {
+    // Blank clears it, which is how someone takes their name back off the
+    // board after putting it there.
+    patch.full_name = String(body.full_name ?? '').trim().slice(0, 60) || null;
   }
   if ('avatar' in body) {
     // Only a value from the list. Anything else clears it back to initials.

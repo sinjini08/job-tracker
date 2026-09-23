@@ -268,11 +268,38 @@ export default function League() {
   );
 }
 
+// A handle like "mrmalpani25" doesn't tell a league who that is. Tapping it
+// swaps in the name that person gave, and tapping again puts the handle back.
+// A swap rather than an extra line, because these rows are a fixed height and
+// a second line would push the board around under whoever clicked.
+//
+// Nobody is made to give a name. Without one there is nothing to reveal, so
+// the name is plain text and doesn't invite a tap it can't answer.
+function useNameReveal() {
+  const [shown, setShown] = useState(null);
+  return (row) => ({
+    row,
+    open: shown === row.user_id,
+    onToggle: () => setShown((cur) => (cur === row.user_id ? null : row.user_id)),
+  });
+}
+
+function BoardName({ row, open, onToggle }) {
+  if (!row.full_name) return row.display_name;
+  return (
+    <button type="button" className="name-btn" onClick={onToggle} aria-pressed={open}
+      title={open ? `Back to ${row.display_name}` : row.full_name}>
+      {open ? row.full_name : row.display_name}
+    </button>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Today — the target is a floor, and beating it is the point.
 // ---------------------------------------------------------------------------
 
 function TodayPanel({ rows, mine, target }) {
+  const reveal = useNameReveal();
   const progress = todayProgress(mine, target) ?? { done: 0, target, met: false };
   const over = Math.max(0, progress.done - target);
   const winners = rows.filter((r) => wonToday(r, target));
@@ -313,7 +340,7 @@ function TodayPanel({ rows, mine, target }) {
               <Rank n={row.rank} lead={done > 0 && done === best} scored={done > 0} />
               <Avatar name={row.display_name} avatar={row.avatar} size={34} />
               <span className="day-name">
-                {row.display_name}
+                <BoardName {...reveal(row)} />
                 {/* The trophy belongs to the person, not to the score, so it
                     sits with their name: this is the day's top scorer, and
                     that is what earns the bonus point. */}
@@ -445,6 +472,7 @@ function CountUp({ value, delay = 0, ms = 520 }) {
 }
 
 function Standings({ rows, period }) {
+  const reveal = useNameReveal();
   const p = periodBy(period);
   const top = rows[0]?.[p.points] ?? 0;
   return (
@@ -457,7 +485,7 @@ function Standings({ rows, period }) {
             <Rank n={row.rank} lead={pts > 0 && pts === top} scored={pts > 0} />
             <Avatar name={row.display_name} avatar={row.avatar} size={34} />
             <span className="day-name">
-              {row.display_name}
+              <BoardName {...reveal(row)} />
               <small>{won} {won === 1 ? 'day' : 'days'} won</small>
             </span>
             <span className="day-bar">
@@ -476,6 +504,7 @@ function Standings({ rows, period }) {
 // ---------------------------------------------------------------------------
 
 function MonthPanel({ rows, mine, target, history }) {
+  const reveal = useNameReveal();
   const series = rows
     .filter((r) => Array.isArray(r.daily))
     .map((r) => ({ key: r.user_id, label: r.display_name + (r.is_me ? ' (you)' : ''), daily: r.daily }));
@@ -598,7 +627,7 @@ function StatsPanel({ rows, target, months, me }) {
             {[...rows].sort((a, b) => b.points_total - a.points_total).map((row) => (
               <tr key={row.user_id} className={row.is_me ? 'me' : ''}>
                 <td className="member">
-                  {row.display_name}
+                  <BoardName {...reveal(row)} />
                 </td>
                 <td><b>{row.points_total}</b></td>
                 <td>{row.points_today ?? 0}</td>
@@ -790,6 +819,7 @@ function PointsPanel({ values, target }) {
 
 function SettingsPanel({ league, leagues, profile, rows, busy, onSwitch, onProfile, onRename,
   onTarget, onRemove, onLeave, onCreate, onJoin }) {
+  const reveal = useNameReveal();
   const host = rows.find((r) => r.user_id === league?.owner_id) ?? null;
   return (
     <>
@@ -848,7 +878,7 @@ function SettingsPanel({ league, leagues, profile, rows, busy, onSwitch, onProfi
                 <li key={r.user_id} className={r.is_me ? 'me' : ''}>
                   <span className="member-who">
                     <Avatar name={r.display_name} avatar={r.avatar} size={26} />
-                    {r.display_name}
+                    <BoardName {...reveal(r)} />
                     {isHost && <span className="host">host</span>}
                   </span>
                   {/* The host can remove anyone but themselves. Leaving is how
@@ -912,6 +942,7 @@ function TargetInput({ league, onSave, busy }) {
 function Settings({ profile, onSave, busy }) {
   const saved = {
     display_name: profile.display_name ?? '',
+    full_name: profile.full_name ?? '',
     avatar: profile.avatar ?? null,
     leaderboard_detail: profile.leaderboard_detail,
   };
@@ -924,10 +955,11 @@ function Settings({ profile, onSave, busy }) {
   useEffect(() => {
     setDraft({
       display_name: profile.display_name ?? '',
+      full_name: profile.full_name ?? '',
       avatar: profile.avatar ?? null,
       leaderboard_detail: profile.leaderboard_detail,
     });
-  }, [profile.display_name, profile.avatar, profile.leaderboard_detail]);
+  }, [profile.display_name, profile.full_name, profile.avatar, profile.leaderboard_detail]);
 
   const actions = (key) => (
     <FieldActions dirty={draft[key] !== saved[key]} busy={busy}
@@ -978,6 +1010,20 @@ function Settings({ profile, onSave, busy }) {
             onChange={(e) => set({ display_name: e.target.value })} />
           {actions('display_name')}
         </div>
+      </div>
+
+      <div className="field">
+        <label className="field-head" htmlFor="real-name">Your name</label>
+        <div className="field-inline">
+          <input id="real-name" value={draft.full_name} maxLength={60} placeholder="Optional"
+            onChange={(e) => set({ full_name: e.target.value })} />
+          {actions('full_name')}
+        </div>
+        <small className="league-fine">
+          For when a name on the board doesn&rsquo;t say who someone is. Only the people in your
+          leagues see it, and only when they tap your name. Leave it blank and there is nothing
+          to tap; clearing it takes it back off.
+        </small>
       </div>
 
       <fieldset className="field detail">

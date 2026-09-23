@@ -55,7 +55,26 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--xl-green);
   color: #fff;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  /* A button in the app bar, not a label: same look, and the browser's own
+     defaults reset so it keeps it. */
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.brand:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 4px; }
 .brand img {
   /* Optical, not geometric: the dart's tip stretches the artwork upward, so the
      rings read a hair low when the box is centred. */
@@ -1408,6 +1427,25 @@ body:has(.login) { overflow: auto; }
 /* One colour for every win. The trophy beside the name is what marks the
    day's top score, so the chip doesn't need to say it twice. */
 .won-chip { background: var(--series-1); }
+/* Looks like the name it replaces, because it is the name. The dotted
+   underline on hover is the only sign it does anything, which is as much as a
+   board row can spare. */
+.name-btn {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.name-btn:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.name-btn:focus-visible { outline: 2px solid var(--xl-green); outline-offset: 2px; border-radius: 3px; }
 .name-cup { margin-left: 6px; color: #c79a2a; }
 .name-cup svg { vertical-align: -4px; }
 .pill.gold { background: #f7ecd7; color: #7a5a12; }

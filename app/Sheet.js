@@ -505,7 +505,13 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   return (
     <div className="app">
       <header className="toolbar">
-        <div className="brand"><Logo size={24} />Job Application Tracker</div>
+        {/* The way back. Charts and League are tabs in the same page rather
+            than pages of their own, so this returns to the first sheet rather
+            than navigating anywhere. */}
+        <button type="button" className="brand" onClick={() => setTab(sheets[0])}
+          title="Back to your sheet">
+          <Logo size={24} />Job Application Tracker
+        </button>
         <div className="toolbar-mid">
           {isGrid && <input
             className="search"
