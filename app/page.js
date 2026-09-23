@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { storeFor } from '@/lib/db';
 import Sheet from './Sheet';
+import Splash from './Splash';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,5 +18,12 @@ export default async function Home() {
   } catch (e) {
     loadError = e.message;
   }
-  return <Sheet initialRows={rows} role="edit" apiBase="/api" email={user.email} loadError={loadError} />;
+  // The opening plays over the sheet and then fades, so the sheet is already
+  // there underneath rather than arriving afterwards.
+  return (
+    <>
+      <Splash />
+      <Sheet initialRows={rows} role="edit" apiBase="/api" email={user.email} loadError={loadError} />
+    </>
+  );
 }

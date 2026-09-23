@@ -1323,3 +1323,180 @@ body:has(.login) { overflow: auto; }
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
 }
 .settings-note { font-size: 13px; opacity: 0.8; margin: 12px 0 0; line-height: 1.5; }
+
+/* ---------- the opening ---------- */
+/* The target draws itself, the bullseye lands, the dart arrives along the line
+   it points down, and the mark hands off to the logo in the app bar. The three
+   images are the real logo split apart by scripts/build-splash.cjs, so the
+   frame it settles on is the mark exactly, pixel for pixel. */
+
+/* Registered so it can be animated: a plain custom property would jump from
+   one angle to the other instead of sweeping between them. */
+@property --sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 360deg;
+}
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+}
+.splash.out { pointer-events: none; }
+
+/* The green is its own layer so it can clear before the mark does. Fading the
+   two together hides the best part: for a few frames the mark is gliding over
+   the sheet on its way into the app bar, which is what makes the opening read
+   as handing over rather than just ending.
+
+   Not flat, either: the light sits behind the mark, so the middle of the
+   screen is where the eye goes and the corners fall away. */
+.splash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(105% 80% at 50% 45%, var(--green-mid) 0%, var(--xl-green) 52%, var(--xl-green-dark) 100%);
+  transition: opacity 400ms cubic-bezier(0.4, 0, 1, 1);
+}
+.splash.out::before { opacity: 0; }
+
+.splash-mark {
+  position: relative;
+  width: clamp(150px, 24vmin, 280px);
+  aspect-ratio: 1;
+  /* the hand-off, measured by Splash.js against the app bar's own logo */
+  --to-x: 0px;
+  --to-y: 0px;
+  --to-s: 0.88;
+  transition: transform 620ms cubic-bezier(0.5, 0, 0.2, 1),
+              opacity 260ms ease-in 360ms;
+}
+.splash.out .splash-mark {
+  opacity: 0;
+  transform: translate(var(--to-x), var(--to-y)) scale(var(--to-s));
+}
+
+.sp-stack { position: absolute; inset: 0; }
+.splash-mark img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* The ring draws itself, starting and finishing in its own gap: a wedge of
+   mask opens clockwise from conic 49deg, which build-splash.cjs measured as
+   the middle of the break where the dart crosses. Nothing is drawn there, so
+   the ring appears to grow from one lip of the gap round to the other. */
+.sp-rings {
+  --sweep: 0deg;
+  -webkit-mask-image: conic-gradient(from 49deg at 40% 58.6%,
+    #000 calc(var(--sweep) - 6deg), transparent var(--sweep));
+  mask-image: conic-gradient(from 49deg at 40% 58.6%,
+    #000 calc(var(--sweep) - 6deg), transparent var(--sweep));
+  animation: sp-draw 980ms cubic-bezier(0.5, 0.02, 0.18, 1) both,
+             sp-breathe 980ms cubic-bezier(0.16, 0.9, 0.24, 1) both,
+             sp-kick 320ms cubic-bezier(0.3, 1.5, 0.5, 1) 1280ms forwards;
+}
+@keyframes sp-draw { from { --sweep: 0deg; } to { --sweep: 360deg; } }
+@keyframes sp-breathe {
+  from { opacity: 0.55; transform: scale(0.93); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* The bullseye arrives on its own beat, as the sweep closes, and is home a
+   moment before the dart reaches it. Everything below fires at 1280ms,
+   which is where the flight's 86% frame puts the tip on the bullseye: the
+   last two frames of sp-dart are the recoil, after the hit. */
+.sp-dot {
+  animation: sp-dot 460ms cubic-bezier(0.2, 1.5, 0.35, 1) 740ms both,
+             sp-kick 320ms cubic-bezier(0.3, 1.5, 0.5, 1) 1280ms forwards;
+}
+@keyframes sp-dot {
+  from { opacity: 0; transform: scale(0.3); }
+  to   { opacity: 1; transform: none; }
+}
+/* The recoil the whole target takes when the dart goes in. Everything on a
+   delay here fills forwards, never both: a backwards fill would apply the
+   0% frame from the very start, which puts the flash and the rings on screen
+   before the impact and pins the ring and the dot at full size so their own
+   entrances never show. */
+@keyframes sp-kick {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* The dart flies in along its own axis, which is why it reads as thrown rather
+   than slid: tip to flights measures 0.628, -0.779, straight off
+   scripts/build-splash.cjs. It arrives a little oversized and a little soft, so
+   it reads as coming from behind the viewer and moving fast. */
+.sp-dart {
+  --fly: 96vmin;
+  animation: sp-dart 880ms cubic-bezier(0.32, 0.02, 0.16, 1) 520ms both;
+}
+@keyframes sp-dart {
+  0% {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translate(calc(var(--fly) * 0.628), calc(var(--fly) * -0.779))
+               scale(1.3) rotate(6deg);
+  }
+  14%  { opacity: 1; }
+  70%  { filter: blur(0); }
+  86%  { transform: none; filter: blur(0); }
+  93%  { transform: translate(calc(9px * 0.628), calc(9px * -0.779)); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* The impact, all of it centred on the bullseye rather than on the box: the
+   dot sits at 40% / 58.6% of the artwork. */
+.sp-flash {
+  position: absolute;
+  left: 40%;
+  top: 58.6%;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(245, 245, 240, 0.4), transparent 70%);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  animation: sp-flash 720ms cubic-bezier(0.2, 0.8, 0.3, 1) 1280ms forwards;
+}
+@keyframes sp-flash {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+.sp-ring {
+  position: absolute;
+  left: 40%;
+  top: 58.6%;
+  width: 26%;
+  aspect-ratio: 1;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+  animation: sp-ring 820ms cubic-bezier(0.16, 0.85, 0.3, 1) forwards;
+}
+.sp-ring.a { animation-delay: 1280ms; }
+.sp-ring.b { animation-delay: 1400ms; border-width: 1px; }
+@keyframes sp-ring {
+  0%   { opacity: 0.8; transform: translate(-50%, -50%) scale(0.32); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
+}
+
+/* Asked for less motion: the finished mark, held briefly, then the hand-off. */
+@media (prefers-reduced-motion: reduce) {
+  .sp-rings, .sp-dot, .sp-dart, .sp-flash, .sp-ring { animation: none; }
+  .sp-rings { --sweep: 360deg; }
+  .sp-flash, .sp-ring { opacity: 0; }
+  .splash-mark, .splash.out .splash-mark { transition: none; transform: none; }
+  .splash.out .splash-mark { opacity: 0; }
+}
