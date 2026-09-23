@@ -818,7 +818,11 @@ body:has(.login) { overflow: auto; }
   grid-template-columns: 196px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
-  max-width: min(1080px, 100%);
+  /* Capped, because a scoreboard stretched across a wide monitor reads
+     worse, but centred with it: left-aligned under a cap just looks like
+     the page failed to load the right-hand half. */
+  max-width: min(1280px, 100%);
+  margin-inline: auto;
 }
 /* min-width: 0 or the scrolling tab strip stretches its own grid column and
    the whole page picks up a horizontal scrollbar on a phone. */
