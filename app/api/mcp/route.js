@@ -1,6 +1,6 @@
 import { createMcpHandler, getPublicOrigin, withMcpAuth } from 'mcp-handler';
 import { storeFor } from '@/lib/db';
-import { registerTools } from '@/lib/mcp-tools';
+import { INSTRUCTIONS, registerTools } from '@/lib/mcp-tools';
 import { SCOPE, verifyAccessToken } from '@/lib/oauth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
@@ -15,7 +15,7 @@ async function handle(request) {
     const store = storeFor(supabaseAdmin(), auth.extra.userId);
     const handler = createMcpHandler(
       (server) => registerTools(server, store, origin),
-      { serverInfo: { name: 'job-tracker', version: '2.0.0' } },
+      { serverInfo: { name: 'job-tracker', version: '2.0.0' }, instructions: INSTRUCTIONS },
     );
     return handler(req);
   };

@@ -1,7 +1,7 @@
 import { createMcpHandler } from 'mcp-handler';
 import { userIdForConnector } from '@/lib/auth';
 import { storeFor } from '@/lib/db';
-import { registerTools } from '@/lib/mcp-tools';
+import { INSTRUCTIONS, registerTools } from '@/lib/mcp-tools';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ async function handle(request, { params }) {
   const store = storeFor(supabaseAdmin(), userId);
   const handler = createMcpHandler(
     (server) => registerTools(server, store, new URL(request.url).origin),
-    { serverInfo: { name: 'job-tracker', version: '2.0.0' } },
+    { serverInfo: { name: 'job-tracker', version: '2.0.0' }, instructions: INSTRUCTIONS },
   );
   return handler(request);
 }

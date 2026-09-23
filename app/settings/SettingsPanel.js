@@ -105,6 +105,14 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
             </>
           )}
 
+          <p className="settings-note">
+            It doesn't need a chat of its own. Paste a posting, say you're applying, and carry
+            on asking about your CV or the interview — the job gets saved as you go. It shows
+            you what it's about to save and waits for a yes, asks if the posting doesn't name
+            the employer, and leaves anything else the posting doesn't say blank rather than
+            guessing. Mention later that you heard back and it moves the status across.
+          </p>
+
           <h3 className="settings-sub">Connected apps</h3>
           {connections.length === 0 ? (
             <p className="settings-status">○ Nothing connected yet.</p>
