@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { storeFor } from '@/lib/db';
+import Landing from './Landing';
 import Sheet from './Sheet';
 import Splash from './Splash';
 
@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const user = await currentUserWithEmail();
-  if (!user) redirect('/sign-in');
+  // Signed out, this is the front door rather than a bounce to /sign-in: most
+  // people arriving here have never heard of the thing and need telling what
+  // it is before being asked for an email.
+  if (!user) return <Landing />;
   await ensureProfile(user.id, user.email);
 
   let rows = [];

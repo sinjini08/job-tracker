@@ -1657,3 +1657,90 @@ body:has(.legal) { overflow: auto; }
 .legal li { margin-bottom: 8px; }
 .legal a { color: var(--xl-green, #1d5c36); }
 .legal-foot { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--sand, #e8e8dc); font-size: 14px; }
+
+/* ---------- the landing page ---------- */
+/* The front door for anyone signed out. Same green as the opening, so arriving
+   here and then signing in feels like one place rather than two. */
+.land {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  background:
+    radial-gradient(105% 80% at 50% 38%, var(--green-mid), var(--xl-green) 52%, var(--xl-green-dark) 100%);
+}
+body:has(.land) { overflow: auto; }
+.land-inner { width: min(560px, 100%); text-align: center; color: #fff; }
+.land-mark { display: flex; justify-content: center; line-height: 0; }
+.land h1 {
+  margin: 18px 0 10px;
+  font-size: clamp(26px, 5vw, 36px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.land-sub {
+  margin: 0 auto 30px;
+  max-width: 44ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.land-doors { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.land-btn {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  padding: 12px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.land-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.7); }
+.land-btn.primary { background: #fff; color: var(--xl-green-dark); border-color: #fff; font-weight: 600; }
+.land-btn.primary:hover { background: var(--xl-green-tint); }
+.land-btn:disabled { opacity: 0.65; cursor: default; }
+
+.land-foot { margin: 22px 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.75); }
+.land-foot a { color: #fff; }
+
+/* the code form, and the box Clerk's waitlist component sits in */
+.land-panel { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.land-form {
+  width: min(360px, 100%);
+  margin: 0 auto;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 22px;
+}
+.land-form label { display: block; width: 100%; font-size: 13px; color: rgba(255, 255, 255, 0.85); }
+.land-form input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+.land-form input:focus { outline: 2px solid #fff; outline-offset: 1px; }
+.land-form .land-btn { width: 100%; }
+.land-error { margin: 0; font-size: 13px; color: #ffd7d2; }
+.land-back {
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px;
+}
+.land-back:hover { color: #fff; }
