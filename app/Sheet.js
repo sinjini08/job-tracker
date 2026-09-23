@@ -6,6 +6,7 @@ import Columns from './Columns';
 import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
+import Insights from './Insights';
 import Logo from './Logo';
 import SheetSetup from './SheetSetup';
 import Drawer from './Drawer';
@@ -15,8 +16,9 @@ import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/fo
 
 // The extra tabs. The sheet tabs in front of these come from the student's
 // own choice, so TABS is built at render time rather than being a constant.
-const EXTRA_TABS = ['Charts', 'League'];
+const EXTRA_TABS = ['Charts', 'Insights', 'League'];
 const CHARTS = 'Charts';
+const INSIGHTS = 'Insights';
 const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
 const MIN_COL_W = 48, MAX_COL_W = 640;
@@ -137,8 +139,12 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   }, [TABS, tab, sheetPrefs]);
 
   const isCharts = tab === CHARTS;
+  const isInsights = tab === INSIGHTS;
   const isLeague = tab === LEAGUE;
-  const isGrid = !isCharts && !isLeague;
+  const isGrid = !isCharts && !isInsights && !isLeague;
+  // Applications an insight is about, when someone asks to see them. Null the
+  // rest of the time, which is every other way of arriving at the grid.
+  const [focus, setFocus] = useState(null);
   const [custom, setCustom] = useState([]);
   const [hidden, setHidden] = useState({});
   const [pickingCols, setPickingCols] = useState(false);
@@ -258,14 +264,29 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   };
   const switchTab = (t) => {
     setTab(t);
+    setFocus(null);
     setSel({ r: 0, c: 0 });
     setEditing(null);
     try { localStorage.setItem('jt_tab', t); } catch {}
   };
 
+  // "Show these on the sheet": land on the sheet they live on, with only them
+  // in view. Any other move away clears it, so nobody is left looking at a
+  // filtered grid wondering where their rows went.
+  const showOnSheet = (ids) => {
+    const first = rows.find((r) => ids.includes(r.id));
+    const to = first && sheets.includes(first.type) ? first.type : sheets[0];
+    setTab(to);
+    setFocus(ids);
+    setSel({ r: 0, c: 0 });
+    setEditing(null);
+    try { localStorage.setItem('jt_tab', to); } catch {}
+  };
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = rows.filter((r) => r.type === tab);
+    if (focus) list = list.filter((r) => focus.includes(r.id));
     if (q) {
       list = list.filter((r) =>
         [r.role, r.company, r.location, r.notes, r.status, r.category, r.contact, r.source]
@@ -284,7 +305,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       }
     }
     return list;
-  }, [rows, tab, query, sort, cols]);
+  }, [rows, tab, focus, query, sort, cols]);
 
   const gridRowCount = Math.max(MIN_GRID_ROWS, visible.length + 10);
   const rowAt = (r) => visible[r] ?? null;
@@ -293,7 +314,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const busy = useRef(false);
   busy.current = Boolean(editing) || pending > 0;
   const onCharts = useRef(false);
-  onCharts.current = isCharts;
+  onCharts.current = isCharts || isInsights;
   const refresh = useCallback(async () => {
     if (busy.current || document.visibilityState !== 'visible') return;
     try {
@@ -309,8 +330,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   }, [apiBase]);
   // Load history the first time the Charts tab opens (the funnel needs it).
   useEffect(() => {
-    if (isCharts) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
-  }, [isCharts, apiBase]);
+    if (isCharts || isInsights) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
+  }, [isCharts, isInsights, apiBase]);
   useEffect(() => {
     const t = setInterval(refresh, POLL_MS);
     window.addEventListener('focus', refresh);
@@ -513,7 +534,13 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
           <Logo size={24} />Job Application Tracker
         </button>
         <div className="toolbar-mid">
-          {isGrid && <input
+          {isGrid && focus && (
+            <span className="focus-note">
+              Showing {focus.length} from Insights
+              <button type="button" className="tiny-btn" onClick={() => setFocus(null)}>Show all</button>
+            </span>
+          )}
+          {isGrid && !focus && <input
             className="search"
             type="search"
             placeholder="Search this sheet"
@@ -547,7 +574,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>
       </header>
 
-      {isCharts ? <Charts rows={rows} events={events} sheets={sheets} names={names} /> : isLeague ? <League /> : <>
+      {isCharts ? <Charts rows={rows} events={events} sheets={sheets} names={names} />
+        : isInsights ? <Insights rows={rows} events={events} onOpen={showOnSheet} />
+        : isLeague ? <League /> : <>
       <div className="formula-bar">
         <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
         <div className="fx" aria-hidden>fx</div>
@@ -650,7 +679,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               className={`tab ${tab === t ? 'active' : ''}`}
               onClick={() => switchTab(t)}
             >
-              {t === CHARTS || t === LEAGUE
+              {t === CHARTS || t === INSIGHTS || t === LEAGUE
                 ? t
                 : <>{sheetLabel(t, names)} <span className="tab-count">{tabCount(t)}</span></>}
             </button>

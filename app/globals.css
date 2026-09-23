@@ -2029,3 +2029,101 @@ body:has(.land) { overflow: auto; }
   border-color: transparent;
 }
 .sheet-row input[type="text"]:disabled { opacity: 0.55; }
+
+/* ---------------------------------------------------------------------------
+   Insights — what the numbers are telling you to do next.
+
+   A card is a number, a sentence and at most one button. The tone strip down
+   the left is the only colour: green when something is going well, amber when
+   it has a date on it, grey the rest of the time. Deliberately quiet, because
+   five loud cards is the same as none.
+   --------------------------------------------------------------------------- */
+.insights {
+  max-width: min(820px, 100%);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ins-head { margin-bottom: 4px; }
+.ins-head h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; color: var(--viz-ink); }
+.ins-head p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--viz-muted); }
+
+.ins-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 16px 18px;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  border-left: 3px solid var(--viz-grid);
+  border-radius: 10px;
+}
+.ins-card.urgent { border-left-color: #c79a2a; }
+.ins-card.nudge  { border-left-color: var(--ord-4); }
+.ins-card.win    { border-left-color: var(--xl-green); }
+
+.ins-side { text-align: right; padding-top: 2px; }
+.ins-num {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--viz-ink);
+}
+.ins-side small { display: block; margin-top: 2px; font-size: 11px; line-height: 1.35; color: var(--viz-muted); }
+
+.ins-body { min-width: 0; }
+.ins-tone {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--viz-muted);
+}
+.ins-body h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.35; color: var(--viz-ink); }
+.ins-body p { margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: var(--viz-ink-2); }
+.ins-body p:last-child { margin-bottom: 0; }
+
+.ins-empty {
+  padding: 22px 20px;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  border-radius: 10px;
+}
+.ins-empty b { display: block; margin-bottom: 6px; font-size: 15px; color: var(--viz-ink); }
+.ins-empty p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--viz-muted); }
+.ins-fine { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--viz-muted); }
+
+/* Says why the grid is short, in the slot the search box usually has. */
+.focus-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* One line, or it doubles the height of the app bar and shoves the brand
+     out of its own corner. */
+  white-space: nowrap;
+  flex: none;
+  padding: 5px 6px 5px 12px;
+  font-size: 13px;
+  color: var(--head-text);
+  background: var(--head-bg);
+  border: 1px solid var(--head-line);
+  border-radius: 999px;
+}
+
+/* One column on a phone: a 96px number column beside prose is most of the
+   width, and the number reads fine above the sentence it belongs to. */
+@media (max-width: 620px) {
+  .ins-card { grid-template-columns: 1fr; gap: 8px; }
+  .ins-side { text-align: left; }
+  /* Number and label on one line here, so a card costs one row of height
+     rather than two for the same two words. */
+  .ins-num { display: inline; font-size: 26px; }
+  .ins-side small { display: inline; margin-left: 6px; }
+}
