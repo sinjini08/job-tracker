@@ -506,6 +506,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .charts {
   overflow: auto;
+  /* Hold the scrollbar's space whether or not there is one, so a short
+     section and a long one put the content in the same place instead of
+     nudging it sideways as you move between them. */
+  scrollbar-gutter: stable;
   background: var(--viz-page);
   padding: 16px;
 }

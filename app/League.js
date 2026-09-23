@@ -189,54 +189,61 @@ export default function League() {
   }
 
   return (
-    <div className="charts viz-root league-root">
-      {party}
-      <nav className="league-rail" aria-label="League sections">
-        {leagues.length > 1 ? (
-          <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
-            aria-label="Which league">
-            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        ) : <div className="rail-title">{league?.name}</div>}
+    // Two elements on purpose. The outer one scrolls and fills the tab; the
+    // inner one is the capped, centred grid. They used to be the same element,
+    // which meant the centred box was also the scroller, so its width moved
+    // with its own content and every section of the league sat somewhere
+    // slightly different.
+    <div className="charts viz-root">
+      <div className="league-root">
+        {party}
+        <nav className="league-rail" aria-label="League sections">
+          {leagues.length > 1 ? (
+            <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
+              aria-label="Which league">
+              {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          ) : <div className="rail-title">{league?.name}</div>}
 
-        <ul className="rail-tabs">
-          {VIEWS.map((v) => (
-            <li key={v.id}>
-              <button className={`rail-tab ${view === v.id ? 'on' : ''}`} onClick={() => show(v.id)}
-                aria-current={view === v.id ? 'page' : undefined}>
-                {v.label}
-              </button>
-            </li>
-          ))}
-        </ul>
+          <ul className="rail-tabs">
+            {VIEWS.map((v) => (
+              <li key={v.id}>
+                <button className={`rail-tab ${view === v.id ? 'on' : ''}`} onClick={() => show(v.id)}
+                  aria-current={view === v.id ? 'page' : undefined}>
+                  {v.label}
+                </button>
+              </li>
+            ))}
+          </ul>
 
-        {league && <InviteCode league={league} />}
-      </nav>
+          {league && <InviteCode league={league} />}
+        </nav>
 
-      <div className="league-panel">
-        {err && <p className="league-err">{err}</p>}
-        {!ranked ? <p className="viz-note">Loading…</p> : (
-          <>
-            {view === 'today' && <TodayPanel rows={ranked} mine={mine} target={target} />}
-            {view === 'week' && (
-              <PeriodPanel rows={ranked} mine={mine} target={target} period="week"
-                history={history.filter((h) => h.period === 'week')} />
-            )}
-            {view === 'month' && (
-              <MonthPanel rows={ranked} mine={mine} target={target} me={me}
-                history={history.filter((h) => h.period === 'month')} />
-            )}
-            {view === 'mine' && <MyPointsPanel target={target} />}
-            {view === 'stats' && <StatsPanel rows={ranked} target={target} months={months} me={me} />}
-            {view === 'points' && <PointsPanel values={values} target={target} />}
-            {view === 'settings' && (
-              <SettingsPanel league={league} leagues={leagues} profile={profile} rows={ranked}
-                busy={busy} onSwitch={setActive} onProfile={saveProfile} onRename={rename}
-                onTarget={setTarget} onRemove={removeMember} onLeave={() => leave(league)}
-                onCreate={create} onJoin={join} />
-            )}
-          </>
-        )}
+        <div className="league-panel">
+          {err && <p className="league-err">{err}</p>}
+          {!ranked ? <p className="viz-note">Loading…</p> : (
+            <>
+              {view === 'today' && <TodayPanel rows={ranked} mine={mine} target={target} />}
+              {view === 'week' && (
+                <PeriodPanel rows={ranked} mine={mine} target={target} period="week"
+                  history={history.filter((h) => h.period === 'week')} />
+              )}
+              {view === 'month' && (
+                <MonthPanel rows={ranked} mine={mine} target={target} me={me}
+                  history={history.filter((h) => h.period === 'month')} />
+              )}
+              {view === 'mine' && <MyPointsPanel target={target} />}
+              {view === 'stats' && <StatsPanel rows={ranked} target={target} months={months} me={me} />}
+              {view === 'points' && <PointsPanel values={values} target={target} />}
+              {view === 'settings' && (
+                <SettingsPanel league={league} leagues={leagues} profile={profile} rows={ranked}
+                  busy={busy} onSwitch={setActive} onProfile={saveProfile} onRename={rename}
+                  onTarget={setTarget} onRemove={removeMember} onLeave={() => leave(league)}
+                  onCreate={create} onJoin={join} />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
