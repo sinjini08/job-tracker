@@ -105,25 +105,36 @@ function SheetSettings() {
               value={draft.names[key] ?? ''} placeholder="Call it something else"
               aria-label={`What to call the ${SHEET_DEFAULTS[key].name} sheet`}
               onChange={(e) => rename(key, e.target.value)} />
+            {/* The third cell. A built-in has nothing to put in it, but the
+                grid still needs it: see .sheet-row in globals.css. */}
+            <span aria-hidden />
           </div>
         ))}
 
-        {mine.map((key) => (
-          <div className="sheet-row own" key={key}>
-            <span className="sheet-keep">
-              <span>
-                <b>A sheet of your own</b>
-                <small>Same columns to start with. Add or hide them from the Columns button.</small>
+        {mine.map((key) => {
+          const name = draft.names[key]?.trim();
+          return (
+            <div className="sheet-row own" key={key}>
+              <span className="sheet-keep">
+                <span>
+                  {/* Once it has a name it goes by that name, the way the
+                      built-ins do. The box beside it keeps the name rather
+                      than a ghost of it, because there is no default to fall
+                      back to: empty it and the sheet has nothing to be called. */}
+                  <b>{name || 'A sheet of your own'}</b>
+                  <em className="sheet-badge">Custom</em>
+                  <small>Same columns to start with. Add or hide them from the Columns button.</small>
+                </span>
               </span>
-            </span>
-            <input type="text" maxLength={30} disabled={busy} autoFocus={!draft.names[key]}
-              value={draft.names[key] ?? ''} placeholder="Internships, Grad schemes, Dream jobs"
-              aria-label="What to call this sheet"
-              onChange={(e) => rename(key, e.target.value)} />
-            <button className="tiny-btn" type="button" disabled={busy}
-              onClick={() => removeSheet(key)}>Remove</button>
-          </div>
-        ))}
+              <input type="text" maxLength={30} disabled={busy} autoFocus={!name}
+                value={draft.names[key] ?? ''} placeholder="Internships, Grad schemes, Dream jobs"
+                aria-label={name ? `What to call the ${name} sheet` : 'What to call this sheet'}
+                onChange={(e) => rename(key, e.target.value)} />
+              <button className="tiny-btn" type="button" disabled={busy}
+                onClick={() => removeSheet(key)}>Remove</button>
+            </div>
+          );
+        })}
       </div>
 
       <button className="btn ghost sheet-add" type="button" disabled={busy} onClick={addSheet}>

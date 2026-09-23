@@ -1900,23 +1900,35 @@ body:has(.land) { overflow: auto; }
 .setup-err { margin: 14px 0 0; font-size: 13px; color: var(--due); }
 
 /* ---------- renaming your sheets, in Settings ---------- */
-.sheet-rows { display: flex; flex-direction: column; gap: 10px; margin: 0 0 6px; }
-.sheet-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-/* Two halves that hold their own width, so the name of a sheet and the box you
-   rename it in line up down the card instead of shuffling with the text. */
-.sheet-row { align-items: start; }
+/* One grid for the whole list, not a grid per row: a row of its own would
+   size its columns to its own contents, so a built-in with nothing in the
+   third column stretched its box past the one under it that shares the row
+   with a Remove button. `display: contents` makes every cell a child of the
+   one grid, which is what lines the edges up. Each row therefore has to
+   contribute exactly three cells, including the empty one. */
+.sheet-rows {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) auto;
+  gap: 10px 12px;
+  align-items: start;
+  margin: 0 0 6px;
+}
+.sheet-row { display: contents; }
 .sheet-keep {
   display: flex;
   align-items: start;
   gap: 8px;
-  flex: 0 0 250px;
-  max-width: 100%;
+  min-width: 0;
   font-size: 14px;
   color: var(--ink);
   padding-top: 2px;
 }
-.sheet-keep input[type="checkbox"] { margin: 3px 0 0; flex: none; }
-.sheet-keep b { display: block; font-weight: 600; }
+/* Named, because the row below has to reserve exactly this much. */
+.sheet-rows { --check-w: 13px; }
+.sheet-keep input[type="checkbox"] { width: var(--check-w); height: var(--check-w); margin: 3px 0 0; flex: none; }
+/* Inline, so the badge sits beside the name rather than under it. The hint
+   below is a block and breaks the line on its own. */
+.sheet-keep b { font-weight: 600; }
 .sheet-keep small {
   display: block;
   margin-top: 2px;
@@ -1924,11 +1936,36 @@ body:has(.land) { overflow: auto; }
   line-height: 1.45;
   color: var(--muted);
 }
-/* A sheet you made has no checkbox, so its text keeps the space one would
-   have taken and stays in line with the built-ins above it. */
-.sheet-row.own .sheet-keep { padding-left: 24px; }
+/* A sheet you made has no checkbox, so its text keeps exactly the space one
+   would have taken and stays in line with the built-ins above it: the box
+   itself, plus the gap the rule above sets. */
+.sheet-row.own .sheet-keep { padding-left: calc(var(--check-w) + 8px); }
+.sheet-badge {
+  display: inline-block;
+  margin: 0 0 0 6px;
+  vertical-align: 1px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--xl-green-tint);
+  border-radius: 999px;
+}
 .sheet-row.off .sheet-keep { opacity: 0.55; }
 .sheet-add { align-self: start; margin: 2px 0 10px; }
+
+/* Three columns need room the card doesn't have on a phone: the name column
+   is a fixed 250 and what's left squeezed the box down to a sliver and pushed
+   Remove off the edge. Narrow, each sheet is a block of its own instead. */
+@media (max-width: 640px) {
+  .sheet-rows { display: flex; flex-direction: column; gap: 16px; }
+  .sheet-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sheet-keep { flex: 1 1 100%; }
+  .sheet-row input[type="text"] { flex: 1 1 180px; }
+}
 /* Page tokens, not the chart ones. --viz-ring and --viz-surface are defined
    inside .viz-root and Settings is not in one, so a border painted with them
    computed to none and the box people were meant to type a name into was
