@@ -831,11 +831,11 @@ body:has(.login) { overflow: auto; }
 /* min-width: 0 or the scrolling tab strip stretches its own grid column and
    the whole page picks up a horizontal scrollbar on a phone. */
 .league-rail { position: sticky; top: 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.rail-title { font-size: 15px; font-weight: 700; color: var(--viz-ink); padding: 0 10px; }
 .rail-league {
+  width: 100%;
   font: inherit;
   font-weight: 600;
-  padding: 6px 8px;
+  padding: 7px 8px;
   border: 1px solid var(--viz-ring);
   border-radius: 6px;
   background: var(--viz-surface);
@@ -1216,22 +1216,34 @@ body:has(.login) { overflow: auto; }
 }
 
 /* avatar picker */
-.avatar-pick { display: flex; align-items: flex-start; gap: 16px; }
+/* The picker was cramped: a 64px face hard against a grid of 48px circles
+   six pixels apart, with the two groups almost touching. Everything here is
+   about giving the faces room to read as faces. */
+.avatar-pick { display: flex; align-items: flex-start; gap: 28px; }
+.avatar-now {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-ring);
+  border-radius: 14px;
+}
 /* flex:1 gives auto-fill a width to divide up; min-width:0 alone lets it
    collapse to one column. */
-.avatar-groups { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 0; }
+.avatar-groups { display: flex; flex-direction: column; gap: 22px; flex: 1; min-width: 0; }
 .avatar-group-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--viz-muted);
 }
-.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, 48px); gap: 6px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: 10px 8px; }
 .avatar-opt {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   border: 2px solid transparent;
@@ -1768,24 +1780,36 @@ body:has(.land) { overflow: auto; }
 .bd-items em { font-style: normal; color: var(--viz-muted); }
 .bd-pts { font-variant-numeric: tabular-nums; color: var(--viz-muted); }
 
-/* ---------- the unsaved changes bar ---------- */
-/* Sticks to the bottom of the settings panel so it is reachable without
-   scrolling back down past the avatar grid. */
-.edit-bar {
-  position: sticky;
-  bottom: 12px;
+/* ---------- saving one field at a time ---------- */
+/* Cancel and Save sit beside whatever changed. A single bar at the bottom of
+   the panel meant confirming an avatar click by scrolling past thirty faces
+   to find it. */
+.field-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.field-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+.field-inline { display: flex; align-items: center; gap: 8px; }
+.field-inline input { flex: 1 1 auto; min-width: 0; }
+.tiny-btn {
+  border: 1px solid var(--viz-ring);
+  background: var(--viz-surface);
+  color: var(--viz-ink-2);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tiny-btn:hover { background: #eeeee6; }
+.tiny-btn.primary { background: var(--xl-green); border-color: var(--xl-green); color: #fff; font-weight: 600; }
+.tiny-btn.primary:hover { background: var(--xl-green-dark); }
+.tiny-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* ---------- who you are, at the top of the rail ---------- */
+.rail-me {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-  padding: 10px 14px;
-  background: var(--viz-surface);
-  border: 1px solid rgba(31, 157, 85, 0.45);
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(11, 11, 11, 0.1);
-  font-size: 13px;
-  color: var(--viz-ink-2);
+  gap: 10px;
+  padding: 2px 10px 10px;
+  min-width: 0;
 }
-.edit-bar-btns { display: flex; gap: 8px; }
+.rail-me b { font-size: 14px; color: var(--viz-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

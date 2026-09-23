@@ -198,12 +198,21 @@ export default function League() {
       <div className="league-root">
         {party}
         <nav className="league-rail" aria-label="League sections">
-          {leagues.length > 1 ? (
-            <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
-              aria-label="Which league">
-              {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          ) : <div className="rail-title">{league?.name}</div>}
+          {/* Who you are on the board, so the avatar you picked is visible
+              without opening Settings to look at it. */}
+          <div className="rail-me">
+            <Avatar name={mine?.display_name ?? profile?.display_name}
+              avatar={profile?.avatar} size={34} />
+            <b>{mine?.display_name ?? profile?.display_name ?? 'You'}</b>
+          </div>
+
+          {/* Always a picker, even with one league. A lone name looked like a
+              heading, so there was nothing to say another league could go
+              there. */}
+          <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
+            aria-label="Which league">
+            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
 
           <ul className="rail-tabs">
             {VIEWS.map((v) => (
@@ -886,6 +895,10 @@ function TargetInput({ league, onSave, busy }) {
 // immediately and the name wrote on blur, so you could change how you appear
 // to your friends by clicking near something, and there was no way back short
 // of remembering what it used to be.
+// Each field saves on its own, with Cancel and Save appearing beside the
+// thing that changed rather than in a bar at the bottom of the panel. The
+// avatar grid is tall, so a single bar underneath it meant scrolling past
+// thirty faces to confirm a click you had just made.
 function Settings({ profile, onSave, busy }) {
   const saved = {
     display_name: profile.display_name ?? '',
@@ -894,6 +907,7 @@ function Settings({ profile, onSave, busy }) {
   };
   const [draft, setDraft] = useState(saved);
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
+  const revert = (key) => set({ [key]: saved[key] });
 
   // Follow the saved profile when it changes under us, which it does after a
   // save lands and if another tab edits it.
@@ -905,16 +919,19 @@ function Settings({ profile, onSave, busy }) {
     });
   }, [profile.display_name, profile.avatar, profile.leaderboard_detail]);
 
-  const dirty = draft.display_name !== saved.display_name
-    || draft.avatar !== saved.avatar
-    || draft.leaderboard_detail !== saved.leaderboard_detail;
+  const actions = (key) => (
+    <FieldActions dirty={draft[key] !== saved[key]} busy={busy}
+      onCancel={() => revert(key)} onSave={() => onSave({ [key]: draft[key] })} />
+  );
 
   return (
     <div className="league-settings">
       <div className="field">
-        <span>Your avatar</span>
+        <span className="field-head">Your avatar {actions('avatar')}</span>
         <div className="avatar-pick">
-          <Avatar name={draft.display_name} avatar={draft.avatar} size={64} />
+          <div className="avatar-now">
+            <Avatar name={draft.display_name} avatar={draft.avatar} size={76} />
+          </div>
           <div className="avatar-groups">
             {AVATAR_GROUPS.map((group) => (
               <div key={group.label}>
@@ -938,14 +955,17 @@ function Settings({ profile, onSave, busy }) {
         </small>
       </div>
 
-      <label className="field">
-        <span>Name on the board</span>
-        <input value={draft.display_name} maxLength={40}
-          onChange={(e) => set({ display_name: e.target.value })} />
-      </label>
+      <div className="field">
+        <label className="field-head" htmlFor="board-name">Name on the board</label>
+        <div className="field-inline">
+          <input id="board-name" value={draft.display_name} maxLength={40}
+            onChange={(e) => set({ display_name: e.target.value })} />
+          {actions('display_name')}
+        </div>
+      </div>
 
       <fieldset className="field detail">
-        <span>What friends see</span>
+        <span className="field-head">What friends see {actions('leaderboard_detail')}</span>
         {[
           ['counts', 'Points and how you got them',
             'Friends see your points, streak and days won, plus how many jobs you applied to, how many interviews you reached and how many offers you got. Your points for each day are drawn as a line on the monthly chart.'],
@@ -961,19 +981,19 @@ function Settings({ profile, onSave, busy }) {
         ))}
       </fieldset>
       <p className="league-fine">Your job titles, companies, pay and notes are never shared, either way.</p>
-
-      {dirty && (
-        <div className="edit-bar" role="status">
-          <span>You have unsaved changes.</span>
-          <span className="edit-bar-btns">
-            <button type="button" className="btn" disabled={busy}
-              onClick={() => setDraft(saved)}>Cancel</button>
-            <button type="button" className="btn primary" disabled={busy}
-              onClick={() => onSave(draft)}>{busy ? 'Saving…' : 'Save'}</button>
-          </span>
-        </div>
-      )}
     </div>
+  );
+}
+
+function FieldActions({ dirty, busy, onCancel, onSave }) {
+  if (!dirty) return null;
+  return (
+    <span className="field-actions">
+      <button type="button" className="tiny-btn" disabled={busy} onClick={onCancel}>Cancel</button>
+      <button type="button" className="tiny-btn primary" disabled={busy} onClick={onSave}>
+        {busy ? 'Saving…' : 'Save'}
+      </button>
+    </span>
   );
 }
 
