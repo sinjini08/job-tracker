@@ -91,7 +91,7 @@ export default function PrivacyPage() {
 
       <h2>Questions</h2>
       <p>
-        Email <a href="mailto:sinjini.bx@gmail.com">sinjini.bx@gmail.com</a>.
+        Email <a href="mailto:easy.jobtracker@gmail.com">easy.jobtracker@gmail.com</a>.
       </p>
 
       <p className="legal-foot"><Link href="/">Back to the tracker</Link></p>
