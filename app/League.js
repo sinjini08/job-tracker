@@ -25,6 +25,7 @@ const VIEWS = [
   { id: 'today', label: 'Today' },
   { id: 'week', label: 'This week' },
   { id: 'month', label: 'This month' },
+  { id: 'mine', label: 'Your points' },
   { id: 'stats', label: 'Stats' },
   { id: 'points', label: 'How points work' },
   { id: 'settings', label: 'Settings' },
@@ -225,6 +226,7 @@ export default function League() {
               <MonthPanel rows={ranked} mine={mine} target={target} me={me}
                 history={history.filter((h) => h.period === 'month')} />
             )}
+            {view === 'mine' && <MyPointsPanel target={target} />}
             {view === 'stats' && <StatsPanel rows={ranked} target={target} months={months} me={me} />}
             {view === 'points' && <PointsPanel values={values} target={target} />}
             {view === 'settings' && (
@@ -619,6 +621,73 @@ const growBar = (pct, rank) => ({ width: `${pct}%`, '--w': `${pct}%`, '--i': ran
 const cell = (v) => (v == null ? <span className="hidden-cell" title="This member shows points only">·</span> : v);
 
 // ---------------------------------------------------------------------------
+// Your points, and what they were made of. Yours alone: the points table
+// carries an owner-only read policy, so the database will not return a league
+// mate's rows to this request no matter what it asks for. Nobody sees the
+// shape of anybody else's day here, only their total on the board.
+
+function MyPointsPanel({ target }) {
+  const [daily, setDaily] = useState(null);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    api('/api/points/breakdown?days=30')
+      .then((d) => live && setDaily(d.daily ?? []))
+      .catch((e) => live && setErr(e.message));
+    return () => { live = false; };
+  }, []);
+
+  if (err) return <p className="league-err">{err}</p>;
+  if (!daily) return <p className="muted">Adding it up…</p>;
+
+  return (
+    <>
+      <h3 className="panel-h">Your points, day by day</h3>
+      {daily.length === 0 ? (
+        <p className="muted">
+          Nothing in the last 30 days. Log an application and it shows up here with
+          the points it earned.
+        </p>
+      ) : (
+        <ul className="breakdown">
+          {daily.map((d) => (
+            <li key={d.day} className={d.total >= target ? 'won' : ''}>
+              <div className="bd-head">
+                <b>{longDate(d.day)}</b>
+                <span className="bd-total">
+                  {d.total} {d.total === 1 ? 'point' : 'points'}
+                  {d.total >= target && <span className="bd-won">day won</span>}
+                </span>
+              </div>
+              <ul className="bd-items">
+                {d.items.map((it) => (
+                  <li key={it.milestone}>
+                    <span>{it.label}{it.count > 1 && <em> x{it.count}</em>}</span>
+                    <span className="bd-pts">+{it.points}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="league-fine">
+        A day counts from the date you applied, not the day you typed it in, so
+        filling in last week's applications adds to last week.
+      </p>
+    </>
+  );
+}
+
+const longDate = (iso) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  const today = new Date().toISOString().slice(0, 10);
+  if (iso === today) return 'Today';
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+};
+
+// ---------------------------------------------------------------------------
 
 function PointsPanel({ values, target }) {
   return (
@@ -796,14 +865,39 @@ function TargetInput({ league, onSave, busy }) {
   );
 }
 
+// Nothing here saves until you say so. Picking an avatar used to write
+// immediately and the name wrote on blur, so you could change how you appear
+// to your friends by clicking near something, and there was no way back short
+// of remembering what it used to be.
 function Settings({ profile, onSave, busy }) {
-  const [name, setName] = useState(profile.display_name ?? '');
+  const saved = {
+    display_name: profile.display_name ?? '',
+    avatar: profile.avatar ?? null,
+    leaderboard_detail: profile.leaderboard_detail,
+  };
+  const [draft, setDraft] = useState(saved);
+  const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
+
+  // Follow the saved profile when it changes under us, which it does after a
+  // save lands and if another tab edits it.
+  useEffect(() => {
+    setDraft({
+      display_name: profile.display_name ?? '',
+      avatar: profile.avatar ?? null,
+      leaderboard_detail: profile.leaderboard_detail,
+    });
+  }, [profile.display_name, profile.avatar, profile.leaderboard_detail]);
+
+  const dirty = draft.display_name !== saved.display_name
+    || draft.avatar !== saved.avatar
+    || draft.leaderboard_detail !== saved.leaderboard_detail;
+
   return (
     <div className="league-settings">
       <div className="field">
         <span>Your avatar</span>
         <div className="avatar-pick">
-          <Avatar name={profile.display_name} avatar={profile.avatar} size={64} />
+          <Avatar name={draft.display_name} avatar={draft.avatar} size={64} />
           <div className="avatar-groups">
             {AVATAR_GROUPS.map((group) => (
               <div key={group.label}>
@@ -811,10 +905,10 @@ function Settings({ profile, onSave, busy }) {
                 <div className="avatar-grid">
                   {group.keys.map((a, i) => (
                     <button key={a} type="button" disabled={busy}
-                      className={`avatar-opt ${profile.avatar === a ? 'on' : ''}`}
-                      aria-pressed={profile.avatar === a} title={`${group.label} ${i + 1}`}
-                      onClick={() => onSave({ avatar: profile.avatar === a ? null : a })}>
-                      <Avatar name={profile.display_name} avatar={a} size={44} />
+                      className={`avatar-opt ${draft.avatar === a ? 'on' : ''}`}
+                      aria-pressed={draft.avatar === a} title={`${group.label} ${i + 1}`}
+                      onClick={() => set({ avatar: draft.avatar === a ? null : a })}>
+                      <Avatar name={draft.display_name} avatar={a} size={44} />
                     </button>
                   ))}
                 </div>
@@ -829,8 +923,8 @@ function Settings({ profile, onSave, busy }) {
 
       <label className="field">
         <span>Name on the board</span>
-        <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
-          onBlur={() => name !== (profile.display_name ?? '') && onSave({ display_name: name })} />
+        <input value={draft.display_name} maxLength={40}
+          onChange={(e) => set({ display_name: e.target.value })} />
       </label>
 
       <fieldset className="field detail">
@@ -843,13 +937,25 @@ function Settings({ profile, onSave, busy }) {
         ].map(([id, label, hint]) => (
           <label key={id} className="radio">
             <input type="radio" name="detail" value={id} disabled={busy}
-              checked={profile.leaderboard_detail === id}
-              onChange={() => onSave({ leaderboard_detail: id })} />
+              checked={draft.leaderboard_detail === id}
+              onChange={() => set({ leaderboard_detail: id })} />
             <span><b>{label}</b><small>{hint}</small></span>
           </label>
         ))}
       </fieldset>
       <p className="league-fine">Your job titles, companies, pay and notes are never shared, either way.</p>
+
+      {dirty && (
+        <div className="edit-bar" role="status">
+          <span>You have unsaved changes.</span>
+          <span className="edit-bar-btns">
+            <button type="button" className="btn" disabled={busy}
+              onClick={() => setDraft(saved)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={busy}
+              onClick={() => onSave(draft)}>{busy ? 'Saving…' : 'Save'}</button>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
