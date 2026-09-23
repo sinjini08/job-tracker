@@ -24,8 +24,8 @@ export default function PrivacyPage() {
 
       <p className="legal-lede">
         This is a job application tracker for students. It holds your job search, which is
-        sensitive — who you have applied to, what you were offered, what you were turned down
-        for. Here is exactly what it keeps and who can see it.
+        sensitive information: who you have applied to, what you were offered, what you were
+        turned down for. Here is exactly what it keeps and who can see it.
       </p>
 
       <h2>What is stored</h2>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
       <ul>
         <li><b>A league.</b> If you join one, the other members see your display name, your chosen
           avatar, your points, your streak and the days you won. They never see a company, a role,
-          pay, a link or a note — those are not in the leaderboard data at all. You can set your
+          pay, a link or a note. Those are not in the leaderboard data at all. You can set your
           league profile to show points only, and you can leave a league whenever you like.</li>
         <li><b>A share link.</b> Only if you create one. It is read-only and you can revoke it.</li>
         <li><b>An assistant.</b> If you connect Claude or ChatGPT, it can read and write your
@@ -78,15 +78,15 @@ export default function PrivacyPage() {
       <h2>Cookies</h2>
       <p>
         A session cookie from Clerk keeps you signed in. Your browser also remembers a few
-        small preferences locally — which sheet you had open, which league you were looking at,
-        how tall you like the rows. Those never leave your device.
+        small preferences locally: which sheet you had open, which league you were looking at,
+        and how tall you like the rows. Those never leave your device.
       </p>
 
       <h2>Getting rid of it</h2>
       <p>
         You can edit or delete any row at any time. Deleting your account removes your
-        applications, history, points and league memberships along with it — the database is set
-        up to cascade, so nothing is left orphaned.
+        applications, history, points and league memberships along with it. The database is set
+        up to cascade, so nothing is left behind.
       </p>
 
       <h2>Questions</h2>
