@@ -831,22 +831,57 @@ body:has(.login) { overflow: auto; }
 /* min-width: 0 or the scrolling tab strip stretches its own grid column and
    the whole page picks up a horizontal scrollbar on a phone. */
 /* Every block spans the rail and every piece of content sits 10px in, so
-   the name, the picker and the tabs share one left edge instead of three.
-   A tight 10px carries the name into the picker and the picker into the
-   tabs, so the top of the rail reads as one run rather than three islands.
-   The invite card gets a bigger break of its own below, because it is a
-   different kind of thing. */
+   the name and the tabs share one left edge instead of two. A tight 10px
+   carries the name into the tabs, so the top of the rail reads as one run
+   rather than two islands. The invite card gets a bigger break of its own
+   below, because it is a different kind of thing. */
 .league-rail { position: sticky; top: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.rail-league {
-  width: 100%;
-  font: inherit;
-  font-weight: 600;
-  padding: 8px 10px;
-  border: 1px solid var(--viz-ring);
+/* The league picker heads its own panel. Styled as the title it is: no box,
+   just the name and a chevron to say it can change. The select itself is the
+   invisible layer on top, so the menu, the keyboard and the focus ring are
+   all the browser's own. */
+.league-pick {
+  position: relative;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 0 0 6px;
+  padding: 2px 4px 2px 0;
   border-radius: 6px;
-  background: var(--viz-surface);
-  color: var(--viz-ink);
 }
+.league-pick b {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--viz-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.league-pick svg {
+  flex: none;
+  width: 10px;
+  height: 6px;
+  fill: none;
+  stroke: var(--viz-muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.league-pick select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.league-pick:hover b { color: var(--xl-green-dark); }
+.league-pick:hover svg { stroke: var(--xl-green-dark); }
+.league-pick:focus-within { outline: 2px solid var(--xl-green); outline-offset: 2px; }
 .rail-tabs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 .rail-tab {
   width: 100%;
@@ -890,6 +925,9 @@ body:has(.login) { overflow: auto; }
   color: var(--viz-muted);
 }
 .league-panel > .panel-h:first-child { margin-top: 0; }
+/* The league name already opens the panel, so the section heading under it
+   does not need a full break as well. */
+.league-panel > .league-pick + .panel-h { margin-top: 8px; }
 
 /* today's hero */
 .hero {

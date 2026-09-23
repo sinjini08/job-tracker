@@ -206,14 +206,6 @@ export default function League() {
             <b>{mine?.display_name ?? profile?.display_name ?? 'You'}</b>
           </div>
 
-          {/* Always a picker, even with one league. A lone name looked like a
-              heading, so there was nothing to say another league could go
-              there. */}
-          <select className="rail-league" value={active ?? ''} onChange={(e) => setActive(e.target.value)}
-            aria-label="Which league">
-            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-
           <ul className="rail-tabs">
             {VIEWS.map((v) => (
               <li key={v.id}>
@@ -229,6 +221,24 @@ export default function League() {
         </nav>
 
         <div className="league-panel">
+          {/* The league you are looking at heads the panel it belongs to,
+              rather than sitting in the rail away from its own content. Still
+              a picker even with one league, so there is somewhere obvious for
+              a second one to appear. */}
+          {/* A bare <select> sizes itself to its widest option, which parks the
+              chevron somewhere out past the end of a short name. So the name
+              is drawn as text and the real select lies invisibly on top of it,
+              which keeps the keyboard and the native menu and still measures
+              to the name actually showing. */}
+          <div className="league-pick">
+            <b>{league?.name}</b>
+            <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+            <select value={active ?? ''} onChange={(e) => setActive(e.target.value)}
+              aria-label="Which league">
+              {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
           {err && <p className="league-err">{err}</p>}
           {!ranked ? <p className="viz-note">Loading…</p> : (
             <>
