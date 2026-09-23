@@ -46,18 +46,25 @@ export async function POST(request) {
   }
 
   try {
-    const invitation = await (await clerkClient()).invitations.createInvitation({
+    const clerk = await clerkClient();
+
+    // Ask first, rather than inviting and hoping Clerk objects. It does not:
+    // createInvitation happily returns a ticket for an address that already
+    // has an account, so the "you already have one" case has to be caught
+    // here or people who are already members get handed a sign-up link.
+    const existing = await clerk.users.getUserList({ emailAddress: [email], limit: 1 });
+    if ((existing?.totalCount ?? existing?.data?.length ?? 0) > 0) {
+      return bad('You already have an account. Sign in instead.', 409);
+    }
+
+    const invitation = await clerk.invitations.createInvitation({
       emailAddress: email,
       notify: false,
       ignoreExisting: true,
       redirectUrl: `${getPublicOrigin(request)}/sign-up`,
     });
     return NextResponse.json({ url: invitation.url });
-  } catch (e) {
-    // The common one: they already have an account, so there is nothing to
-    // invite them to. Say so rather than showing them a raw Clerk error.
-    const already = JSON.stringify(e?.errors ?? e?.message ?? '').includes('already');
-    if (already) return bad('You already have an account. Sign in instead.', 409);
+  } catch {
     return bad('Could not create your invite. Try again in a moment.', 502);
   }
 }
