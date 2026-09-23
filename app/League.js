@@ -741,6 +741,12 @@ function PointsPanel({ values, target }) {
             stops anyone stuffing the board and then tidying up after themselves.</li>
           <li><b>A row scores only once it names a role and a company</b>, and the same job logged
             twice scores once.</li>
+          <li><b>Applications from before you joined are recorded, but do not score.</b> They still
+            sit in your sheet and your charts, which is where your real history belongs. Moving one
+            forward does score, because that part happened while you were here.</li>
+          <li><b>A stage counts on the day you record it.</b> Applying keeps the date you applied,
+            so filling in last week's applications adds to last week, but reaching a screening or
+            an interview lands on today.</li>
           <li><b>Points are yours either way.</b> Everything in the first list above scores from
             the moment you log it, league or no league, and you can see your own run of them on
             the Charts tab. A league adds who you are measured against, and the two bonuses.</li>
