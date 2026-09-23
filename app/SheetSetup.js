@@ -12,11 +12,11 @@ import { SHEET_KEYS } from '@/lib/fields';
 
 const CHOICES = [
   { id: 'both', keys: SHEET_KEYS, title: 'Both',
-    hint: 'A sheet for campus jobs and a sheet for everything else. Pick this if you are at university and also applying outside it.' },
+    hint: 'A sheet for campus jobs and a sheet for everything else. Pick this if you are enrolled at a university and also applying outside it.' },
   { id: 'off', keys: ['Off-Campus'], title: 'Just job applications',
     hint: 'One sheet for everything you apply to. The usual choice if you are not working on campus.' },
   { id: 'on', keys: ['On-Campus'], title: 'Just campus jobs',
-    hint: 'One sheet, for roles with your university itself.' },
+    hint: 'One sheet, for roles with your university itself. Only if you are enrolled somewhere.' },
 ];
 
 export default function SheetSetup({ onChoose }) {
@@ -39,7 +39,7 @@ export default function SheetSetup({ onChoose }) {
       <div className="setup-card">
         <h1 id="setup-title">How do you want your sheets?</h1>
         <p className="setup-sub">
-          You can rename these later, or turn the other one on, in Settings.
+          You can rename these later, turn the other one on, or add sheets of your own, all in Settings.
         </p>
         <div className="setup-choices">
           {CHOICES.map((c) => (

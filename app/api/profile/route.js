@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
 import { isAvatar } from '@/lib/avatars';
-import { SHEET_KEYS } from '@/lib/fields';
+import { normalizeSheetPrefs } from '@/lib/fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,24 +49,17 @@ export async function PATCH(request) {
     }
     patch.hidden_columns = out;
   }
-  if ('sheets_enabled' in body) {
-    // Only the two known values, and never an empty list: a student with no
-    // sheets at all would have nowhere to type.
-    const kept = SHEET_KEYS.filter((k) => Array.isArray(body.sheets_enabled) && body.sheets_enabled.includes(k));
-    patch.sheets_enabled = kept.length ? kept : SHEET_KEYS;
+  // Which sheets they keep and what they are called are worked out together,
+  // in lib/fields so the rule has one home and can be tested on its own.
+  if ('sheets_enabled' in body || 'sheet_names' in body) {
+    const { enabled, names } = normalizeSheetPrefs(
+      'sheets_enabled' in body ? body.sheets_enabled : undefined,
+      body.sheet_names,
+    );
+    if (enabled) patch.sheets_enabled = enabled;
+    if ('sheet_names' in body) patch.sheet_names = names;
   }
-  if ('sheet_names' in body) {
-    // A label per sheet key. A blank name clears back to the built-in one.
-    const raw = body.sheet_names;
-    const out = {};
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      for (const key of SHEET_KEYS) {
-        const name = String(raw[key] ?? '').trim().slice(0, 30);
-        if (name && name !== key) out[key] = name;
-      }
-    }
-    patch.sheet_names = out;
-  }
+
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nothing to change' }, { status: 400 });
 
   const { data, error } = await user.sb.from('profiles')

@@ -18,8 +18,11 @@ async function handle(request, { params }) {
     );
   }
   const store = storeFor(supabaseAdmin(), userId);
+  // Read once per connection: the tools name the student's own sheets, so the
+  // schema has to know them before it is built.
+  const sheets = await store.sheets().catch(() => null);
   const handler = createMcpHandler(
-    (server) => registerTools(server, store, new URL(request.url).origin),
+    (server) => registerTools(server, store, new URL(request.url).origin, sheets),
     { serverInfo: { name: 'job-tracker', version: '2.0.0' }, instructions: INSTRUCTIONS },
   );
   return handler(request);

@@ -45,7 +45,7 @@ export default function Columns({ sheet, all, custom, hidden, sheets = SHEET_KEY
         <div className="drawer-head">
           <div>
             <div className="drawer-title">Columns</div>
-            <div className="drawer-sub">{shown} of {all.length} showing on {sheet}</div>
+            <div className="drawer-sub">{shown} of {all.length} showing on {sheetLabel(sheet, names)}</div>
           </div>
           <button className="btn ghost" onClick={onClose} aria-label="Close">✕</button>
         </div>
@@ -97,7 +97,8 @@ export default function Columns({ sheet, all, custom, hidden, sheets = SHEET_KEY
           </p>
 
           {adding && (
-            <AddColumn sheet={sheet} busy={busy} onCancel={() => setAdding(false)}
+            <AddColumn sheet={sheet} sheets={sheets} names={names} busy={busy}
+              onCancel={() => setAdding(false)}
               onSave={(def) => run(async () => { await onAdd(def); setAdding(false); })} />
           )}
         </div>
@@ -106,7 +107,7 @@ export default function Columns({ sheet, all, custom, hidden, sheets = SHEET_KEY
   );
 }
 
-function AddColumn({ sheet, busy, onSave, onCancel }) {
+function AddColumn({ sheet, sheets, names, busy, onSave, onCancel }) {
   const [label, setLabel] = useState('');
   const [kind, setKind] = useState('text');
   const [applies, setApplies] = useState('both');
@@ -140,7 +141,7 @@ function AddColumn({ sheet, busy, onSave, onCancel }) {
       <label className="field">
         <span>Show it on</span>
         <select value={applies} onChange={(e) => setApplies(e.target.value)}>
-          {sheets.length > 1 && <option value="both">Both sheets</option>}
+          {sheets.length > 1 && <option value="both">Every sheet</option>}
           {sheets.map((k) => (
             <option key={k} value={k}>{sheetLabel(k, names)} only</option>
           ))}

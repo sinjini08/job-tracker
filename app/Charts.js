@@ -43,8 +43,8 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }
 
   const days = PERIODS.find((p) => p.id === period).days;
   const data = useMemo(
-    () => computeStats(rows, events, { sheet, days }),
-    [rows, events, sheet, days],
+    () => computeStats(rows, events, { sheet, sheets, days }),
+    [rows, events, sheet, sheets, days],
   );
 
   return (

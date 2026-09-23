@@ -1902,15 +1902,50 @@ body:has(.land) { overflow: auto; }
 /* ---------- renaming your sheets, in Settings ---------- */
 .sheet-rows { display: flex; flex-direction: column; gap: 10px; margin: 0 0 6px; }
 .sheet-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.sheet-row > label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+/* Two halves that hold their own width, so the name of a sheet and the box you
+   rename it in line up down the card instead of shuffling with the text. */
+.sheet-row { align-items: start; }
+.sheet-keep {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  flex: 0 0 250px;
+  max-width: 100%;
+  font-size: 14px;
+  color: var(--ink);
+  padding-top: 2px;
+}
+.sheet-keep input[type="checkbox"] { margin: 3px 0 0; flex: none; }
+.sheet-keep b { display: block; font-weight: 600; }
+.sheet-keep small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+/* A sheet you made has no checkbox, so its text keeps the space one would
+   have taken and stays in line with the built-ins above it. */
+.sheet-row.own .sheet-keep { padding-left: 24px; }
+.sheet-row.off .sheet-keep { opacity: 0.55; }
+.sheet-add { align-self: start; margin: 2px 0 10px; }
+/* Page tokens, not the chart ones. --viz-ring and --viz-surface are defined
+   inside .viz-root and Settings is not in one, so a border painted with them
+   computed to none and the box people were meant to type a name into was
+   invisible. */
 .sheet-row input[type="text"] {
   flex: 1 1 200px;
   min-width: 0;
   padding: 8px 10px;
   font: inherit;
-  border: 1px solid var(--viz-ring);
+  border: 1px solid var(--grid-line);
   border-radius: 7px;
-  background: var(--viz-surface);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
+}
+.sheet-row input[type="text"]:focus-visible {
+  outline: 2px solid var(--xl-green);
+  outline-offset: 1px;
+  border-color: transparent;
 }
 .sheet-row input[type="text"]:disabled { opacity: 0.55; }

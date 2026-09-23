@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from '../Logo';
-import { SHEET_KEYS, sheetLabel } from '@/lib/fields';
+import { BUILTIN_SHEETS, SHEET_DEFAULTS, enabledSheets, isCustomSheet, newSheetKey, sheetLabel } from '@/lib/fields';
 
 async function call(url, method) {
   const res = await fetch(url, { method });
@@ -27,7 +27,7 @@ function SheetSettings() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Could not load your settings'))))
       .then((p) => {
         if (!live) return;
-        const next = { enabled: p.sheets_enabled ?? SHEET_KEYS, names: p.sheet_names ?? {} };
+        const next = { enabled: enabledSheets(p.sheets_enabled), names: p.sheet_names ?? {} };
         setPrefs(next);
         setDraft(next);
       })
@@ -39,14 +39,31 @@ function SheetSettings() {
   if (!draft) return null;
 
   const on = (key) => draft.enabled.includes(key);
-  const only = draft.enabled.length === 1;
+  const mine = draft.enabled.filter(isCustomSheet);
+  // A sheet you made is only a sheet because it has a name, so an unnamed one
+  // doesn't count toward the one you have to keep.
+  const kept = draft.enabled.filter((k) => !isCustomSheet(k) || draft.names[k]?.trim());
+  const last = kept.length <= 1;
   const dirty = JSON.stringify(draft) !== JSON.stringify(prefs);
 
-  const toggle = (key) => setDraft((d) => ({
-    ...d,
-    enabled: d.enabled.includes(key) ? d.enabled.filter((k) => k !== key) : [...SHEET_KEYS.filter((k) => k === key || d.enabled.includes(k))],
-  }));
+  // Built-ins keep their fixed order however they are toggled, so the tab
+  // strip never reshuffles under someone who just unticked and reticked one.
+  const toggle = (key) => setDraft((d) => {
+    const next = d.enabled.includes(key)
+      ? d.enabled.filter((k) => k !== key)
+      : [...d.enabled, key];
+    return { ...d, enabled: [...BUILTIN_SHEETS.filter((k) => next.includes(k)), ...next.filter(isCustomSheet)] };
+  });
+
   const rename = (key, value) => setDraft((d) => ({ ...d, names: { ...d.names, [key]: value } }));
+
+  const addSheet = () => setDraft((d) => ({ ...d, enabled: [...d.enabled, newSheetKey()] }));
+
+  const removeSheet = (key) => setDraft((d) => {
+    const names = { ...d.names };
+    delete names[key];
+    return { enabled: d.enabled.filter((k) => k !== key), names };
+  });
 
   const save = async () => {
     setBusy(true);
@@ -59,45 +76,83 @@ function SheetSettings() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not save');
-      const next = { enabled: data.sheets_enabled ?? SHEET_KEYS, names: data.sheet_names ?? {} };
+      const next = { enabled: enabledSheets(data.sheets_enabled), names: data.sheet_names ?? {} };
       setPrefs(next);
       setDraft(next);
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
+  const tabsRead = kept.map((k) => sheetLabel(k, draft.names));
+
   return (
     <section className="settings-card">
       <h2>Your sheets</h2>
-      <p>Keep the sheets you use and call them whatever you like. The tabs follow.</p>
+      <p>Keep the sheets you use, call them whatever you like, and add sheets of your own.
+        The tabs follow.</p>
+
       <div className="sheet-rows">
-        {SHEET_KEYS.map((key) => (
-          <div className="sheet-row" key={key}>
-            <label>
-              <input type="checkbox" checked={on(key)} disabled={busy || (on(key) && only)}
+        {BUILTIN_SHEETS.map((key) => (
+          <div className={`sheet-row ${on(key) ? '' : 'off'}`} key={key}>
+            <label className="sheet-keep">
+              <input type="checkbox" checked={on(key)} disabled={busy || (on(key) && last)}
                 onChange={() => toggle(key)} />
-              {key}
+              <span>
+                <b>{SHEET_DEFAULTS[key].name}</b>
+                <small>{SHEET_DEFAULTS[key].hint}</small>
+              </span>
             </label>
             <input type="text" maxLength={30} disabled={busy || !on(key)}
-              value={draft.names[key] ?? ''} placeholder={key}
-              aria-label={`What to call the ${key} sheet`}
+              value={draft.names[key] ?? ''} placeholder="Call it something else"
+              aria-label={`What to call the ${SHEET_DEFAULTS[key].name} sheet`}
               onChange={(e) => rename(key, e.target.value)} />
           </div>
         ))}
+
+        {mine.map((key) => (
+          <div className="sheet-row own" key={key}>
+            <span className="sheet-keep">
+              <span>
+                <b>A sheet of your own</b>
+                <small>Same columns to start with. Add or hide them from the Columns button.</small>
+              </span>
+            </span>
+            <input type="text" maxLength={30} disabled={busy} autoFocus={!draft.names[key]}
+              value={draft.names[key] ?? ''} placeholder="Internships, Grad schemes, Dream jobs"
+              aria-label="What to call this sheet"
+              onChange={(e) => rename(key, e.target.value)} />
+            <button className="tiny-btn" type="button" disabled={busy}
+              onClick={() => removeSheet(key)}>Remove</button>
+          </div>
+        ))}
       </div>
+
+      <button className="btn ghost sheet-add" type="button" disabled={busy} onClick={addSheet}>
+        + Add a sheet
+      </button>
+
       <p className="settings-note">
         Turning a sheet off hides the tab. Nothing in it is deleted, and turning it back on brings
-        it back. You always keep at least one.
-        {' '}Right now your tabs read{' '}
-        <b>{SHEET_KEYS.filter(on).map((k) => sheetLabel(k, draft.names)).join(' and ')}</b>.
+        it back, and the same goes for removing a sheet you made. You always keep at least one.
+        {tabsRead.length > 0 && <> Right now your tabs read <b>{list(tabsRead)}</b>.</>}
       </p>
+
       {dirty && (
-        <button className="btn primary" disabled={busy} onClick={save}>
-          {busy ? 'Saving…' : 'Save sheets'}
-        </button>
+        <div className="field-actions">
+          <button className="btn primary" disabled={busy} onClick={save}>
+            {busy ? 'Saving…' : 'Save sheets'}
+          </button>
+          <button className="tiny-btn" type="button" disabled={busy}
+            onClick={() => setDraft(prefs)}>Cancel</button>
+        </div>
       )}
     </section>
   );
 }
+
+// "A", "A and B", "A, B and C".
+const list = (items) => (items.length < 3
+  ? items.join(' and ')
+  : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
 
 function CopyField({ value }) {
   const [copied, setCopied] = useState(false);

@@ -13,8 +13,11 @@ async function handle(request) {
   const inner = async (req) => {
     const auth = req.auth; // set by withMcpAuth
     const store = storeFor(supabaseAdmin(), auth.extra.userId);
+    // Read once per connection: the tools name the student's own sheets, so
+    // the schema has to know them before it is built.
+    const sheets = await store.sheets().catch(() => null);
     const handler = createMcpHandler(
-      (server) => registerTools(server, store, origin),
+      (server) => registerTools(server, store, origin, sheets),
       { serverInfo: { name: 'job-tracker', version: '2.0.0' }, instructions: INSTRUCTIONS },
     );
     return handler(req);
