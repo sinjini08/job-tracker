@@ -97,11 +97,44 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   }
   fs.writeFileSync(out(path.join(root, 'public/brand/mark-green.png')), await squarePad(greenMark));
 
-  // The full icon, cropped to the rounded square.
-  const icon = sharp(SRC).extract(box);
+  // The full icon, cropped to the rounded square and with the corners cut out.
+  //
+  // Cropping alone leaves the white page showing through outside the rounded
+  // corners, and the PNG carried no alpha at all, so all four corners shipped
+  // as solid #fefefe. Against a white page nobody noticed. On Chrome's dark
+  // tab strip the icon wore four white pips.
+  //
+  // The same rounded-corner test the mark uses, softened over a pixel so the
+  // arc does not come out jagged.
+  const cornerAlpha = (x, y) => {
+    const dx = Math.min(x, box.width - 1 - x);
+    const dy = Math.min(y, box.height - 1 - y);
+    if (dx >= radius || dy >= radius) return 255;
+    const cx = dx < radius ? radius - dx : 0;
+    const cy = dy < radius ? radius - dy : 0;
+    const d = Math.hypot(cx, cy);
+    if (d <= radius - 1) return 255;
+    if (d >= radius) return 0;
+    return Math.round((radius - d) * 255);
+  };
+  const square = Buffer.alloc(box.width * box.height * 4);
+  for (let y = 0; y < box.height; y++) {
+    for (let x = 0; x < box.width; x++) {
+      const s = ((y + box.top) * width + (x + box.left)) * 4;
+      const d = (y * box.width + x) * 4;
+      square[d] = data[s]; square[d + 1] = data[s + 1]; square[d + 2] = data[s + 2];
+      square[d + 3] = cornerAlpha(x, y);
+    }
+  }
+  const icon = sharp(square, raw);
   await icon.clone().resize(512, 512).png().toFile(out(path.join(root, 'public/brand/icon-green.png')));
   await icon.clone().resize(512, 512).png().toFile(out(path.join(root, 'app/icon.png')));
-  await icon.clone().resize(180, 180).png().toFile(out(path.join(root, 'app/apple-icon.png')));
+  // Apple's is the exception: iOS puts the icon on its own background and
+  // applies its own mask, so a transparent corner comes out black. This one
+  // keeps square, opaque corners in the brand green rather than in white.
+  await sharp(square, raw)
+    .flatten({ background: { r: 0x1d, g: 0x5c, b: 0x36 } })
+    .resize(180, 180).png().toFile(out(path.join(root, 'app/apple-icon.png')));
   for (const size of [512, 1024]) {
     await icon.clone().resize(size, size).png().toFile(out(path.join(root, `brand/icon-green-${size}.png`)));
     await sharp(await squarePad(greenMark)).resize(size, size).png()
