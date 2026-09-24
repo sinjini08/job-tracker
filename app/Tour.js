@@ -29,33 +29,33 @@ const STEPS = [
     // and the default is the list. Anchoring it to the grid alone dropped this
     // step for almost everybody, which the skip logic hid rather than reported.
     at: 'sheet',
-    title: 'This is your sheet',
-    body: 'One row per application, and everything you type stays yours. Click a row to open it up, or a cell to edit it, depending on the view.',
+    title: 'Your applications',
+    body: 'One row each. Click to edit.',
   },
   {
     at: 'new-row',
-    title: 'Add one by hand',
-    body: 'Or let an assistant do it. Paste a job posting into Claude or ChatGPT and it fills the row in for you, which is the last step of this tour.',
+    title: 'Add a row',
+    body: 'Start typing, or let an assistant fill it in. Last step shows you how.',
   },
   {
     at: 'view',
-    title: 'Two ways to look at it',
-    body: 'Grid is the spreadsheet. List gives every application a soft row that opens up when you click it, with room for notes, contacts and the posting itself.',
+    title: 'Two views',
+    body: 'Grid is a spreadsheet. List gives each job a row that opens up.',
   },
   {
     at: 'sections',
     title: 'Insights and League',
-    body: 'Insights turns the sheet into charts and tells you what needs chasing. League is for keeping score with friends, and never shows them where you applied.',
+    body: 'Charts of how it is going, and a scoreboard with friends.',
   },
   {
     at: 'sheets',
-    title: 'Your sheets live down here',
-    body: 'Switch between them, or add one of your own in Settings. Campus jobs and graduate applications do not have to share a list.',
+    title: 'Your sheets',
+    body: 'Switch between them here. Add more in Settings.',
   },
   {
     at: 'settings',
     title: 'Connect an assistant',
-    body: 'In Settings. Link the tracker to Claude or ChatGPT and you can paste a posting into a chat and have it filed for you, statuses and all.',
+    body: 'In Settings. Then paste a posting into Claude and it files itself.',
   },
 ];
 
