@@ -117,9 +117,6 @@ function Picker({ label, value, options, onChange }) {
   );
 }
 
-// The one part that isn't arithmetic. Nothing is sent anywhere until the button
-// is pressed, and the button only exists when the feature is switched on at the
-// server. Asking again with nothing changed returns the read already paid for.
 // One kind of reminder, folded until you want the names. Closed it is a line
 // and a count, which is all most days need; open it is the list of jobs you
 // have chosen to keep being reminded about.

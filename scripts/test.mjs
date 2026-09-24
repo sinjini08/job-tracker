@@ -11,8 +11,6 @@
 // nothing, and those are the assertions that stop that happening.
 
 import { buildInsights, LIMITS } from '../lib/insights.js';
-import { buildBrief } from '../lib/ai-brief.js';
-import { shape } from '../lib/ai-read.js';
 import { computeStats } from '../lib/stats.js';
 import {
   normalizeSheetPrefs, enabledSheets, sheetLabel, newSheetKey, isCustomSheet,
@@ -157,36 +155,6 @@ ok(r.insights.length <= LIMITS.shown, `never more than ${LIMITS.shown} at once`)
 ok(r.insights[0].kind === 'counterfactual',
   'what a choice cost you outranks what merely reframes or suggests');
 ok(r.insights.every((i) => i.claim && i.support), 'every claim carries its own figures');
-
-section('The brief — what leaves the app');
-const secret = (o = {}) => app({ company: 'SECRETCORP', pay: '$999999/hr',
-  job_link: 'https://secret.example/x', contact: 'Deep Throat', contact_email: 'deep@secret.example',
-  notes: 'SECRETNOTE', location: 'Atlantis', ...o });
-const rows = [secret({ next_follow_up: d(12) }), secret({ next_follow_up: d(9) }),
-  ...Array.from({ length: 6 }, (_, i) => secret({ source: 'Handshake', date_applied: d(25 + i) })),
-  secret({ requirements: 'Python and SQL', status: 'Screening' })];
-const events = rows.filter((x) => x.status === 'Screening').map((x, i) => ({
-  id: `e${i}`, application_id: x.id, kind: 'status', detail: 'Applied → Screening', event_date: x.date_applied }));
-const brief = buildBrief(rows, events, computeStats(rows, events, {}),
-  buildInsights(rows, events, computeStats(rows, events, {})), { today: TODAY });
-const text = JSON.stringify(brief);
-for (const [label, needle] of [['a company', 'SECRETCORP'], ['pay', '999999'],
-  ['a link', 'secret.example'], ['a contact', 'Deep Throat'], ['a note', 'SECRETNOTE'],
-  ['a location', 'Atlantis']]) {
-  ok(!text.includes(needle), `${label} never reaches the brief`);
-}
-ok(text.length < 8000, `the brief stays small (${text.length} bytes)`);
-ok(brief.postings_that_replied.length === 1, 'posting text the student pasted is included');
-
-section('The reply — untrusted until parsed');
-eq(shape('{"read":"Two lines.","moves":[{"do":"Chase","because":"late"}]}').moves.length, 1, 'plain JSON parses');
-eq(shape('```json\n{"read":"Fenced.","moves":[]}\n```').read, 'Fenced.', 'a code fence is stripped');
-eq(shape('Sorry, I cannot help.').moves, [], 'non-JSON falls back to raw text rather than throwing');
-eq(shape('{"read":"x","moves":[1,2,{"do":"ok","because":"y"},null]}').moves.length, 1, 'junk entries dropped');
-eq(shape('{"read":"x","moves":[{"do":"a"},{"do":"b"},{"do":"c"},{"do":"d"}]}').moves.length, 3, 'never more than three moves');
-eq(shape(`{"read":"${'x'.repeat(5000)}","moves":[]}`).read.length, 1200, 'a runaway read is cut to length');
-eq(shape('{"read":{"a":1},"moves":"nope"}'), { read: '', moves: [] }, 'wrong types become empty, not a crash');
-eq(shape(''), { read: '', moves: [] }, 'an empty reply is survivable');
 
 section('Sheets');
 eq(enabledSheets(null), BUILTIN_SHEETS, 'no preference falls back to both built-ins');
