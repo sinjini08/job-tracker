@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
 import { AVATAR_GROUPS } from '@/lib/avatars';
 import Avatar from './Avatar';
@@ -269,18 +269,37 @@ export default function League() {
 }
 
 // A handle like "mrmalpani25" doesn't tell a league who that is. Tapping it
-// swaps in the name that person gave, and tapping again puts the handle back.
-// A swap rather than an extra line, because these rows are a fixed height and
-// a second line would push the board around under whoever clicked.
+// swaps in the name that person gave. A swap rather than an extra line,
+// because these rows are a fixed height and a second line would push the
+// board around under whoever clicked.
 //
-// Nobody is made to give a name. Without one there is nothing to reveal, so
-// the name is plain text and doesn't invite a tap it can't answer.
+// It puts itself away after three seconds. A peek is what this is for, and
+// leaving somebody's real name sitting on a leaderboard until the next click
+// is not the same thing: walk away from the screen and it is still there.
+// Tapping again reverts it at once, so nobody has to wait out the timer.
+//
+// Only one name is ever open. Tapping a second cancels the first, rather than
+// leaving two timers racing to close different rows.
+const REVEAL_MS = 3000;
+
 function useNameReveal() {
   const [shown, setShown] = useState(null);
+  const timer = useRef(null);
+
+  const stop = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
+  useEffect(() => stop, []);
+
   return (row) => ({
     row,
     open: shown === row.user_id,
-    onToggle: () => setShown((cur) => (cur === row.user_id ? null : row.user_id)),
+    onToggle: () => {
+      stop();
+      setShown((cur) => {
+        if (cur === row.user_id) return null;
+        timer.current = setTimeout(() => { timer.current = null; setShown(null); }, REVEAL_MS);
+        return row.user_id;
+      });
+    },
   });
 }
 
@@ -1015,14 +1034,15 @@ function Settings({ profile, onSave, busy }) {
       <div className="field">
         <label className="field-head" htmlFor="real-name">Your name</label>
         <div className="field-inline">
-          <input id="real-name" value={draft.full_name} maxLength={60} placeholder="Optional"
+          <input id="real-name" value={draft.full_name} maxLength={60} required
+            placeholder="First name is enough"
             onChange={(e) => set({ full_name: e.target.value })} />
           {actions('full_name')}
         </div>
         <small className="league-fine">
-          For when a name on the board doesn&rsquo;t say who someone is. Only the people in your
-          leagues see it, and only when they tap your name. Leave it blank and there is nothing
-          to tap; clearing it takes it back off.
+          So a handle on the board says who you are. Only the people in your leagues see it, and
+          only for the three seconds after they tap your name. A first name is enough; you do not
+          have to give the rest.
         </small>
       </div>
 
