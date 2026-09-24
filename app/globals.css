@@ -1957,7 +1957,39 @@ body:has(.land) { overflow: auto; }
 .land-btn.primary:hover { background: var(--xl-green-tint); }
 .land-btn:disabled { opacity: 0.65; cursor: default; }
 
+/* What it does, three lines, between the promise and the doors. Left-aligned
+   inside a centred column on purpose: three centred paragraphs are harder to
+   read than three that start in the same place. */
+.land-what {
+  margin: 26px 0 28px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  text-align: left;
+}
+.land-what li {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+}
+.land-what b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+}
+@media (min-width: 700px) {
+  .land-what { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+}
+
 .land-foot { margin: 22px 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.75); }
+/* Quieter than the sign-in line above it, but on the page, which is where
+   Google's brand verification needs the privacy policy to be reachable from. */
+.land-legal { margin: 14px 0 0; font-size: 13px; }
+.land-legal a { color: rgba(255, 255, 255, 0.62); text-underline-offset: 3px; }
+.land-legal a:hover { color: #fff; }
 .land-foot a { color: #fff; }
 
 /* the code form, and the box Clerk's waitlist component sits in */
