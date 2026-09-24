@@ -120,9 +120,10 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   // profile lands; a null sheets_enabled inside it means never asked. Declared
   // here because the tab list is derived from it a few lines down.
   const [sheetPrefs, setSheetPrefs] = useState(null);
-  // Null until the profile lands. A timestamp means the tour is finished or
-  // skipped, so only an explicit null shows it, never an unloaded profile.
+  // Nothing gates on this. It is kept because "has this person ever taken the
+  // tour" is worth knowing, and it costs one nullable column to know it.
   const [toured, setToured] = useState(undefined);
+  const [tourOpen, setTourOpen] = useState(false);
   const [sel, setSel] = useState({ r: 0, c: 0 });
   const [editing, setEditing] = useState(null); // { r, c, draft }
   const [pending, setPending] = useState(0);
@@ -312,8 +313,20 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   };
 
   const endTour = () => {
-    setToured(new Date().toISOString());
-    api('/api/profile', 'PATCH', { toured: true }).catch(() => {});
+    setTourOpen(false);
+    // Recorded on the first finish only. Retaking it does not need to say so
+    // again, and a failed write is not worth telling anybody about.
+    if (!toured) {
+      setToured(new Date().toISOString());
+      api('/api/profile', 'PATCH', { toured: true }).catch(() => {});
+    }
+  };
+
+  // Every step points at something on a sheet, so the tour takes you back to
+  // one first rather than skipping half of itself from Insights or League.
+  const startTour = () => {
+    if (!isGrid) switchTab(sheets.includes(lastSheet.current) ? lastSheet.current : sheets[0]);
+    setTourOpen(true);
   };
 
   const switchTab = (t) => {
@@ -568,8 +581,10 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   if (canEdit && sheetPrefs && sheetPrefs.enabled == null) {
     return <SheetSetup onChoose={chooseSheets} />;
   }
-  // Only after the sheets are chosen, so the tour has a sheet to point at.
-  const showTour = canEdit && !shared && toured === null && isGrid;
+  // Nothing here decides to show the tour. It is opened from the ? in the bar
+  // and nothing else, which is the whole point: a new person meets the splash,
+  // the sheet choice, and then their sheet.
+  const showTour = tourOpen && isGrid;
 
   return (
     <div className="app">
@@ -586,6 +601,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               with them is still a person with a preference. */}
           <ThemeToggle />
           {!shared && <>
+            <button type="button" className="btn ghost tour-open" onClick={startTour}
+              title="Take the tour" aria-label="Take the tour">?</button>
             <a className="btn ghost" href="/settings" data-tour="settings">Settings</a>
             <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
           </>}

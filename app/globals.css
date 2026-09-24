@@ -1573,6 +1573,17 @@ body:has(.login) { overflow: auto; }
 .league-start .btn { height: 34px; }
 .league-start .btn.primary { background: var(--xl-green); color: #fff; border-color: var(--green-ink); }
 .league-start .btn.primary:hover { background: var(--xl-green-dark); }
+/* The ? that opens the tour. Round and narrow so it reads as help rather than
+   as a fourth thing competing with Settings and Sign out. */
+.toolbar .btn.tour-open {
+  width: 26px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* The guided tour.
    The dimming and the hole in it are one element: a ring shadow large enough
    to cover any window, cast outward from the target's own rectangle. No mask,
