@@ -96,7 +96,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--text);
 }
 .search:focus { outline: 2px solid #fff; background: #fff; }
-.save-state { font-size: 12px; opacity: 0.9; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+/* Held at the width of its longest ordinary state, because it sits to the
+   right of the view switcher and the switcher is now pinned against it.
+   Without this the toggle would twitch left every time "All changes saved"
+   became "Saving…", which is the same bug in a smaller size. */
+.save-state {
+  font-size: 12px;
+  opacity: 0.9;
+  min-width: 108px;
+  max-width: 320px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .save-state.err { opacity: 1; color: #ffe0dc; font-weight: 600; }
 
 .btn {
@@ -384,7 +396,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 
 /* The view switch, matched to the buttons beside it. */
-.workbar .viewpick { padding: 2px; background: var(--head-bg); border-color: var(--grid-line); border-radius: 7px; }
+/* Pinned to the right of the working row, so switching view does not move the
+   control you switched with. Row details only exists in the grid, so with the
+   buttons simply packed left this slid sideways the moment you pressed List,
+   and the thing you had just clicked was no longer under the pointer. */
+.workbar .viewpick { margin-left: auto; padding: 2px; background: var(--head-bg); border-color: var(--grid-line); border-radius: 7px; }
 .workbar .viewpick button { padding: 3px 11px; font-size: 12.5px; color: var(--head-text); transition: background 120ms ease; }
 .workbar .viewpick button:hover:not(.on) { color: var(--text); }
 .workbar .viewpick button.on { box-shadow: 0 1px 2px rgb(29 35 31 / 0.12); }
