@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ALWAYS_ON, ROW_ORDER, SHEET_KEYS, sheetLabel } from '@/lib/fields';
 
 // Choose which columns this sheet shows, and add columns of your own.

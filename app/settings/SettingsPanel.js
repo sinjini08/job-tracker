@@ -73,7 +73,9 @@ function SheetSettings() {
 
   // The way back for a built-in someone renamed. A sheet you made has Remove
   // in the same place, and no default to go back to.
-  const useDefault = (key) => {
+  // Not a hook. The old name began with "use", which made the hooks lint
+  // read every call site as a hook called from inside a callback.
+  const restoreDefault = (key) => {
     setEdits((e) => ({ ...e, [key]: '' }));
     setDraft((d) => {
       const names = { ...d.names };
@@ -145,7 +147,7 @@ function SheetSettings() {
                 go back; the grid needs it either way. See globals.css. */}
             {renamed(key) && on(key)
               ? <button className="tiny-btn" type="button" disabled={busy}
-                  onClick={() => useDefault(key)}>Use default</button>
+                  onClick={() => restoreDefault(key)}>Use default</button>
               : <span aria-hidden />}
           </div>
         ))}

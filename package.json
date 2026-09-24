@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node scripts/test.mjs",
-    "contrast": "node scripts/contrast.mjs"
+    "contrast": "node scripts/contrast.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",
@@ -21,5 +22,10 @@
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.6",
+    "globals": "^17.12.0"
   }
 }

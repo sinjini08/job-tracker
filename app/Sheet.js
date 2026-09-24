@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ALWAYS_ON, DEFAULT_ROW_KEYS, SHEET_KEYS, allColumnsFor, columnsFor, columnLetter, enabledSheets, isBlankRow, sheetLabel, snapToKnown } from '@/lib/fields';
+import { DEFAULT_ROW_KEYS, SHEET_KEYS, allColumnsFor, columnsFor, columnLetter, enabledSheets, isBlankRow, sheetLabel, snapToKnown } from '@/lib/fields';
 import Columns from './Columns';
 import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
@@ -306,10 +306,6 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     saveWidths({ ...colWidths, [col.id]: Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, widest + 26))) });
   };
 
-  const resetSizes = () => {
-    saveWidths({});
-    saveRowHeight(DEFAULT_ROW_H);
-  };
   const switchTab = (t) => {
     if (!EXTRA_TABS.includes(t)) lastSheet.current = t;
     setTab(t);
@@ -552,15 +548,6 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   // ---- derived UI bits ----
   const selRow = rowAt(sel.r);
   const selCol = cols[sel.c];
-  const counts = useMemo(() => {
-    const out = { due: 0 };
-    for (const r of rows) {
-      if (r.type !== tab) continue;
-      out[r.status] = (out[r.status] || 0) + 1;
-      if (followUpDue(r)) out.due += 1;
-    }
-    return out;
-  }, [rows, tab]);
   const tabCount = (t) => rows.filter((r) => r.type === t).length;
   const drawerRow = rows.find((r) => r.id === drawerId) || null;
   drawerOpenRef.current = Boolean(drawerRow);

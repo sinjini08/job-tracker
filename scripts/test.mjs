@@ -18,8 +18,7 @@ import {
 } from '../lib/fields.js';
 
 let failed = 0;
-let group = '';
-const section = (name) => { group = name; console.log(`\n${name}`); };
+const section = (name) => console.log(`\n${name}`);
 const ok = (cond, msg) => {
   if (!cond) failed += 1;
   console.log(`  ${cond ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${msg}`);

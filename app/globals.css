@@ -822,7 +822,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 720px) {
   .save-state { display: none; }
   .toolbar { gap: 8px; }
-  .status-summary { display: none; }
   .formula-bar .name-box { width: 60px; }
 }
 

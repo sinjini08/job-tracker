@@ -27,12 +27,11 @@ export default function Insights({ rows, events, sheets = SHEET_KEYS, names = {}
   const [sheet, setSheet] = useState('All');
   const [period, setPeriod] = useState('all');
 
-  const days = PERIODS.find((p) => p.id === period).days;
 
   // The rail reads the whole search, not the filtered slice: "your live
   // pipeline is 6" is a fact about the search, and answering it differently
   // depending on a date filter would make it a fact about the filter.
-  const { state, insights, chores, applied } = useMemo(() => {
+  const { insights, chores, applied } = useMemo(() => {
     const stats = computeStats(rows ?? [], events ?? [], {});
     return buildInsights(rows ?? [], events ?? [], stats);
   }, [rows, events]);

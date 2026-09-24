@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CLOSED, STAGES, computeStats, pct } from '@/lib/stats';
+import { STAGES, computeStats, pct } from '@/lib/stats';
 import { SHEET_KEYS } from '@/lib/fields';
 import DayChart from './LeagueCharts';
 
