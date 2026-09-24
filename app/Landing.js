@@ -49,7 +49,7 @@ export default function Landing() {
               Been here before? <Link href="/sign-in">Sign in</Link>
             </p>
             <p className="land-legal">
-              <Link href="/privacy">Privacy</Link>
+              <Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link>
             </p>
           </>
         )}

@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <header className="legal-head">
         <Link href="/" className="legal-mark"><Logo size={36} tone="dark" /></Link>
         <h1>Privacy</h1>
-        <p className="legal-sub">Last updated 23 September 2026</p>
+        <p className="legal-sub">Last updated 24 September 2026</p>
       </header>
 
       <p className="legal-lede">
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
         By default, only you. Every row is tied to your account in the database and access rules
         are enforced at the database itself, not just in the app code.
       </p>
-      <p>There are exactly four ways anything leaves your own account, and you control all four:</p>
+      <p>There are exactly three ways anything leaves your own account, and you control all three:</p>
       <ul>
         <li><b>A league.</b> If you join one, the other members see your display name, your chosen
           avatar, your points, your streak and the days you won. They also see your real name if
@@ -58,21 +58,14 @@ export default function PrivacyPage() {
         <li><b>An assistant.</b> If you connect Claude or ChatGPT, it can read and write your
           applications, and only yours. You approve the connection with a sign-in and can revoke
           it in Settings at any time.</li>
-        <li><b>A written read.</b> On the Insights tab you can ask for a short written read of how
-          your search is going. Only then, and only when you press the button, a summary goes to
-          Anthropic to be turned into that paragraph. The summary is counts and rates, the findings
-          already shown on the page, the job titles you applied for, and, where you pasted one in
-          yourself, the first few hundred characters of a posting. Your companies, pay, links,
-          contacts and notes are never in it. Everything else on that tab is worked out here and
-          goes nowhere.</li>
       </ul>
 
       <h2>Who else is involved</h2>
       <p>
         Three services make this work: <b>Clerk</b> for sign-in, <b>Supabase</b> for the database,
-        and <b>Vercel</b> for hosting. They process your data so the app can run. A fourth,
-        <b>Anthropic</b>, sees the summary described above, and only when you ask for a written
-        read.
+        and <b>Vercel</b> for hosting. They process your data so the app can run. Nobody else
+        receives it. Everything on the Insights tab is worked out here, from your own rows, and
+        goes nowhere.
       </p>
       <p>
         Nothing is sold, and nothing is shared with advertisers. There is no analytics or tracking
@@ -105,7 +98,9 @@ export default function PrivacyPage() {
         Email <a href="mailto:easy.jobtracker@gmail.com">easy.jobtracker@gmail.com</a>.
       </p>
 
-      <p className="legal-foot"><Link href="/">Back to the tracker</Link></p>
+      <p className="legal-foot">
+        <Link href="/terms">Terms</Link> · <Link href="/">Back to the tracker</Link>
+      </p>
     </main>
   );
 }
