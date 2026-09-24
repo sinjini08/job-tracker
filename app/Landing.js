@@ -34,29 +34,6 @@ export default function Landing() {
 
         {door === null && (
           <>
-            {/* What the thing actually does, before the doors.
-                Google's brand verification asks for a homepage that describes
-                the app's functionality and says in as many words that it may
-                not be only a login page. It is also just better: somebody
-                arriving from a link has no idea what they are joining. */}
-            <ul className="land-what">
-              <li>
-                <b>Paste a link, get a row</b>
-                One sheet for every application, with the role, company, stage
-                and dates already filled in from the posting.
-              </li>
-              <li>
-                <b>See where you actually stand</b>
-                Charts for how far applications get and which job boards answer
-                you, plus a nudge when something has gone quiet.
-              </li>
-              <li>
-                <b>Keep score with friends</b>
-                Points for applying, reaching out and reaching an interview, on
-                a leaderboard you choose to join.
-              </li>
-            </ul>
-
             <div className="land-doors">
               <button className="land-btn primary" onClick={() => setDoor('code')}>
                 I have a code
