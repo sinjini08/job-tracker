@@ -179,6 +179,13 @@ ok(WRITABLE.has('job_description') && WRITABLE.has('requirements'),
   'and both are writable, or being told would not help');
 ok(/Fill this whenever you have it/.test(MCP_SRC),
   'the job_description field says when to fill it, not just what it is');
+ok(/Fill in everything the posting does say/.test(INSTRUCTIONS),
+  'and to fill in everything else the posting states');
+// The connector is useful because it does not interrupt. One question is a
+// judgement; four is a reason to stop using it, so the count is asserted.
+ok(/One question is allowed, and only this one/.test(INSTRUCTIONS),
+  'exactly one question is permitted, not a general licence to ask');
+ok(/do not interrogate/.test(INSTRUCTIONS), 'and it says so twice, in different words');
 
 section('Sheets');
 eq(enabledSheets(null), BUILTIN_SHEETS, 'no preference falls back to both built-ins');
