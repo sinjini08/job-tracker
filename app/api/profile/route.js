@@ -5,7 +5,7 @@ import { normalizeSheetPrefs } from '@/lib/fields';
 
 export const dynamic = 'force-dynamic';
 
-const FIELDS = 'display_name, full_name, avatar, leaderboard_detail, hidden_columns, row_columns, column_order, sheets_enabled, sheet_names';
+const FIELDS = 'display_name, full_name, avatar, leaderboard_detail, hidden_columns, row_columns, column_order, sheets_enabled, sheet_names, toured_at';
 
 // What the student shows on a leaderboard, and what they're aiming for.
 export async function GET() {
@@ -40,6 +40,9 @@ export async function PATCH(request) {
     // Only a value from the list. Anything else clears it back to initials.
     patch.avatar = isAvatar(body.avatar) ? body.avatar : null;
   }
+  // Only ever set, and only to now. The client says it is done; it does not
+  // get to say when, or to put the tour back for somebody else.
+  if (body.toured === true) patch.toured_at = new Date().toISOString();
   if ('leaderboard_detail' in body) {
     patch.leaderboard_detail = body.leaderboard_detail === 'points' ? 'points' : 'counts';
   }

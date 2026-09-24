@@ -11,6 +11,7 @@ import Logo from './Logo';
 import ThemeToggle from './Theme';
 import Rows from './Rows';
 import SheetSetup from './SheetSetup';
+import Tour from './Tour';
 import Drawer from './Drawer';
 import League from './League';
 import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
@@ -119,6 +120,9 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   // profile lands; a null sheets_enabled inside it means never asked. Declared
   // here because the tab list is derived from it a few lines down.
   const [sheetPrefs, setSheetPrefs] = useState(null);
+  // Null until the profile lands. A timestamp means the tour is finished or
+  // skipped, so only an explicit null shows it, never an unloaded profile.
+  const [toured, setToured] = useState(undefined);
   const [sel, setSel] = useState({ r: 0, c: 0 });
   const [editing, setEditing] = useState(null); // { r, c, draft }
   const [pending, setPending] = useState(0);
@@ -194,6 +198,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     try {
       const [cc, profile] = await Promise.all([api('/api/columns'), api('/api/profile')]);
       setSheetPrefs({ enabled: profile.sheets_enabled, names: profile.sheet_names ?? {} });
+      setToured(profile.toured_at ?? null);
       setCustom(cc.columns ?? []);
       setHidden(profile.hidden_columns ?? {});
       setRowCols(profile.row_columns ?? {});
@@ -304,6 +309,11 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     ctx.font = '13px system-ui, sans-serif';
     const widest = Math.max(...texts.map((t) => ctx.measureText(String(t)).width));
     saveWidths({ ...colWidths, [col.id]: Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, widest + 26))) });
+  };
+
+  const endTour = () => {
+    setToured(new Date().toISOString());
+    api('/api/profile', 'PATCH', { toured: true }).catch(() => {});
   };
 
   const switchTab = (t) => {
@@ -558,6 +568,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   if (canEdit && sheetPrefs && sheetPrefs.enabled == null) {
     return <SheetSetup onChoose={chooseSheets} />;
   }
+  // Only after the sheets are chosen, so the tour has a sheet to point at.
+  const showTour = canEdit && !shared && toured === null && isGrid;
 
   return (
     <div className="app">
@@ -574,14 +586,14 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               with them is still a person with a preference. */}
           <ThemeToggle />
           {!shared && <>
-            <a className="btn ghost" href="/settings">Settings</a>
+            <a className="btn ghost" href="/settings" data-tour="settings">Settings</a>
             <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
           </>}
         </div>
       </header>
 
       <nav className="workbar">
-        <div className="tabs" role="tablist" aria-label="Section">
+        <div className="tabs" role="tablist" aria-label="Section" data-tour="sections">
           {EXTRA_TABS.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t}
               className={`tab ${tab === t ? 'active' : ''}`}
@@ -605,7 +617,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />}
-          {canEdit && isGrid && <button className="btn primary" onClick={addRow}>+ New row</button>}
+          {canEdit && isGrid && <button className="btn primary" onClick={addRow} data-tour="new-row">+ New row</button>}
           {isGrid && view === 'grid' && (
             <button className="btn ghost" disabled={!selRow}
               title={selRow ? `Contact, notes and history for ${selRow.role || 'this row'}`
@@ -622,7 +634,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
           {/* Two ways of looking at the same rows. Nothing about the data
               changes, so this is a preference and it is remembered. */}
           {isGrid && (
-            <span className="viewpick" role="group" aria-label="How to show this sheet">
+            <span className="viewpick" role="group" aria-label="How to show this sheet" data-tour="view">
               <button type="button" className={view === 'list' ? 'on' : ''}
                 aria-pressed={view === 'list'} onClick={() => chooseView('list')}>List</button>
               <button type="button" className={view === 'grid' ? 'on' : ''}
@@ -679,6 +691,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
       <div
         className="grid-wrap"
+        data-tour="sheet"
         style={{ '--row-h': `${rowHeight}px` }}
         ref={gridRef}
         tabIndex={0}
@@ -770,7 +783,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
           which one you are looking at. The Back button up top is the way out
           of those two. */}
       {isGrid && <footer className="sheet-bar">
-        <div className="tabs" role="tablist" aria-label="Sheet">
+        <div className="tabs" role="tablist" aria-label="Sheet" data-tour="sheets">
           {sheets.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t}
               className={`tab ${tab === t ? 'active' : ''}`}
@@ -781,6 +794,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         </div>
 
       </footer>}
+
+      {showTour && <Tour onDone={endTour} />}
 
       {pickingCols && (
         <Columns

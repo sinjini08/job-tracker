@@ -98,7 +98,7 @@ export default function Rows({ rows, columns, rowKeys, custom, canEdit, apiBase,
 
   if (!rows.length) {
     return (
-      <div className="rowsv">
+      <div className="rowsv" data-tour="sheet">
         <p className="rowsv-empty">
           {emptyNote ?? 'Nothing on this sheet yet.'}
           {canEdit && onNew && <> <button type="button" className="ins-link" onClick={onNew}>Add the first one</button></>}
@@ -108,7 +108,7 @@ export default function Rows({ rows, columns, rowKeys, custom, canEdit, apiBase,
   }
 
   return (
-    <div className="rowsv">
+    <div className="rowsv" data-tour="sheet">
       <div className="rowsv-head" role="row" style={style}>
         <button type="button" className="rowsv-h grow" onClick={() => onSort(sortId('role'))}
           aria-sort={sortedBy('role') ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
