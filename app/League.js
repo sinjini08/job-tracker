@@ -185,9 +185,13 @@ export default function League() {
   if (leagues == null || profile == null) {
     return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
   }
+  // Both halves, not just the board name. Anyone who set a handle before this
+  // step existed has one and no real name, so a `named` check alone would skip
+  // them for good and leave a handle nobody can put a face to.
+  const setUp = profile.named && Boolean(String(profile.full_name ?? '').trim());
   // Before anything else, and before any league exists. Someone who arrives
   // with a code in hand still answers this first.
-  if (!profile.named) {
+  if (!setUp) {
     return (
       <div className="charts viz-root">
         <LeagueSetup profile={profile} onSave={saveProfile} busy={busy} err={err} />
@@ -1159,6 +1163,11 @@ function LeagueSetup({ profile, onSave, busy, err }) {
   // while somebody typed their name.
   const [face] = useState(() => profile.avatar || randomAvatar());
 
+  // Two audiences: somebody who has never been here, and somebody who set a
+  // handle before this step existed and only owes the second answer. The same
+  // form for both, because the shorter one is one field away from the longer
+  // one, but not the same opening line.
+  const returning = Boolean(profile.named);
   const ready = board.trim() && real.trim();
 
   return (
@@ -1166,17 +1175,21 @@ function LeagueSetup({ profile, onSave, busy, err }) {
       e.preventDefault();
       if (ready) onSave({ display_name: board.trim(), full_name: real.trim(), avatar: face });
     }}>
-      <p className="viz-empty-title">First, who are you on the board?</p>
+      <p className="viz-empty-title">
+        {returning ? 'One thing before you play' : 'First, who are you on the board?'}
+      </p>
       <p className="league-intro">
-        Your friends in a league see this. Nobody outside one does, and none of it touches your
-        sheet.
+        {returning
+          ? 'Your handle is set. Adding your name is what lets the people in your leagues tell who that is.'
+          : 'Your friends in a league see this. Nobody outside one does, and none of it touches your sheet.'}
       </p>
 
       <div className="setup-face">
         <Avatar name={board || profile.display_name} avatar={face} size={52} />
         <small>
-          Yours for now, picked at random. Change it, and everything below, in Settings whenever
-          you like.
+          {profile.avatar
+            ? 'Your avatar. Change it, and everything below, in Settings whenever you like.'
+            : 'Yours for now, picked at random. Change it, and everything below, in Settings whenever you like.'}
         </small>
       </div>
 
