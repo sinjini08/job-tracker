@@ -8,6 +8,7 @@ import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Insights from './Insights';
 import Logo from './Logo';
+import ThemeToggle from './Theme';
 import Rows from './Rows';
 import SheetSetup from './SheetSetup';
 import Drawer from './Drawer';
@@ -581,12 +582,15 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
           title="Back to your sheet">
           <Logo size={24} />Job Application Tracker
         </button>
-        {!shared && (
-          <div className="toolbar-right">
+        <div className="toolbar-right">
+          {/* Outside the !shared guard: somebody reading a sheet you shared
+              with them is still a person with a preference. */}
+          <ThemeToggle />
+          {!shared && <>
             <a className="btn ghost" href="/settings">Settings</a>
             <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
-          </div>
-        )}
+          </>}
+        </div>
       </header>
 
       <nav className="workbar">
@@ -886,7 +890,7 @@ function Display({ col, v, row }) {
       // you are. A status a student invented keeps the badge and takes a
       // neutral colour, because the column is still a state column.
       if (col.key !== 'status' && col.key !== 'priority') return v;
-      const [bg, fg] = CHIP[v] || ['#e9e9e9', '#5f6366'];
+      const [bg, fg] = CHIP[v] || ['var(--chip-noreply-bg)', 'var(--chip-noreply-fg)'];
       return <span className="chip" style={{ background: bg, color: fg }}>{v}</span>;
     }
     case 'date':

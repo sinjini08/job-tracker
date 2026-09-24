@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "contrast": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",
