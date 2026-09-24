@@ -5,3 +5,8 @@ node_modules/
 .env*.local
 .vercel
 .DS_Store
+
+# Local-only harnesses: a page under app/ is a real route, so anything left
+# here would ship. Kept on disk, out of the build.
+app/dev-preview/
+.claude/

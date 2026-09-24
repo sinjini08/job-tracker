@@ -12,9 +12,9 @@
   --grid-line: #e4e4db;
   --head-bg: var(--paper);
   --head-line: #d8d8ca;
-  --head-text: #4a4a42;
+  --head-text: #3a3a33;
   --text: #1d231f;
-  --muted: #6b6b60;
+  --muted: #5a5a50;
   --bg: #ffffff;
   --chrome: var(--paper);
   --due: #c0392b;
@@ -80,6 +80,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
      rings read a hair low when the box is centred. */
   transform: translateY(-1px);
 }
+.toolbar { justify-content: space-between; }
 .toolbar-mid { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; justify-content: center; min-width: 0; }
 .toolbar-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; flex: 0 0 auto; }
 /* flex-basis rather than width: with three buttons beside it the box was
@@ -231,7 +232,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .cell.k-number, .cell.k-computed { text-align: right; font-variant-numeric: tabular-nums; }
 .cell.k-bool { text-align: center; }
 .cell.due { color: var(--due); font-weight: 600; }
-.cell.dim { color: #aaa; }
+/* A stopped counter on a closed row, not decoration. #aaa was 2.3:1 on white,
+   which is not a colour, it is an absence. */
+.cell.dim { color: #757569; }
 .grid td.sticky-col.selected { box-shadow: inset 0 0 0 2px var(--xl-green), 1px 0 0 var(--head-line); }
 
 .truncate { display: block; overflow: hidden; text-overflow: ellipsis; }
@@ -307,57 +310,167 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .combo-list li.hi { background: var(--xl-green-tint); color: var(--xl-green-dark); }
 
 /* ---------- sheet tabs + status bar ---------- */
-.tabs-bar {
+/* Three bars, each with one job.
+   The green one: the name, and the way out. The work bar: the sections and
+   everything you do to a sheet, next to what it acts on. The sheet bar at the
+   foot: which sheet. */
+.workbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--head-line);
+}
+.workbar .toolbar-mid { flex: 1 1 auto; justify-content: flex-start; gap: 8px; }
+.workbar-end { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; white-space: nowrap; }
+/* A hairline between navigating and doing, so the row reads as two halves. */
+.workbar > .tabs { padding-right: 12px; border-right: 1px solid var(--grid-line); }
+
+/* The buttons up here had no styling at all: .btn.primary and .btn.ghost are
+   written for the green bar, so once they moved onto a light row they fell
+   through to the browser's default grey. Hence "dead". */
+.workbar .btn {
+  height: 27px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  /* Ink, not grey. Everything on this row is a thing you can do, and the
+     labels were reading as disabled. */
+  color: var(--text);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.workbar .btn.primary {
+  background: var(--xl-green);
+  border-color: var(--xl-green);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(29 92 54 / 0.25);
+}
+.workbar .btn.primary:hover { background: var(--xl-green-dark); border-color: var(--xl-green-dark); }
+.workbar .btn.primary:active { box-shadow: none; transform: translateY(1px); }
+.workbar .btn.ghost {
+  background: var(--bg);
+  border-color: var(--grid-line);
+  color: var(--text);
+  font-weight: 500;
+}
+.workbar .btn.ghost:hover { background: var(--head-bg); border-color: var(--head-line); }
+.workbar .btn.ghost:active { transform: translateY(1px); }
+.workbar .btn.ghost:disabled { opacity: 0.45; cursor: default; }
+.workbar .btn.ghost:disabled:hover { background: var(--bg); border-color: var(--grid-line); }
+.workbar .btn:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+
+/* The search, with a magnifier drawn in rather than a wrapper element. */
+.workbar .search {
+  flex: 0 1 300px;
+  height: 27px;
+  padding: 0 10px 0 29px;
+  border: 1px solid var(--grid-line);
+  border-radius: 7px;
+  background: var(--bg) no-repeat 10px center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235a5a50' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.2'/%3E%3Cpath d='M10.2 10.2L14 14'/%3E%3C/svg%3E");
+  background-size: 13px 13px;
+  color: var(--text);
+  font-size: 12.5px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.workbar .search::placeholder { color: var(--head-text); }
+.workbar .search:hover { border-color: var(--head-line); }
+.workbar .search:focus {
+  outline: none;
+  border-color: var(--xl-green);
+  box-shadow: 0 0 0 3px var(--xl-green-tint);
+}
+
+/* The view switch, matched to the buttons beside it. */
+.workbar .viewpick { padding: 2px; background: var(--head-bg); border-color: var(--grid-line); border-radius: 7px; }
+.workbar .viewpick button { padding: 3px 11px; font-size: 12.5px; color: var(--head-text); transition: background 120ms ease; }
+.workbar .viewpick button:hover:not(.on) { color: var(--text); }
+.workbar .viewpick button.on { box-shadow: 0 1px 2px rgb(29 35 31 / 0.12); }
+
+/* The sheets, at the foot, where a spreadsheet keeps them.
+   Excel's idea without Excel's drawing: the active sheet is a white tab that
+   merges into the sheet above it, carrying a green edge along the bottom. No
+   folder outlines, no dividers between tabs, no notch. */
+.sheet-bar {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: 12px;
-  height: 30px;
-  background: var(--chrome);
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--head-bg);
   border-top: 1px solid var(--head-line);
 }
-.tabs { display: flex; align-items: stretch; padding-left: 8px; }
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 16px;
+  gap: 7px;
+  flex: none;
+  padding: 9px 15px;
   border: 0;
-  border-right: 1px solid var(--head-line);
   background: transparent;
   color: var(--head-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
 }
-.tab:first-child { border-left: 1px solid var(--head-line); }
-.tab:hover { background: #eaeade; }
-.tab.active {
-  background: #fff;
-  color: var(--xl-green-dark);
-  font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--xl-green);
-  margin-top: -1px;
+.sheet-bar .tab { border-radius: 0 0 8px 8px; }
+.sheet-bar .tab:hover { background: rgb(29 35 31 / 0.045); color: var(--text); }
+/* The white runs up to the top edge so the tab reads as part of the sheet
+   above it; the green sits on the bottom edge, where it cannot be mistaken
+   for a border. */
+.sheet-bar .tab.active {
+  /* A long fade rather than a short one: fully transparent at the top edge,
+     so the bar shows through and the tab has no top edge at all, then coming
+     up to solid white only at the very bottom. The tab reads as the sheet
+     running down into it instead of a shape parked under it. */
+  background: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0) 0%,
+    rgb(255 255 255 / 0.35) 40%,
+    rgb(255 255 255 / 0.75) 72%,
+    var(--bg) 100%);
+  color: var(--text);
+  font-weight: 650;
+  box-shadow: inset 0 -2px 0 var(--xl-green);
 }
+.tab:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
 .tab-count {
   font-size: 11px;
   font-weight: 600;
-  padding: 0 6px;
-  border-radius: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
   background: #e3e3d5;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .tab.active .tab-count { background: var(--xl-green-tint); color: var(--xl-green-dark); }
-.status-summary {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-right: 14px;
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
+
+/* Up in the work bar they are not sheets, so they keep the pill. */
+.workbar > .tabs { align-items: center; gap: 2px; }
+/* Ink for the ones you are not on as well: they are navigation, not
+   footnotes. */
+.workbar .tab { padding: 5px 11px; border-radius: 6px; font-size: 12.5px; color: var(--text); }
+.workbar .tab:hover { background: rgb(29 35 31 / 0.05); color: var(--text); }
+.workbar .tab { transition: background 120ms ease, color 120ms ease; }
+.workbar .tab.active {
+  background: var(--xl-green-tint);
+  color: var(--xl-green-dark);
+  font-weight: 650;
+  box-shadow: none;
 }
-.status-summary b { color: var(--text); font-weight: 600; }
-.status-summary .due-count, .status-summary .due-count b { color: var(--due); font-weight: 600; }
 
 /* ---------- details drawer ---------- */
 .drawer-scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.18); z-index: 40; }
@@ -553,7 +666,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .stat.good { border-color: rgba(31, 157, 85, 0.45); background: linear-gradient(180deg, #f2fbf5, var(--viz-surface) 70%); }
 .stat.good .stat-value { color: var(--xl-green-dark); }
 
-.viz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; }
+/* Two columns, fixed, not auto-fit.
+   auto-fit decides the column count from the available width, so on a wide
+   screen it made three and the cards flowed into whatever slot came next:
+   Points per day ended up beside Where things stand, and Where you found the
+   job sat alone on the row below with two empty columns next to it. Pairing
+   cannot be left to the width. With two columns the order in the markup is
+   the order on screen, and each full-width card starts a clean row. */
+.viz-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+/* One column when two would be narrower than a chart can be read at. */
+@container (max-width: 700px) { .viz-grid { grid-template-columns: minmax(0, 1fr); } }
+@supports not (container-type: inline-size) {
+  @media (max-width: 1060px) { .viz-grid { grid-template-columns: minmax(0, 1fr); } }
+}
 .viz-card { background: var(--viz-surface); border: 1px solid var(--viz-ring); border-radius: 8px; padding: 16px 18px 18px; min-width: 0; }
 .viz-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .viz-card h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--viz-ink); }
@@ -1486,11 +1611,12 @@ body:has(.login) { overflow: auto; }
 .col-list li {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 10px;
+  gap: 8px;
+  padding: 7px 10px 7px 4px;
   border-radius: 6px;
 }
+.col-list li > label { flex: 1 1 auto; min-width: 0; }
+.col-list li > .colpick-label.plain { font-size: 14px; color: var(--text); }
 .col-list li:hover { background: var(--head-bg); }
 .col-list li.off .colpick-label { color: var(--muted); }
 .col-list label { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
@@ -1703,6 +1829,16 @@ body:has(.login) { overflow: auto; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
 }
 
+/* Carrying the ring's own break. The ripple left the bullseye as a complete
+   circle, so on the way out it crossed the gap the dart came through and drew
+   a line across the one place the mark keeps empty. Cut to the same wedge, it
+   reads as the target answering rather than as stray geometry.
+
+   19deg centred at conic 49deg is measured, not chosen: it is what
+   scripts/build-splash.cjs reports for the break, the same pair of numbers the
+   draw-on sweep starts and finishes at. The ripple's own box is centred on the
+   bullseye, so 50% 50% here and 40% 58.6% on .sp-rings are the same point, and
+   the two gaps line up. */
 .sp-ring {
   position: absolute;
   left: 40%;
@@ -1713,10 +1849,20 @@ body:has(.login) { overflow: auto; }
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0.3);
   opacity: 0;
-  animation: sp-ring 820ms cubic-bezier(0.16, 0.85, 0.3, 1) forwards;
+  -webkit-mask-image: conic-gradient(from 39.5deg,
+    transparent 0 19deg, #000 22deg 357.5deg, transparent 360deg);
+  mask-image: conic-gradient(from 39.5deg,
+    transparent 0 19deg, #000 22deg 357.5deg, transparent 360deg);
+  /* One ring, slower than the hit that threw it. The impact itself is sharp
+     and this is the part that carries on afterwards, so it spreads at its own
+     pace rather than keeping up with the flash. A second ring behind it read
+     as a pulse rather than as one thing settling.
+
+     The easing spends its opacity early: by three quarters through it is under
+     5% and effectively gone. That is what lets it run past where the mark
+     starts handing off without anything visibly still moving. */
+  animation: sp-ring 1150ms cubic-bezier(0.16, 0.85, 0.3, 1) 1280ms forwards;
 }
-.sp-ring.a { animation-delay: 1280ms; }
-.sp-ring.b { animation-delay: 1400ms; border-width: 1px; }
 @keyframes sp-ring {
   0%   { opacity: 0.8; transform: translate(-50%, -50%) scale(0.32); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
@@ -2031,74 +2177,304 @@ body:has(.land) { overflow: auto; }
 .sheet-row input[type="text"]:disabled { opacity: 0.55; }
 
 /* ---------------------------------------------------------------------------
-   Insights — what the numbers are telling you to do next.
+   Insights: the charts and what they mean, on one page.
 
-   A card is a number, a sentence and at most one button. The tone strip down
-   the left is the only colour: green when something is going well, amber when
-   it has a date on it, grey the rest of the time. Deliberately quiet, because
-   five loud cards is the same as none.
+   Two columns. The charts take the room, because they are the evidence; the
+   rail beside them is the reading, and it is narrow on purpose so a claim has
+   to be short enough to be a claim.
    --------------------------------------------------------------------------- */
-.insights {
-  max-width: min(820px, 100%);
-  margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ins-head { margin-bottom: 4px; }
-.ins-head h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; color: var(--viz-ink); }
-.ins-head p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--viz-muted); }
-
-.ins-card {
+/* A split, not a sidebar. The page itself is the two panes: the evidence
+   scrolls on the left, the reading sits on the right against its own surface
+   with its own scroll, so neither drags the other. */
+/* Two real scrollers, not a sticky column inside one.
+   The rail used to be position:sticky with max-height:100vh, but 100vh counts
+   the app bar, so the rail was taller than the space it had: its top sat above
+   the viewport, its own scrollbar was out of reach, and the outer container
+   scrolled instead. Now the split itself never scrolls and each column scrolls
+   its own content against a definite height, which .app already provides. */
+.charts.ins-split {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 16px;
+  /* Fluid, not fixed. A rail pinned at 380px forced the split to give up
+     below 1040px, which is narrower than plenty of real windows and every
+     side-by-side pane. It narrows instead. */
+  grid-template-columns: minmax(0, 1fr) clamp(250px, 31%, 380px);
+  gap: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.ins-split > .ins-main,
+.ins-split > .ins-rail {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.ins-split > .ins-main {
+  padding: 18px clamp(14px, 2vw, 22px) 60px;
+  /* The chart grid asks this element how wide it is, not the window: the rail
+     takes a third of the page, so a window breakpoint would be wrong by the
+     width of the rail. */
+  container-type: inline-size;
+}
+.ins-split > .ins-rail {
+  padding: 18px clamp(14px, 1.6vw, 22px) 48px;
+  background: var(--viz-surface);
+  border-left: 1px solid var(--viz-ring);
+}
+.ins-top {
+  display: flex;
   align-items: start;
-  padding: 16px 18px;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.ins-top h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.015em; color: var(--viz-ink); }
+.ins-standing { margin: 0; font-size: 14px; color: var(--viz-ink-2); }
+.ins-standing b { font-weight: 700; color: var(--viz-ink); font-variant-numeric: tabular-nums; }
+/* A dot between the clauses, so the line reads as facts rather than a sentence. */
+.ins-standing i {
+  display: inline-block;
+  width: 3px; height: 3px;
+  margin: 0 9px;
+  vertical-align: 3px;
+  border-radius: 50%;
+  background: var(--viz-grid);
+}
+
+.ins-filters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+/* The label is a real label, so it needs a real gap. It was sitting against
+   the dropdown because .sr-only was never defined and it rendered visibly
+   with nothing between them. */
+.ins-pick { display: inline-flex; align-items: center; gap: 8px; }
+.ins-pick > span { font-size: 12px; font-weight: 600; color: var(--viz-muted); }
+.ins-pick select {
+  padding: 7px 30px 7px 11px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--viz-ink);
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
-  border-left: 3px solid var(--viz-grid);
-  border-radius: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--viz-muted) 50%),
+                    linear-gradient(135deg, var(--viz-muted) 50%, transparent 50%);
+  background-position: right 14px center, right 9px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
-.ins-card.urgent { border-left-color: #c79a2a; }
-.ins-card.nudge  { border-left-color: var(--ord-4); }
-.ins-card.win    { border-left-color: var(--xl-green); }
+.ins-pick select:focus-visible { outline: 2px solid var(--xl-green); outline-offset: 1px; }
 
-.ins-side { text-align: right; padding-top: 2px; }
-.ins-num {
-  display: block;
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+.ins-rail { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+/* Section headings in the rail. Ink rather than grey, and sitting on a
+   hairline that runs the width of the rail, so the rail reads as three
+   sections rather than one long column of text. */
+.ins-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--viz-ink);
+  border-bottom: 1px solid var(--viz-ring);
 }
-.ins-side small { display: block; margin-top: 2px; font-size: 11px; line-height: 1.35; color: var(--viz-muted); }
-
-.ins-body { min-width: 0; }
-.ins-tone {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 10px;
+.ins-h {
+  margin: 0 0 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--viz-muted);
 }
-.ins-body h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.35; color: var(--viz-ink); }
-.ins-body p { margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: var(--viz-ink-2); }
-.ins-body p:last-child { margin-bottom: 0; }
+.ins-block { display: block; }
 
-.ins-empty {
-  padding: 22px 20px;
-  background: var(--viz-surface);
-  border: 1px solid var(--viz-ring);
-  border-radius: 10px;
+/* The line of the day. No card and no gradient: it is one sentence, and a
+   tinted box around one sentence was the loudest thing in a rail whose job is
+   to be read. A hairline above it and room around it does the same work. */
+.ins-quote {
+  margin: 0;
+  padding: 2px 0 0;
+  border-top: 2px solid var(--xl-green);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--viz-ink);
 }
-.ins-empty b { display: block; margin-bottom: 6px; font-size: 15px; color: var(--viz-ink); }
-.ins-empty p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--viz-muted); }
-.ins-fine { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--viz-muted); }
+.ins-quote span {
+  display: block;
+  margin-bottom: 9px;
+  padding-top: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--viz-muted);
+}
+
+/* Reminders, grouped by what they are, each naming the jobs it means. */
+.ins-group + .ins-group { margin-top: 4px; }
+.ins-group-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 6px 9px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 7px;
+}
+.ins-group-top:hover b { color: var(--xl-green-dark); }
+.ins-group-top b { flex: 1 1 auto; font-size: 14px; font-weight: 600; color: var(--viz-ink); }
+.ins-group-top em {
+  flex: none;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  min-width: 20px;
+  padding: 2px 7px;
+  text-align: center;
+  border-radius: 999px;
+  background: var(--viz-base);
+  color: var(--viz-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.ins-caret {
+  flex: none;
+  width: 10px;
+  height: 6px;
+  fill: none;
+  stroke: var(--viz-muted);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 150ms ease;
+}
+.ins-caret.on { transform: rotate(180deg); }
+.ins-group-note { margin: 0 0 8px 19px; font-size: 12px; line-height: 1.45; color: var(--viz-muted); }
+.ins-jobs { margin-left: 19px; }
+.ins-jobs { padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.ins-jobs li { display: flex; align-items: center; gap: 4px; }
+/* The row IS the action. "Show" said nothing about what it would show; the
+   employer's own name says it. */
+.ins-job {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ins-job:hover { background: var(--viz-base); }
+.ins-job-name {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--viz-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ins-job-when { flex: none; font-size: 11.5px; color: var(--viz-muted); }
+.ins-jobs li:hover .ins-job-name { color: var(--xl-green-dark); }
+
+/* Opt out of being reminded about this one. Appears on hover and on focus, so
+   it is reachable but not eleven crosses down the rail. */
+.ins-mute {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.ins-mute svg { width: 10px; height: 10px; fill: none; stroke: var(--viz-muted); stroke-width: 1.6; stroke-linecap: round; }
+.ins-jobs li:hover .ins-mute, .ins-mute:focus-visible { opacity: 1; }
+.ins-mute:hover { background: var(--viz-base); }
+.ins-mute:hover svg { stroke: var(--due); }
+
+/* the findings */
+.ins-keys { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 18px; }
+.ins-keys li { display: flex; gap: 13px; align-items: start; }
+.ins-keys > li > div { min-width: 0; }
+.ins-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--xl-green-tint);
+}
+.ins-mark svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--xl-green-dark);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ins-keys b { display: block; font-size: 14px; font-weight: 650; line-height: 1.4; letter-spacing: -0.005em; color: var(--viz-ink); }
+.ins-keys p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--viz-ink-2); }
+.ins-quiet { margin: 0; font-size: 13px; line-height: 1.6; color: var(--viz-muted); }
+.ins-link {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--xl-green);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ins-link:hover { color: var(--xl-green-dark); }
+
+/* Where the arithmetic stops and the assistant starts. */
+.ins-ask p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--viz-ink-2); }
+.ins-ask a { color: var(--xl-green); text-underline-offset: 3px; }
+.ins-ask-eg {
+  margin-top: 10px !important;
+  padding: 9px 11px;
+  background: var(--viz-base);
+  border-radius: 8px;
+  font-size: 12px !important;
+  color: var(--viz-muted) !important;
+}
+.ins-ask-eg i { color: var(--viz-ink-2); }
+
+/* Only on a phone, where two columns of anything is one too many. */
+@media (max-width: 680px) {
+  .charts.ins-split { grid-template-columns: minmax(0, 1fr); height: auto; overflow: auto; }
+  .ins-split > .ins-main,
+  .ins-split > .ins-rail { height: auto; overflow: visible; }
+  .ins-split > .ins-rail { border-left: 0; border-top: 1px solid var(--viz-ring); }
+}
 
 /* Says why the grid is short, in the slot the search box usually has. */
 .focus-note {
@@ -2117,46 +2493,382 @@ body:has(.land) { overflow: auto; }
   border-radius: 999px;
 }
 
-/* One column on a phone: a 96px number column beside prose is most of the
-   width, and the number reads fine above the sentence it belongs to. */
-@media (max-width: 620px) {
-  .ins-card { grid-template-columns: 1fr; gap: 8px; }
-  .ins-side { text-align: left; }
-  /* Number and label on one line here, so a card costs one row of height
-     rather than two for the same two words. */
-  .ins-num { display: inline; font-size: 26px; }
-  .ins-side small { display: inline; margin-left: 6px; }
+/* ---------------------------------------------------------------------------
+   The sheet as a list.
+
+   Excel's grid is the right tool for typing and the wrong one for reading: a
+   cell gives every value the same weight and pushes half of them off the right
+   edge. Here one line carries the seven things people actually scan for, the
+   employer leads, and the rest waits underneath.
+
+   Not a <table>: each row is a button with a panel under it, so the expand
+   works from a keyboard and the whole thing can become one column on a phone
+   rather than scrolling sideways.
+   --------------------------------------------------------------------------- */
+.rowsv {
+  flex: 1;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 18px max(16px, calc((100% - 1180px) / 2)) 60px;
+  background: var(--paper);
+}
+.rowsv-empty { margin: 40px 0; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* One template drives the header and every row, so a column cannot drift. */
+/* The track list comes from the component, because which columns a row shows
+   is the student's own choice. Everything else about the row is here. */
+.rowsv-head, .rowsv-row { display: grid; align-items: center; gap: 12px; }
+.rowsv-head { padding: 0 14px 8px; }
+.rowsv-h {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rowsv-h:hover { color: var(--text); }
+.rowsv-h i { font-style: normal; margin-left: 4px; color: var(--green); }
+
+.rowsv-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.rowsv-list > li {
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.rowsv-list > li:hover { border-color: var(--grid-line); }
+.rowsv-list > li.on { border-color: var(--grid-line); box-shadow: 0 1px 3px rgb(29 35 31 / 0.06); }
+
+.rowsv-row {
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.rowsv-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+
+.rowsv-who { display: flex; align-items: center; min-width: 0; }
+.rowsv-row { align-items: center; }
+.rowsv-names { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.rowsv-names b { font-size: 14.5px; font-weight: 650; color: var(--text); letter-spacing: -0.008em; }
+.rowsv-names small { font-size: 12.5px; color: var(--head-text); }
+/* The role is the thing someone is looking for, so it is never cut: it wraps
+   onto a second line and the row grows. The employer under it can still
+   ellipsis, because by then you already know which row you are on. */
+.rowsv-names b { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+.rowsv-names small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rowsv-meta { display: contents; }
+/* Values sit at the page's own ink, not the muted grey. Muted is for labels
+   and for a value that is genuinely absent, and using it for everything is
+   what made every column but the employer hard to read. */
+.rowsv-c {
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowsv-c.nil { color: var(--grid-line); }
+.rowsv-c.late { color: var(--due); font-weight: 600; }
+/* Status and priority are states rather than values, so they get the badge.
+   Nothing else on the row does, which is what keeps the badge meaning
+   something. */
+.rowsv-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowsv-chev {
+  width: 10px;
+  height: 6px;
+  justify-self: center;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s ease;
+}
+.rowsv-chev.up { transform: rotate(180deg); }
+.rowsv-list > li:hover .rowsv-chev { stroke: var(--text); }
+
+.rowsv-open {
+  padding: 2px 16px 18px;
+  margin: 0 14px;
+  border-top: 1px solid var(--grid-line);
 }
 
-/* The written read. Set apart from the cards above it, because those are
-   arithmetic and this is an opinion, and the page should not pretend they
-   carry the same weight. */
-.ins-read {
-  padding: 16px 18px;
-  background: var(--viz-base);
-  border: 1px solid var(--viz-ring);
-  border-radius: 10px;
+/* The view switch, one control with two states. */
+.viewpick { display: inline-flex; padding: 2px; background: var(--head-bg); border: 1px solid var(--head-line); border-radius: 8px; }
+.viewpick button {
+  padding: 4px 11px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--head-text);
+  border-radius: 6px;
+  cursor: pointer;
 }
-.ins-read-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ins-read-top h3 { margin: 0; flex: 1 1 auto; font-size: 15px; color: var(--viz-ink); }
-.ins-read-hint, .ins-read-body {
-  margin: 10px 0 0;
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--viz-ink-2);
+.viewpick button.on { background: var(--bg); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(29 35 31 / 0.08); }
+
+/* On a phone: employer and status on the first line, the rest wrapping
+   underneath as one flowing line rather than five stacked ones. */
+@media (max-width: 860px) {
+  .rowsv-head { display: none; }
+  .rowsv-row {
+    grid-template-columns: minmax(0, 1fr) auto 12px;
+    gap: 8px 10px;
+    padding: 12px 14px;
+  }
+  /* Placed explicitly: the meta line spans every column, so without this the
+     chevron is pushed onto a row of its own below it. */
+  .rowsv-who { grid-row: 1; grid-column: 1; }
+  .rowsv-row > .c-status { grid-row: 1; grid-column: 2; }
+  .rowsv-chev { grid-row: 1; grid-column: 3; }
+  .rowsv-meta {
+    display: flex;
+    grid-row: 2;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+  }
+  .rowsv-meta .rowsv-c { font-size: 12px; }
+  .rowsv-meta .rowsv-c.nil { display: none; }
 }
-.ins-read-body { color: var(--viz-ink); }
-.ins-read-err { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--due); }
-.ins-moves { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.ins-moves li {
+
+/* The details panel, shared by the drawer and by a row expanded in place.
+   Labelled fields in a grid that reflows on width, so the same markup fits a
+   380px drawer and the full width of a row. */
+.details { display: flex; flex-direction: column; gap: 18px; }
+/* Deliberately sets no display: `.details > section` outranks `.det-grid` on
+   specificity, so setting flex here silently turned every grid section into a
+   single right-aligned column. */
+.details > section { gap: 10px; }
+.details h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.details > section.det-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 16px;
+  align-items: end;
+}
+.det-grid h3 { grid-column: 1 / -1; }
+/* The history section is the only one that is not a grid. */
+.details > section:not(.det-grid) { display: flex; flex-direction: column; }
+.det-foot {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 9px 12px;
-  background: var(--viz-surface);
-  border: 1px solid var(--viz-ring);
-  border-radius: 8px;
+  align-items: end;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--grid-line);
 }
-.ins-moves b { font-size: 13px; color: var(--viz-ink); }
-.ins-moves span { font-size: 12px; line-height: 1.55; color: var(--viz-muted); }
-.ins-read-fine { display: block; margin-top: 12px; font-size: 11px; line-height: 1.5; color: var(--viz-muted); }
+.det-foot .field { max-width: 220px; }
+
+/* Field chrome. Quiet until you are in it: a box drawn around every input on
+   an eighteen-field panel is a lot of lines for no information. */
+.details .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.details .field > span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.details .field input,
+.details .field textarea,
+.details .field select {
+  width: 100%;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--paper);
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+.details .field textarea { resize: vertical; line-height: 1.55; }
+.details .field input:hover,
+.details .field textarea:hover,
+.details .field select:hover { border-color: var(--grid-line); }
+.details .field input:focus,
+.details .field textarea:focus,
+.details .field select:focus {
+  outline: none;
+  background: var(--bg);
+  border-color: var(--green);
+}
+.details .check-field { flex-direction: row; align-items: center; gap: 8px; padding-bottom: 8px; }
+.details .check-field > span { text-transform: none; font-size: 12.5px; letter-spacing: 0; color: var(--text); }
+.details .check-field input { width: auto; padding: 0; }
+.details .readonly-text { padding: 7px 9px; font-size: 13px; color: var(--muted); }
+
+/* No override for the drawer: auto-fit already gives it two columns at its
+   width and four at a row's, which is the point of writing it that way. An
+   earlier rule here forcing one column was dead anyway, outranked by
+   `.details > section.det-grid`. */
+
+/* In list view a column has two homes: on the row, or in the details under it.
+   A small toggle rather than a second checkbox, because it is not an on/off
+   of the column, it is a where. */
+.rowpin {
+  flex: none;
+  padding: 3px 9px;
+  border: 1px solid var(--head-line);
+  border-radius: 999px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rowpin:hover { border-color: var(--grid-line); color: var(--text); }
+.rowpin.on { background: var(--xl-green-tint); border-color: #bfe0cb; color: var(--green); }
+
+/* A long field, closed until you want it. The connector stores a whole posting
+   when a student pastes one, so three open text areas made the panel mostly
+   empty boxes and pushed the history below the fold. */
+.folded { border-top: 1px solid var(--grid-line); }
+.folded-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.folded-top .rowsv-chev { align-self: center; }
+.folded-top b { flex: none; font-size: 12.5px; font-weight: 600; color: var(--text); }
+.folded-top small {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folded-top em {
+  flex: none;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.folded-top:hover b { color: var(--green); }
+.folded .field { padding-bottom: 12px; }
+.folded .field > span:empty { display: none; }
+
+/* Reordering columns. Native drag and drop for a pointer, arrow keys on the
+   handle for everything else, because native DnD has no keyboard story. */
+.col-list li { position: relative; }
+.col-grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  border-radius: 5px;
+}
+.col-grip svg { width: 10px; height: 16px; fill: var(--grid-line); }
+.col-list li:hover .col-grip svg { fill: var(--muted); }
+.col-grip:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.col-grip:focus-visible svg { fill: var(--green); }
+/* The motion.
+   The row you are holding follows the pointer with no easing, because a lag
+   between finger and row always feels broken. Everything else uses one
+   decisive ease-out. No overshoot anywhere: a back-out curve sounds like life
+   and looks, on a row settling into a slot, like the row cannot decide where
+   it lives. */
+.col-list li {
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), opacity 130ms ease;
+}
+/* The commit frame. See endDrag: the row's new slot and the loss of its
+   transform have to happen together and instantly, or they animate against
+   each other. */
+.col-list.snap li { transition: none; }
+@media (prefers-reduced-motion: reduce) { .col-list li { transition: none; } }
+
+/* Held: lifted off the list rather than pressed into it, because it is the
+   thing moving and everything else is the background it moves over. */
+.col-list li.held {
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+  box-shadow: 0 6px 16px rgb(29 35 31 / 0.14), 0 0 0 1px var(--grid-line);
+  cursor: grabbing;
+}
+.col-list.lifting { cursor: grabbing; }
+.col-list.lifting li:not(.held) { cursor: grabbing; }
+/* Nothing selects while a drag is in flight. */
+.col-list.lifting { user-select: none; }
+
+/* In list view a column is not shown or hidden, it is on the row or in the
+   details, so its name is a label rather than a checkbox. */
+.colpick-label.plain { flex: 1 1 auto; min-width: 0; }
+.rowpin.fixed {
+  flex: none;
+  padding: 3px 9px;
+  border: 1px dashed var(--head-line);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* The way back from Insights and League. It sits where the sheet's own
+   controls sit, because it is the control that gets you to them. */
+.back-to-sheet { display: inline-flex; align-items: center; gap: 6px; font-weight: 600 !important; }
+.back-to-sheet svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.workbar .back-to-sheet:hover { border-color: var(--xl-green); color: var(--xl-green-dark); }

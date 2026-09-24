@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLOSED, STAGES, computeStats, pct } from '@/lib/stats';
-import { SHEET_KEYS, sheetLabel } from '@/lib/fields';
+import { SHEET_KEYS } from '@/lib/fields';
 import DayChart from './LeagueCharts';
 
-const PERIODS = [
+export const PERIODS = [
   { id: 'all', label: 'All time', days: null },
   { id: '90', label: 'Last 90 days', days: 90 },
   { id: '30', label: 'Last 30 days', days: 30 },
@@ -24,9 +24,7 @@ const BREAKDOWNS = [
   { id: 'byWorkMode', label: 'Work mode', title: 'On-site, hybrid or remote' },
 ];
 
-export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }) {
-  const [sheet, setSheet] = useState('All');
-  const [period, setPeriod] = useState('all');
+export default function Charts({ rows, events, sheets = SHEET_KEYS, sheet = 'All', period = 'all' }) {
   const [daily, setDaily] = useState(null);
   const tip = useTooltip();
 
@@ -48,17 +46,7 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }
   );
 
   return (
-    <div className="charts viz-root">
-      <div className="viz-filters" role="toolbar" aria-label="Chart filters">
-        {sheets.length > 1 && (
-          <Segmented label="Sheet"
-            options={[{ id: 'All', label: 'All' }, ...sheets.map((k) => ({ id: k, label: sheetLabel(k, names) }))]}
-            value={sheet} onChange={setSheet} />
-        )}
-        <Segmented label="Period" options={PERIODS} value={period} onChange={setPeriod} />
-        {events == null && <span className="viz-note">Loading history…</span>}
-      </div>
-
+    <>
       {data.total === 0 && data.wishlist === 0 ? (
         <div className="viz-empty">
           <p className="viz-empty-title">No applications here yet</p>
@@ -69,7 +57,11 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }
         <>
           <div className="viz-kpis">
             <Stat label="Applications" value={data.total} sub={data.wishlist ? `plus ${data.wishlist} on the wishlist` : 'sent'} />
-            <Stat label="Still in play" value={data.active} sub="not rejected, withdrawn or silent" />
+            {/* The strict one: not closed, and not sitting at Applied for
+                three weeks. One definition, shared with the Insights rules, so
+                this and the rail can never disagree. */}
+            <Stat label="Still live" value={data.live}
+              sub="not closed, and not silent for three weeks" />
             <Stat label="Response rate" value={`${data.responseRate}%`} sub={`${data.responded} of ${data.total} heard back`} />
             <Stat label="Reached interview" value={data.interviews} sub={`${pct(data.interviews, data.total)}% of applications`} />
             <Stat label="Offers" value={data.offers} sub={`${pct(data.offers, data.total)}% of applications`} good={data.offers > 0} />
@@ -94,8 +86,10 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }
               <Pipeline rows={data.byStatus} tip={tip} />
             </Card>
 
+            {/* Neither of these needs the whole width: one is a sparkline of
+                daily points, the other is three or four bars. Side by side
+                they read as one question about how the week went. */}
             <Card title="Points per day" subtitle="Applying scores, and getting further scores more. You earn these whether or not you are in a league"
-              full
               table={{ cols: ['Day', 'Points'], rows: (daily ?? []).map((d) => [d.day, d.pts]) }}>
               <DayChart monthOnly={false}
                 series={daily ? [{ key: 'me', label: 'You', daily: daily.map((d) => d.pts) }] : []} />
@@ -106,7 +100,7 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, names = {} }
         </>
       )}
       {tip.node}
-    </div>
+    </>
   );
 }
 
@@ -125,6 +119,7 @@ function Segmented({ label, options, value, onChange }) {
     </div>
   );
 }
+
 
 function Stat({ label, value, sub, good }) {
   return (
@@ -418,7 +413,6 @@ function Breakdown({ data, tip }) {
 
   return (
     <Card title={spec.title} subtitle="How many you sent, and how many of those reached an interview"
-      full
       tools={<Segmented label="" options={BREAKDOWNS} value={which} onChange={setWhich} />}
       table={{ cols: [spec.label, 'Applications', 'Reached interview'],
         rows: rows.map((r) => [r.label, r.value, `${r.interviews} (${pct(r.interviews, r.value)}%)`]) }}>

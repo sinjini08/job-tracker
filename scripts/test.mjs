@@ -37,72 +37,126 @@ const app = (o = {}) => ({ id: `a${seq += 1}`, role: 'Dev', company: 'Co', statu
   date_applied: d(1), referral: false, ...o });
 const run = (rows, events = []) =>
   buildInsights(rows, events, computeStats(rows, events, {}), { today: TODAY });
-const card = (r, id) => r.cards.find((c) => c.id === id);
+const has = (r, id) => r.insights.find((c) => c.id === id);
+const chore = (r, id) => r.chores.find((c) => c.id === id);
 
 // ---------------------------------------------------------------------------
-section('Insights — staying quiet');
-ok(run([]).cards.length === 0, 'no rows produces no cards');
-ok(run([app({ date_applied: d(2) })]).cards.length === 0, 'one fresh application produces no cards');
+section('Insights — silence');
+ok(run([]).insights.length === 0, 'no rows produces no insights');
+ok(run([]).chores.length === 0, 'no rows produces no chores');
+ok(run([app({ date_applied: d(2) })]).insights.length === 0,
+  'one fresh application is not enough to claim anything');
+ok(run(Array.from({ length: 4 }, (_, i) => app({ date_applied: d(2 + i) }))).insights.length === 0,
+  'four applications, all healthy, still says nothing');
 
-section('Insights — things with a clock on them');
+section('Insights — chores, which are dated and obvious');
 let r = run([
   app({ next_follow_up: d(12), company: 'Acme' }),
   app({ next_follow_up: d(3), company: 'Globex' }),
   app({ next_follow_up: d(-4), company: 'Later' }),
 ]);
-let c = card(r, 'followups-overdue');
-ok(c?.stat.value === 2, 'counts only follow-ups whose date has passed');
-ok(/Acme/.test(c.detail) && /12 days ago/.test(c.detail), 'names the oldest and how late it is');
-ok(c.rows.length === 2, 'points at the rows it is about');
-ok(!card(run([app({ next_follow_up: d(12), status: 'Rejected' })]), 'followups-overdue'),
+let c = chore(r, 'followups');
+ok(c?.count === 2, 'counts only follow-ups whose date has passed');
+ok(c.items[0].name === 'Acme' && /12 days late/.test(c.items[0].when),
+  'names each job and how late it is, oldest first');
+ok(c.items.length === 2 && c.items.every((i) => i.id && i.name && i.when),
+  'every reminder carries the job it is about');
+ok(!chore(run([app({ next_follow_up: d(12), status: 'Rejected' })]), 'followups'),
   'a closed application is not chased');
-ok(!card(run([app({ next_follow_up: d(12), status: 'Wishlist' })]), 'followups-overdue'),
+ok(!chore(run([app({ next_follow_up: d(12), status: 'Wishlist' })]), 'followups'),
   'a wishlist row is not chased');
-
 r = run([app({ status: 'Wishlist', deadline: d(-3), company: 'Soon' }),
   app({ status: 'Wishlist', deadline: d(-30) }), app({ status: 'Wishlist', deadline: d(2) })]);
-c = card(r, 'deadlines-near');
-ok(c?.stat.value === 1, 'only deadlines inside a week, and not ones already past');
-ok(/Soon/.test(c.detail), 'names the closest deadline');
+ok(chore(r, 'deadlines')?.count === 1, 'only deadlines inside a week, none already past');
+ok(chore(run([app({ date_applied: d(30) }), app({ date_applied: d(25) }),
+  app({ date_applied: d(5) }), app({ date_applied: d(40), status: 'Screening' })]), 'stale')?.count === 2,
+  'stale counts only rows still at Applied past 21 days');
 
-c = card(run([app({ date_applied: d(30) }), app({ date_applied: d(25) }),
-  app({ date_applied: d(5) }), app({ date_applied: d(40), status: 'Screening' })]), 'stale');
-ok(c?.stat.value === 2, 'stale counts only rows still sitting at Applied past 21 days');
+section('Insights \u2014 a job you have stopped chasing');
+ok(!chore(run([app({ next_follow_up: d(12), remind: false })]), 'followups'),
+  'a muted job is not chased');
+ok(!chore(run([app({ status: 'Wishlist', deadline: d(-3), remind: false })]), 'deadlines'),
+  'a muted job does not nag about its deadline either');
+ok(!chore(run([app({ date_applied: d(40), remind: false })]), 'stale'),
+  'a muted job is not counted as gone quiet');
+ok(chore(run([app({ next_follow_up: d(12) }), app({ next_follow_up: d(9), remind: false })]),
+  'followups')?.count === 1, 'muting one leaves the others');
+// remind only silences the reminders. The figures still count the application,
+// because it is still an application.
+ok(run([...Array.from({ length: 9 }, (_, i) => app({ date_applied: d(30 + i), remind: false }))])
+  .state.applied === 9, 'a muted job still counts in the numbers');
 
-section('Insights — rates need a sample');
+section('One definition of still live');
+{
+  const live = [
+    app({ status: 'Applied', date_applied: d(3) }),          // fresh
+    app({ status: 'Screening', date_applied: d(40) }),       // old but moving
+    app({ status: 'Applied', date_applied: d(40) }),         // gone quiet
+    app({ status: 'Rejected', date_applied: d(5) }),         // closed
+    app({ status: 'Wishlist' }),                             // not sent
+  ];
+  const stats = computeStats(live, [], {});
+  eq(stats.live, 2, 'live counts the fresh one and the one still moving, and nothing else');
+  eq(stats.total, 4, 'the total still counts every application sent');
+  eq(buildInsights(live, [], stats, { today: TODAY }).state.live, stats.live,
+    'the chart and the rail agree on what live means');
+}
+
+section('Insights — where you stand');
+const paced = Array.from({ length: 12 }, (_, i) => app({ date_applied: d(7 + i * 2) }));
+r = run([...paced, app({ status: 'Interviewing', date_applied: d(10) })]);
+ok(r.state.live + r.state.closed === r.state.applied, 'live and closed account for every application');
+ok(r.state.forecast?.unit === 'interview', 'forecasts interviews when there are any');
+ok(run(paced).state.forecast?.unit === 'screening' || run(paced).state.forecast === null,
+  'falls back to screenings, or says nothing, when no interview has happened');
+ok(run([app()]).state.forecast === null, 'one application is not a rate');
+
+section('Insights — claims have to earn it');
 const bySource = (src, n, replies) => Array.from({ length: n }, (_, i) =>
   app({ source: src, status: i < replies ? 'Rejected' : 'Applied', date_applied: d(30 + i) }));
-ok(!card(run([...bySource('Handshake', 4, 3), ...bySource('LinkedIn', 3, 0)]), 'source-spread'),
-  `under ${LIMITS.rates} applications, sources stay quiet`);
-c = card(run([...bySource('Handshake', 6, 4), ...bySource('LinkedIn', 6, 0)]), 'source-spread');
-ok(/Handshake/.test(c.title) && /LinkedIn/.test(c.title), 'names best and worst source');
-ok(/4 of 6/.test(c.detail) && /0 of 6/.test(c.detail), 'quotes both raw counts');
-ok(card(run([...bySource('Handshake', 6, 2),
-  ...Array.from({ length: 6 }, (_, i) => app({ date_applied: d(30 + i) }))]), 'source-missing'),
-  'says why it cannot compare when half the rows have no source');
+ok(!has(run([...bySource('Handshake', 4, 3), ...bySource('LinkedIn', 3, 0)]), 'channel-cost'),
+  `under ${LIMITS.rates} applications, channels stay quiet`);
+c = has(run([...bySource('Handshake', 6, 5), ...bySource('LinkedIn', 8, 1)]), 'channel-cost');
+ok(/Handshake answers you more often than LinkedIn/.test(c.claim),
+  'names the channel that answers, without scolding the one that does not');
+ok(/5 of your 6 Handshake applications came back, against 1 of 8 on LinkedIn/.test(c.support),
+  'shows both raw counts');
+ok(c.rows.length === 8, 'links to the applications it is about, not both channels');
+ok(!has(run([...bySource('Handshake', 6, 3), ...bySource('LinkedIn', 6, 2)]), 'channel-cost'),
+  'a gap of one reply is not worth a claim');
 
-const ref = (n, replies, referral) => Array.from({ length: n }, (_, i) =>
-  app({ referral, status: i < replies ? 'Screening' : 'Applied', date_applied: d(30 + i) }));
-c = card(run([...ref(4, 3, true), ...ref(6, 1, false)]), 'referral-lift');
-ok(/3 of 4/.test(c.detail) && /1 of 6/.test(c.detail), 'referral lift quotes both sides');
-ok(!card(run([...ref(2, 2, true), ...ref(8, 1, false)]), 'referral-lift'),
-  'two referrals is too few to claim a lift');
-
-section('Insights — the funnel and the pace');
-const mix = [
-  ...Array.from({ length: 10 }, (_, i) => app({ status: 'Applied', date_applied: d(30 + i) })),
-  ...Array.from({ length: 6 }, (_, i) => app({ status: 'Screening', date_applied: d(30 + i) })),
-  ...Array.from({ length: 5 }, (_, i) => app({ status: 'Interviewing', date_applied: d(30 + i) })),
+const mixed = [
+  ...Array.from({ length: 9 }, (_, i) => app({ date_applied: d(30 + i) })),
+  ...Array.from({ length: 3 }, (_, i) => app({ referral: true, status: 'Screening', date_applied: d(20 + i) })),
 ];
-c = card(run(mix), 'funnel-drop');
-ok(/never get a reply/.test(c.title), 'reads the biggest drop, in applications not percent');
-ok(/21 reached Applied/.test(c.detail) && /11 got to Screening/.test(c.detail),
-  'funnel quotes the two stage counts');
-const spread = Array.from({ length: 12 }, (_, i) => app({ date_applied: d(14 + i) }));
-ok(card(run(spread), 'gap')?.stat.value === 14, 'gap counts days since the most recent application');
-ok(!card(run([...spread, app({ date_applied: d(1) })]), 'gap'),
-  'one recent application closes the gap card');
-ok(run([...mix, app({ next_follow_up: d(9) })]).cards[0].tone === 'urgent', 'dated things rank first');
+c = has(run(mixed), 'referral-lever');
+ok(/Referrals have worked every time/.test(c.claim), 'names the lever that works');
+ok(/1 application in 4/.test(c.support), 'says how rarely it is used');
+ok(!has(run([...Array.from({ length: 6 }, (_, i) => app({ referral: true, status: 'Screening', date_applied: d(20 + i) })),
+  ...Array.from({ length: 6 }, (_, i) => app({ date_applied: d(30 + i) }))]), 'referral-lever'),
+  'a lever used half the time is not underused');
+
+ok(!has(run(mixed), 'no-outreach'),
+  'never claims nobody was spoken to while counting referrals, which would contradict itself');
+ok(has(run(Array.from({ length: 10 }, (_, i) => app({ date_applied: d(30 + i) }))), 'no-outreach'),
+  'does claim it when there really has been no contact');
+
+const stalePile = [
+  ...Array.from({ length: 7 }, (_, i) => app({ date_applied: d(30 + i) })),
+  ...Array.from({ length: 3 }, (_, i) => app({ date_applied: d(2 + i) })),
+];
+c = has(run(stalePile), 'pipeline-reframe');
+ok(/3 of your 10 are still moving/.test(c.claim), 'reframes the count to the one still moving');
+
+section('Insights — ranking and the cap');
+const everything = [...bySource('Handshake', 6, 5), ...bySource('LinkedIn', 8, 1),
+  ...Array.from({ length: 3 }, (_, i) => app({ referral: true, status: 'Screening', date_applied: d(20 + i) })),
+  app({ next_follow_up: d(9) })];
+r = run(everything);
+ok(r.insights.length <= LIMITS.shown, `never more than ${LIMITS.shown} at once`);
+ok(r.insights[0].kind === 'counterfactual',
+  'what a choice cost you outranks what merely reframes or suggests');
+ok(r.insights.every((i) => i.claim && i.support), 'every claim carries its own figures');
 
 section('The brief — what leaves the app');
 const secret = (o = {}) => app({ company: 'SECRETCORP', pay: '$999999/hr',

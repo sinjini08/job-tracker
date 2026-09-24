@@ -87,11 +87,13 @@ export default function Splash() {
             shaft and the three layers are the mark again, pixel for pixel. */}
         <div className="sp-stack">
           <span className="sp-flash" />
+          {/* The ripple goes under the artwork, not over it. On top it crosses
+              the dart's own shaft and carries on through the break in the ring,
+              which draws a line where the mark deliberately has none. */}
+          <span className="sp-ring" />
           <img className="sp-dart" src="/brand/splash-dart.png" alt="" draggable={false} />
           <img className="sp-dot" src="/brand/splash-dot.png" alt="" draggable={false} />
           <img className="sp-rings" src="/brand/splash-rings.png" alt="" draggable={false} />
-          <span className="sp-ring a" />
-          <span className="sp-ring b" />
         </div>
       </div>
     </div>

@@ -1,23 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ALWAYS_ON, SHEET_KEYS, allColumnsFor, columnsFor, columnLetter, enabledSheets, isBlankRow, sheetLabel, snapToKnown } from '@/lib/fields';
+import { ALWAYS_ON, DEFAULT_ROW_KEYS, SHEET_KEYS, allColumnsFor, columnsFor, columnLetter, enabledSheets, isBlankRow, sheetLabel, snapToKnown } from '@/lib/fields';
 import Columns from './Columns';
 import { PanelOpen } from './Icons';
 import { CLOSED } from '@/lib/stats';
 import { SignOutButton } from '@clerk/nextjs';
 import Insights from './Insights';
 import Logo from './Logo';
+import Rows from './Rows';
 import SheetSetup from './SheetSetup';
 import Drawer from './Drawer';
-import Charts from './Charts';
 import League from './League';
 import { CHIP, addDays, daysSince, dayNumber, fmtDate, todayISO } from '@/lib/format';
 
 // The extra tabs. The sheet tabs in front of these come from the student's
 // own choice, so TABS is built at render time rather than being a constant.
-const EXTRA_TABS = ['Charts', 'Insights', 'League'];
-const CHARTS = 'Charts';
+// Charts and Insights were one question split across two tabs, so they are
+// one tab now.
+const EXTRA_TABS = ['Insights', 'League'];
 const INSIGHTS = 'Insights';
 const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
@@ -124,6 +125,10 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
   const [drawerId, setDrawerId] = useState(null);
+  // List or grid. The grid is still the fastest way to enter ten applications
+  // in a row; the list is the better way to read what you already have. Both
+  // stay, and the choice is remembered.
+  const [view, setView] = useState('list');
   const [colWidths, setColWidths] = useState({});   // { [column id]: px }, per sheet
   const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_H);
   const gridRef = useRef(null);
@@ -138,15 +143,22 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     if (sheetPrefs && !TABS.includes(tab)) setTab(TABS[0]);
   }, [TABS, tab, sheetPrefs]);
 
-  const isCharts = tab === CHARTS;
   const isInsights = tab === INSIGHTS;
   const isLeague = tab === LEAGUE;
-  const isGrid = !isCharts && !isInsights && !isLeague;
+  const isGrid = !isInsights && !isLeague;
   // Applications an insight is about, when someone asks to see them. Null the
   // rest of the time, which is every other way of arriving at the grid.
   const [focus, setFocus] = useState(null);
+  // The sheet you were last on. Insights and League are places you visit and
+  // come back from, and coming back should mean the sheet you left.
+  const lastSheet = useRef(sheets[0]);
   const [custom, setCustom] = useState([]);
   const [hidden, setHidden] = useState({});
+  // Which columns sit on the row in list view, per sheet. Empty means the
+  // student has not chosen, and lib/fields picks a default.
+  const [rowCols, setRowCols] = useState({});
+  // The student's column order, per sheet.
+  const [colOrder, setColOrder] = useState({});
   const [pickingCols, setPickingCols] = useState(false);
   // The extra tabs have no grid, so an unknown name falls back to On-Campus.
   const chooseSheets = async (keys) => {
@@ -155,8 +167,23 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     setTab(saved.sheets_enabled?.[0] ?? 'Off-Campus');
   };
 
-  const cols = useMemo(() => columnsFor(isGrid ? tab : 'On-Campus', { custom, hidden }),
-    [tab, isGrid, custom, hidden]);
+  // The two views ask different questions of the same columns, so they do not
+  // share an answer.
+  //
+  // The GRID asks "show it or not", and people generally want a lot shown:
+  // that is what a grid is for. hidden_columns is that answer, and it is now
+  // the grid's alone.
+  //
+  // The LIST asks "on the row or in the details", because a row is one line.
+  // Nothing is ever hidden there, so it takes every column and row_columns
+  // decides which few sit on the line. Hiding a column for the grid used to
+  // take it out of the list's details as well, which is the coupling this
+  // removes.
+  const cols = useMemo(() => columnsFor(isGrid ? tab : 'On-Campus', {
+    custom,
+    hidden: view === 'grid' ? hidden : {},
+    order: colOrder[tab],
+  }), [tab, isGrid, view, custom, hidden, colOrder]);
   const [events, setEvents] = useState(null);
 
   // Which columns this student keeps, and any they added. These follow the
@@ -168,10 +195,30 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       setSheetPrefs({ enabled: profile.sheets_enabled, names: profile.sheet_names ?? {} });
       setCustom(cc.columns ?? []);
       setHidden(profile.hidden_columns ?? {});
+      setRowCols(profile.row_columns ?? {});
+      setColOrder(profile.column_order ?? {});
     } catch { /* the sheet still works with the built-in columns */ }
   }, [shared]);
   useEffect(() => { loadColumns(); }, [loadColumns]);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('jt_view');
+      if (saved === 'grid' || saved === 'list') setView(saved);
+    } catch {}
+  }, []);
+  const chooseView = (v) => {
+    setView(v);
+    try { localStorage.setItem('jt_view', v); } catch {}
+  };
 
+  const saveColOrder = (next) => {
+    setColOrder(next);
+    api('/api/profile', 'PATCH', { column_order: next }).catch((e) => setError(e.message));
+  };
+  const saveRowCols = (next) => {
+    setRowCols(next);
+    api('/api/profile', 'PATCH', { row_columns: next }).catch((e) => setError(e.message));
+  };
   const saveHidden = (next) => {
     setHidden(next);
     api('/api/profile', 'PATCH', { hidden_columns: next }).catch((e) => setError(e.message));
@@ -263,6 +310,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
     saveRowHeight(DEFAULT_ROW_H);
   };
   const switchTab = (t) => {
+    if (!EXTRA_TABS.includes(t)) lastSheet.current = t;
     setTab(t);
     setFocus(null);
     setSel({ r: 0, c: 0 });
@@ -314,7 +362,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   const busy = useRef(false);
   busy.current = Boolean(editing) || pending > 0;
   const onCharts = useRef(false);
-  onCharts.current = isCharts || isInsights;
+  onCharts.current = isInsights;
   const refresh = useCallback(async () => {
     if (busy.current || document.visibilityState !== 'visible') return;
     try {
@@ -330,8 +378,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   }, [apiBase]);
   // Load history the first time the Charts tab opens (the funnel needs it).
   useEffect(() => {
-    if (isCharts || isInsights) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
-  }, [isCharts, isInsights, apiBase]);
+    if (isInsights) api(`${apiBase}/events`).then(setEvents).catch((e) => setError(e.message));
+  }, [isInsights, apiBase]);
   useEffect(() => {
     const t = setInterval(refresh, POLL_MS);
     window.addEventListener('focus', refresh);
@@ -525,14 +573,33 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
 
   return (
     <div className="app">
+      {/* The green bar carries the name and the way out, and nothing else.
+          Everything you actually do sits on the working row below it, beside
+          the sections, where it is next to what it acts on. */}
       <header className="toolbar">
-        {/* The way back. Charts and League are tabs in the same page rather
-            than pages of their own, so this returns to the first sheet rather
-            than navigating anywhere. */}
         <button type="button" className="brand" onClick={() => setTab(sheets[0])}
           title="Back to your sheet">
           <Logo size={24} />Job Application Tracker
         </button>
+        {!shared && (
+          <div className="toolbar-right">
+            <a className="btn ghost" href="/settings">Settings</a>
+            <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
+          </div>
+        )}
+      </header>
+
+      <nav className="workbar">
+        <div className="tabs" role="tablist" aria-label="Section">
+          {EXTRA_TABS.map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t}
+              className={`tab ${tab === t ? 'active' : ''}`}
+              onClick={() => switchTab(t)}>
+              {t}
+            </button>
+          ))}
+        </div>
+
         <div className="toolbar-mid">
           {isGrid && focus && (
             <span className="focus-note">
@@ -548,7 +615,7 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
             onChange={(e) => setQuery(e.target.value)}
           />}
           {canEdit && isGrid && <button className="btn primary" onClick={addRow}>+ New row</button>}
-          {isGrid && (
+          {isGrid && view === 'grid' && (
             <button className="btn ghost" disabled={!selRow}
               title={selRow ? `Contact, notes and history for ${selRow.role || 'this row'}`
                 : 'Pick a row first'}
@@ -556,27 +623,63 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
               Row details
             </button>
           )}
+          {/* In both views: the list builds its own columns from this choice
+              too, so hiding one here takes it off the row as well. */}
           {isGrid && !shared && (
             <button className="btn ghost" onClick={() => setPickingCols(true)}>Columns</button>
           )}
+          {/* Two ways of looking at the same rows. Nothing about the data
+              changes, so this is a preference and it is remembered. */}
+          {isGrid && (
+            <span className="viewpick" role="group" aria-label="How to show this sheet">
+              <button type="button" className={view === 'list' ? 'on' : ''}
+                aria-pressed={view === 'list'} onClick={() => chooseView('list')}>List</button>
+              <button type="button" className={view === 'grid' ? 'on' : ''}
+                aria-pressed={view === 'grid'} onClick={() => chooseView('grid')}>Grid</button>
+            </span>
+          )}
         </div>
-        <div className="toolbar-right">
+        <div className="workbar-end">
           <span className={`save-state ${error ? 'err' : ''}`} title={error || ''}>
             {error ? `⚠ ${error}` : shared ? 'Shared view · read-only' : !canEdit ? 'View only' : pending ? 'Saving…' : 'All changes saved'}
           </span>
-          {!shared && (
-            <>
-              {email && <span className="whoami" title={email}>{email}</span>}
-              <a className="btn ghost" href="/settings">Settings</a>
-              <SignOutButton><button className="btn ghost" type="button">Sign out</button></SignOutButton>
-            </>
+          {/* Insights and League fill this row with nothing, and the only way
+              back was the logo, which says nothing about being a way back.
+              It goes to the sheet you came from, in the view you left it in,
+              so it behaves like the back you already expect. */}
+          {!isGrid && (
+            <button type="button" className="btn ghost back-to-sheet"
+              onClick={() => switchTab(sheets.includes(lastSheet.current) ? lastSheet.current : sheets[0])}>
+              <svg viewBox="0 0 12 12" aria-hidden><path d="M7.5 2.5L4 6l3.5 3.5" /></svg>
+              Back
+            </button>
           )}
         </div>
-      </header>
+      </nav>
 
-      {isCharts ? <Charts rows={rows} events={events} sheets={sheets} names={names} />
-        : isInsights ? <Insights rows={rows} events={events} onOpen={showOnSheet} />
-        : isLeague ? <League /> : <>
+      {isInsights ? <Insights rows={rows} events={events} sheets={sheets} names={names}
+            onOpen={showOnSheet} onPatch={patchRow} />
+        : isLeague ? <League />
+        : view === 'list' ? (
+          <Rows
+            rows={visible}
+            columns={cols}
+            rowKeys={rowCols[tab] ?? DEFAULT_ROW_KEYS}
+            custom={custom}
+            canEdit={canEdit}
+            apiBase={apiBase}
+            sheets={sheets}
+            names={names}
+            sort={sort}
+            onSort={toggleSort}
+            onPatch={patchRow}
+            onDelete={deleteRow}
+            onNew={addRow}
+            emptyNote={query.trim()
+              ? `Nothing on this sheet matches \u201C${query.trim()}\u201D.`
+              : focus ? 'None of those are on this sheet.' : 'Nothing on this sheet yet.'}
+          />
+        ) : <>
       <div className="formula-bar">
         <div className="name-box">{selCol ? `${columnLetter(sel.c)}${sel.r + 2}` : ''}</div>
         <div className="fx" aria-hidden>fx</div>
@@ -669,47 +772,40 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       </div>
       </>}
 
-      <footer className="tabs-bar">
-        <div className="tabs" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
+
+
+      {/* Sheets belong to the sheet. Insights and League are not sheets, and a
+          row of inactive sheet tabs under them only invites the question of
+          which one you are looking at. The Back button up top is the way out
+          of those two. */}
+      {isGrid && <footer className="sheet-bar">
+        <div className="tabs" role="tablist" aria-label="Sheet">
+          {sheets.map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t}
               className={`tab ${tab === t ? 'active' : ''}`}
-              onClick={() => switchTab(t)}
-            >
-              {t === CHARTS || t === INSIGHTS || t === LEAGUE
-                ? t
-                : <>{sheetLabel(t, names)} <span className="tab-count">{tabCount(t)}</span></>}
+              onClick={() => switchTab(t)}>
+              {sheetLabel(t, names)} <span className="tab-count">{tabCount(t)}</span>
             </button>
           ))}
         </div>
-        {isGrid && (Object.keys(colWidths).length > 0 || rowHeight !== DEFAULT_ROW_H) && (
-          <button className="reset-sizes" onClick={resetSizes} title="Back to default column widths and row height">
-            Reset sizes
-          </button>
-        )}
-        {isGrid && <div className="status-summary">
-          {['Applied', 'OA / Assessment', 'Interviewing', 'Offer'].map((s) => (
-            <span key={s}>{s}: <b>{counts[s] || 0}</b></span>
-          ))}
-          <span>Total: <b>{tabCount(tab)}</b></span>
-          {counts.due > 0 && (
-            <span className="due-count" title="Rows whose Follow up by date has arrived">
-              Follow-ups due: <b>{counts.due}</b>
-            </span>
-          )}
-        </div>}
-      </footer>
+
+      </footer>}
 
       {pickingCols && (
         <Columns
           sheets={sheets} names={names}
           sheet={tab}
-          all={allColumnsFor(tab, custom)}
+          all={allColumnsFor(tab, custom, colOrder[tab])}
+          onReorder={(ids) => saveColOrder({ ...colOrder, [tab]: ids })}
           custom={custom}
           hidden={hidden[tab] ?? []}
+          listView={view === 'list'}
+          rowKeys={rowCols[tab] ?? DEFAULT_ROW_KEYS}
+          onRowToggle={(key, on) => {
+            const keys = new Set(rowCols[tab] ?? DEFAULT_ROW_KEYS);
+            if (on) keys.add(key); else keys.delete(key);
+            saveRowCols({ ...rowCols, [tab]: [...keys] });
+          }}
           onToggle={(id, show) => {
             const set = new Set(hidden[tab] ?? []);
             if (show) set.delete(id); else set.add(id);
@@ -734,6 +830,8 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
           row={drawerRow}
           canEdit={canEdit}
           custom={custom}
+          sheets={sheets}
+          names={names}
           onPatch={(patch) => patchRow(drawerRow.id, patch)}
           onDelete={() => deleteRow(drawerRow.id)}
           onClose={() => {
@@ -779,9 +877,16 @@ function Display({ col, v, row }) {
   switch (col.kind) {
     case 'select':
     case 'combo': {
-      // Statuses and priorities are colour-coded; the other lists (and any
-      // status a student typed themselves) get the neutral chip.
-      const [bg, fg] = CHIP[v] || ['#eef0f3', '#374151'];
+      // Only the two columns whose value is a STATE get a badge. Term,
+      // Category, Work mode and Source are values, and a grey pill around
+      // every one of them was chrome with nothing to say: it made four columns
+      // shout as loudly as the one that matters.
+      //
+      // Same rule as the list view, so a status looks like a status wherever
+      // you are. A status a student invented keeps the badge and takes a
+      // neutral colour, because the column is still a state column.
+      if (col.key !== 'status' && col.key !== 'priority') return v;
+      const [bg, fg] = CHIP[v] || ['#e9e9e9', '#5f6366'];
       return <span className="chip" style={{ background: bg, color: fg }}>{v}</span>;
     }
     case 'date':
