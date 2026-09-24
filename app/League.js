@@ -504,7 +504,6 @@ function Standings({ rows, period }) {
 // ---------------------------------------------------------------------------
 
 function MonthPanel({ rows, mine, target, history }) {
-  const reveal = useNameReveal();
   const series = rows
     .filter((r) => Array.isArray(r.daily))
     .map((r) => ({ key: r.user_id, label: r.display_name + (r.is_me ? ' (you)' : ''), daily: r.daily }));
@@ -564,6 +563,7 @@ function Winners({ rows }) {
 // ---------------------------------------------------------------------------
 
 function StatsPanel({ rows, target, months, me }) {
+  const reveal = useNameReveal();
   // Settled months, newest first, each with its own little table.
   const byMonth = [];
   for (const row of months ?? []) {

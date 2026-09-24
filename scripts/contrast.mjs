@@ -109,6 +109,12 @@ for (const [name, raw] of [['Light', light], ['Dark', dark]]) {
   // dark theme's near-white text on it, at 1.15:1.
   say(contrast(vars['--text'], vars['--gutter']) >= 4.5,
     `row numbers on the gutter: ${contrast(vars['--text'], vars['--gutter']).toFixed(2)}:1`);
+  // The "won the day" chip: white on the bar's green. It used to be white on
+  // --series-1, a chart hue that was never chosen to carry text, and measured
+  // 3.49:1 in light and 2.24:1 in dark. Nothing rendered it until a league
+  // with members was finally put on screen.
+  say(contrast('#ffffff', vars['--xl-green']) >= 4.5,
+    `white on the bar's green: ${contrast('#ffffff', vars['--xl-green']).toFixed(2)}:1`);
   say(contrast(vars['--green-ink'], vars['--surface']) >= 4.5,
     `green as text on a card: ${contrast(vars['--green-ink'], vars['--surface']).toFixed(2)}:1`);
   say(contrast(vars['--link'], vars['--surface']) >= 4.5,
