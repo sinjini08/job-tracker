@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { periodBy, periodLabel, rankBoard, todayProgress, wonToday } from '@/lib/board';
-import { AVATAR_GROUPS } from '@/lib/avatars';
+import { AVATAR_GROUPS, randomAvatar } from '@/lib/avatars';
 import Avatar from './Avatar';
 import { Check, Crown, Flame, Trophy } from './Icons';
 import DayChart from './LeagueCharts';
@@ -179,7 +179,21 @@ export default function League() {
     }
   }, [history, me, league, celebrate]);
 
-  if (leagues == null) return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
+  // Both have to have landed: the leagues to know whether to show the board,
+  // and the profile to know whether this person has ever been here. Deciding
+  // on one of them would flash the wrong screen for a moment.
+  if (leagues == null || profile == null) {
+    return <div className="charts viz-root"><p className="viz-note">Loading…</p></div>;
+  }
+  // Before anything else, and before any league exists. Someone who arrives
+  // with a code in hand still answers this first.
+  if (!profile.named) {
+    return (
+      <div className="charts viz-root">
+        <LeagueSetup profile={profile} onSave={saveProfile} busy={busy} err={err} />
+      </div>
+    );
+  }
   if (leagues.length === 0) {
     return (
       <div className="charts viz-root">
@@ -1118,6 +1132,78 @@ function InviteCode({ league }) {
   );
 }
 
+// The first time anyone opens League.
+//
+// Two names and a face, asked once. A league is the only part of the app with
+// other people in it, so this is the only place any of it matters, and asking
+// here means every question arrives with a visible reason rather than as
+// fields on a settings page somebody opened for something else.
+//
+//   Name on the board   what friends see first, and the only thing a stranger
+//                       joining by code would see
+//   Your name           so the handle says who you are. A first name is
+//                       enough; the reveal only shows for three seconds
+//   Avatar              handed out at random, because picking a face before
+//                       you have done anything is a decision nobody wants
+//
+// Asked once and never again: `named` is true the moment a board name is
+// saved, and Settings is where any of it gets changed afterwards.
+//
+// Nothing can be created or joined until it is answered, which is why this
+// replaces those two forms rather than sitting above them. Half-answering and
+// wandering off leaves no league behind.
+function LeagueSetup({ profile, onSave, busy, err }) {
+  const [board, setBoard] = useState(profile.display_name ?? '');
+  const [real, setReal] = useState(profile.full_name ?? '');
+  // Drawn once on mount, not on every keystroke, or the face would flicker
+  // while somebody typed their name.
+  const [face] = useState(() => profile.avatar || randomAvatar());
+
+  const ready = board.trim() && real.trim();
+
+  return (
+    <form className="league-start setup-first" onSubmit={(e) => {
+      e.preventDefault();
+      if (ready) onSave({ display_name: board.trim(), full_name: real.trim(), avatar: face });
+    }}>
+      <p className="viz-empty-title">First, who are you on the board?</p>
+      <p className="league-intro">
+        Your friends in a league see this. Nobody outside one does, and none of it touches your
+        sheet.
+      </p>
+
+      <div className="setup-face">
+        <Avatar name={board || profile.display_name} avatar={face} size={52} />
+        <small>
+          Yours for now, picked at random. Change it, and everything below, in Settings whenever
+          you like.
+        </small>
+      </div>
+
+      <label>
+        <span>Name on the board</span>
+        <input value={board} onChange={(e) => setBoard(e.target.value)} maxLength={40}
+          placeholder="A handle or a nickname" autoFocus required />
+      </label>
+
+      <label>
+        <span>Your name</span>
+        <input value={real} onChange={(e) => setReal(e.target.value)} maxLength={60}
+          placeholder="First name is enough" autoComplete="given-name" required />
+        <small>
+          So the handle above says who you are. League members see it only for the three seconds
+          after they tap your board name.
+        </small>
+      </label>
+
+      <button className="btn primary" type="submit" disabled={busy || !ready}>
+        {busy ? 'Saving…' : 'Continue'}
+      </button>
+      {err && <p className="league-err">{err}</p>}
+    </form>
+  );
+}
+
 function Start({ onCreate, onJoin, busy, err, compact }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -1134,6 +1220,7 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
           </p>
         </>
       )}
+
       <form onSubmit={(e) => { e.preventDefault(); onCreate(name); setName(''); }}>
         <label>
           <span>New league</span>

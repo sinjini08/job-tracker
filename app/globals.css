@@ -1573,6 +1573,27 @@ body:has(.login) { overflow: auto; }
 .league-start .btn { height: 34px; }
 .league-start .btn.primary { background: var(--xl-green); color: #fff; border-color: var(--green-ink); }
 .league-start .btn.primary:hover { background: var(--xl-green-dark); }
+/* The first run. Same card as the create/join panel it stands in for, so
+   arriving at League for the first time does not look like a different app. */
+.setup-first label { display: block; }
+.setup-first label + label { margin-top: 14px; }
+.setup-first label > span { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--viz-ink); }
+.setup-first label input { width: 100%; }
+.setup-first label small,
+.setup-face small { display: block; margin-top: 7px; font-size: 12px; line-height: 1.6; color: var(--viz-muted); }
+.setup-first > .btn { margin-top: 18px; }
+/* The face beside its explanation rather than above it: it is a thing that has
+   already been decided, not another question. */
+.setup-face {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--viz-ring);
+}
+.setup-face small { margin-top: 0; }
+
 .league-or { margin: 14px 0; font-size: 12px; color: var(--viz-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* On a phone the rail becomes a strip of tabs above the panel. */

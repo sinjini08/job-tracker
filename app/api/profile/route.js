@@ -95,5 +95,12 @@ export async function PATCH(request) {
   const { data, error } = await user.sb.from('profiles')
     .update(patch).eq('id', user.id).select(FIELDS).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data);
+  // Same shape as GET. The League tab decides whether to ask for a name from
+  // `named`, and without it here the answer would go missing the moment
+  // somebody answered, and the question would come straight back.
+  return NextResponse.json({
+    ...data,
+    display_name: data?.display_name || user.email.split('@')[0] || 'Student',
+    named: Boolean(data?.display_name?.trim()),
+  });
 }
