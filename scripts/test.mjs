@@ -14,8 +14,17 @@ import { buildInsights, LIMITS } from '../lib/insights.js';
 import { computeStats } from '../lib/stats.js';
 import {
   normalizeSheetPrefs, enabledSheets, sheetLabel, newSheetKey, isCustomSheet,
-  BUILTIN_SHEETS, CUSTOM_SHEET_RE,
+  BUILTIN_SHEETS, CUSTOM_SHEET_RE, WRITABLE,
 } from '../lib/fields.js';
+import { readFileSync } from 'fs';
+
+// Read, not imported. lib/mcp-tools.js is server-only and uses extensionless
+// imports, so it resolves under the bundler and not under plain node. That is
+// fine here: what is being checked is the wording of a prompt, which is a
+// string either way.
+const MCP_SRC = readFileSync(new URL('../lib/mcp-tools.js', import.meta.url), 'utf8');
+const INSTRUCTIONS = MCP_SRC.slice(MCP_SRC.indexOf('export const INSTRUCTIONS'),
+  MCP_SRC.indexOf('// The sheets one student keeps'));
 
 let failed = 0;
 const section = (name) => console.log(`\n${name}`);
@@ -154,6 +163,22 @@ ok(r.insights.length <= LIMITS.shown, `never more than ${LIMITS.shown} at once`)
 ok(r.insights[0].kind === 'counterfactual',
   'what a choice cost you outranks what merely reframes or suggests');
 ok(r.insights.every((i) => i.claim && i.support), 'every claim carries its own figures');
+
+section('What the connector is told');
+// A user pasted a posting, the row was created, and both folded panels stayed
+// empty. Nothing was broken: the fields are writable and in the tool schema,
+// but INSTRUCTIONS said "ask for nothing else, leave out whatever the posting
+// does not say", so the assistant left them out and did as it was told.
+//
+// app/Details.js folds those two panels away on the stated grounds that Claude
+// fills them, so the promise lives in two places and has to hold in both.
+// These are string checks because the contract is a string.
+ok(/job_description/.test(INSTRUCTIONS), 'the assistant is told to save the posting text');
+ok(/requirements/.test(INSTRUCTIONS), 'and to summarise the qualifications');
+ok(WRITABLE.has('job_description') && WRITABLE.has('requirements'),
+  'and both are writable, or being told would not help');
+ok(/Fill this whenever you have it/.test(MCP_SRC),
+  'the job_description field says when to fill it, not just what it is');
 
 section('Sheets');
 eq(enabledSheets(null), BUILTIN_SHEETS, 'no preference falls back to both built-ins');
