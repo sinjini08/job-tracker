@@ -147,6 +147,30 @@ for (const c of CASES) {
 }
 
 // Entity decoding and tag stripping, on the shapes each system actually uses.
+// A LinkedIn tab is not one fixed document. The card renders in stages, the
+// app leaves old <title> tags behind when it changes route, and the first
+// anchor this adapter used sat below the fold and was simply absent when the
+// popup read the page. Each of these is a state a real tab was in.
+console.log('\nLinkedIn, half rendered');
+{
+  const full = read('linkedin');
+  const url = 'https://www.linkedin.com/jobs/view/4312345678/';
+  const noAlert = full.replace(/aria-label="Set alert for similar jobs as [^"]+"/i, '');
+  const states = [
+    ['as captured', full],
+    ['the Set-alert label has not rendered', noAlert],
+    ['nor has the company label', noAlert.replace(/aria-label="Company,[^"]*"/gi, '')],
+    ['a stale Feed title from the previous route', full.replace('<title>', '<title>Feed | LinkedIn</title><title>')],
+  ];
+  for (const [name, html] of states) {
+    const f = extractJob(html, url).fields;
+    const got = `${f.role?.value ?? '(no role)'} / ${f.company?.value ?? '(no company)'} / ${f.work_mode?.value ?? '(no mode)'}`;
+    const ok = got === 'Outbound Sales Representative / GrowGeneration Corp / Remote';
+    if (ok) right += 1; else { wrong += 1; fails.push(`LinkedIn, ${name}: ${got}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(44)} ${got.slice(0, 46)}`);
+  }
+}
+
 console.log('\nDescription cleanup');
 const cases = [
   ['<p>One</p><p>Two</p>', 'One\n\nTwo'],
