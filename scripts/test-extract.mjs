@@ -35,6 +35,26 @@ const CASES = [
     requirementsStart: '5+ years of experience',
   },
   {
+    // Workday, which most large employers' careers sites run on. The fixture
+    // keeps the left-hand list and points it deliberately elsewhere: the list
+    // and the detail pane share automation ids, so an unscoped read answers
+    // Vancouver, Remote and Part Time for a job that is Pleasanton, Flex and
+    // Full Time. Every value below is the selected posting's.
+    name: 'Workday (detail beside a list)',
+    html: () => read('workday'),
+    url: 'https://workday.wd5.myworkdayjobs.com/Workday/job/USA-CA-Pleasanton/x_JR-0110265',
+    expect: {
+      role: 'Manager, Talent Acquisition - North America Revenue',
+      company: 'Workday',                // from "Careers at Workday", not the subdomain slug
+      location: 'USA, CA, Pleasanton',   // the list says Canada, BC, Vancouver
+      work_mode: 'Flex',                 // the tenant's own word, not translated into Hybrid
+      category: 'Full-time',             // the list says Part Time
+      deadline: '2026-10-30',            // "End Date: October 30, 2026"
+      source: 'Company site',
+    },
+    requirementsStart: 'For Manager (M3) level',
+  },
+  {
     // Indeed's search view: the list on the left and the posting you clicked
     // on the right, one document. It is an index and a posting at once, and
     // the listing check refused the whole thing before anything could read it.
