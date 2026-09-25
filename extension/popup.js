@@ -22,6 +22,8 @@ const show = (id) => {
 // Order matters: this is the order a person reads a row in, and role and
 // company come first because those two are the only ones the tracker insists
 // on. The long text goes last so the popup opens on the parts worth checking.
+const REQUIRED = new Set(['role', 'company']);
+
 const SHOW = [
   ['role', 'Role', 'input'],
   ['company', 'Company', 'input'],
@@ -73,34 +75,45 @@ function render(result, url) {
   box.textContent = '';
   let anyReview = false;
 
+  let missing = false;
+
   for (const [key, label, kind] of SHOW) {
     const got = fields[key];
     // Empty fields are left out rather than shown blank. A popup of ten empty
     // boxes reads as a form to fill in, which is the opposite of the point.
-    if (!got) continue;
-    const review = got.from !== 'json-ld';
-    if (review) anyReview = true;
+    //
+    // Role and company are the exception, because the tracker refuses a row
+    // without them. Leaving those out when the page did not give them up is
+    // a dead end: the person is told the row needs an employer and has
+    // nowhere to type one. So they are always here, empty if need be.
+    if (!got && !REQUIRED.has(key)) continue;
+    const blank = !got;
+    const review = blank || got.from !== 'json-ld';
+    if (review && !blank) anyReview = true;
+    if (blank) missing = true;
 
     const row = document.createElement('div');
-    row.className = `row${review ? ' review' : ''}`;
+    row.className = `row${blank ? ' missing' : review ? ' review' : ''}`;
     const lab = document.createElement('label');
     lab.htmlFor = `f-${key}`;
     lab.append(document.createTextNode(label));
-    if (review) {
+    if (blank || review) {
       const tag = document.createElement('span');
       tag.className = 'tag';
-      tag.textContent = 'CHECK';
+      tag.textContent = blank ? 'NEEDED' : 'CHECK';
       lab.append(tag);
     }
     const input = document.createElement(kind);
     input.id = `f-${key}`;
-    input.value = got.value;
+    input.value = got ? got.value : '';
+    if (blank) input.placeholder = `The page did not say. Type the ${label.toLowerCase()}.`;
     if (kind === 'textarea') input.rows = 3;
     row.append(lab, input);
     box.append(row);
   }
 
-  $('review-note').hidden = !anyReview;
+  $('review-note').hidden = !anyReview || missing;
+  $('missing-note').hidden = !missing;
   show('form');
 }
 

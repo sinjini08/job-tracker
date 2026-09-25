@@ -103,7 +103,7 @@ export function decode(s) {
 export function htmlToText(html) {
   return decode(
     String(html ?? '')
-      .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+      .replace(/<(script|style|svg|noscript)[^>]*>[\s\S]*?<\/\1>/gi, '')
       .replace(/<li[^>]*>/gi, '\n- ')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/li>/gi, '')
@@ -347,6 +347,61 @@ export function looksLikeIndex(html) {
 // work whether or not the structured data happened to be switched on.
 const ADAPTERS = [
   {
+    // LinkedIn, signed in. There is no JSON-LD on this view and no og: tags,
+    // and every class name is a hash that changes between builds, so none of
+    // the usual hooks exist. What is stable is the accessible labels, because
+    // screen readers depend on them, plus the shape of the card itself.
+    host: /(^|\.)linkedin\.com$/,
+    read(html) {
+      const out = {};
+      const pick = (re) => clean(decode(String(html).match(re)?.[1] ?? ''));
+
+      // "Set alert for similar jobs as Outbound Sales Representative" carries
+      // the role on its own, without the company and the " | LinkedIn" that
+      // the page title drags along.
+      const role = pick(/aria-label="Set alert for similar jobs as ([^"]+)"/i);
+      const company = pick(/aria-label="Company,\s*([^"]+?)\.?"/i);
+      if (role) out.role = { value: role, from: MED };
+      if (company) out.company = { value: company, from: MED };
+
+      // The card, read as lines: company, role, "Location · posted ·
+      // applicants", pay, workplace, term. Each is matched whole rather than
+      // searched for, so a word inside a sentence cannot be mistaken for the
+      // field, and only the top of the card is considered so the next job in
+      // the sidebar is out of reach.
+      const at = html.search(/aria-label="Company,/i);
+      const lines = at < 0 ? [] : htmlToText(html.slice(at, at + 12000))
+        .split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 14);
+
+      for (const line of lines) {
+        if (!out.location && /\s\u00b7\s/.test(line) && /\b(ago|applicants?|reposted)\b/i.test(line)) {
+          const where = line.split(/\s*\u00b7\s*/)[0];
+          if (where && where.length < 80 && where !== company) out.location = { value: where, from: MED };
+        }
+        if (!out.work_mode && /^(remote|hybrid|on-?site)$/i.test(line)) {
+          out.work_mode = { value: /^on/i.test(line) ? 'On-site' : line[0].toUpperCase() + line.slice(1).toLowerCase(), from: MED };
+        }
+        if (!out.term && /^(full-time|part-time|contract|internship|temporary|volunteer)$/i.test(line)) {
+          out.term = { value: line[0].toUpperCase() + line.slice(1).toLowerCase(), from: MED };
+        }
+        if (!out.pay && line.length < 60 && /^[^a-z]*[$\u00a3\u20ac]\s?[\d,]/.test(line)) {
+          out.pay = { value: line, from: MED };
+        }
+      }
+
+      // The description sits between its own heading and the next one.
+      const start = html.search(/<h2[^>]*>\s*About the job\s*<\/h2>/i);
+      if (start >= 0) {
+        const rest = html.slice(start);
+        const next = rest.slice(60).search(/<h2\b/i);
+        const body = htmlToText(next > 0 ? rest.slice(0, next + 60) : rest.slice(0, 40000))
+          .replace(/^About the job\s*/i, '').trim();
+        if (body.length > 200) out.job_description = { value: body, from: MED };
+      }
+      return out;
+    },
+  },
+  {
     host: /(^|\.)greenhouse\.io$/,
     read(html) {
       const out = {};
@@ -466,7 +521,12 @@ export function extractJob(html, pageUrl = '') {
 
   const withRole = fields.role?.value ?? '';
   const body = text || fields.job_description?.value || '';
-  const haystack = `${withRole}\n${body || htmlToText(html).slice(0, 6000)}`;
+  // Only this posting's own words. Falling back to the whole page reads the
+  // sidebar, and on LinkedIn that is a column of other people's jobs: the
+  // first real page tested came back "Hybrid" once and "On-site" the next
+  // time for a posting that says Remote, because a neighbouring card said so.
+  // A field guessed off somebody else's job is worse than an empty field.
+  const haystack = `${withRole}\n${body}`;
 
   for (const [key, got] of [
     ['category', category(post ?? {}, withRole, haystack)],
@@ -475,7 +535,9 @@ export function extractJob(html, pageUrl = '') {
     ['source', source(pageUrl)],
     ['requirements', body ? requirements(body) : null],
   ]) {
-    if (got) fields[key] = got;
+    // An adapter that read the value off a labelled field beats a guess made
+    // from prose, so a filled field is never overwritten here.
+    if (got && !fields[key]) fields[key] = got;
   }
 
   return {

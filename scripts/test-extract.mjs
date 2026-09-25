@@ -35,6 +35,24 @@ const CASES = [
     requirementsStart: '5+ years of experience',
   },
   {
+    // Signed-in LinkedIn: no JSON-LD, no og: tags, and every class name is a
+    // build hash. The first real page this was ever pointed at, and it put
+    // the whole page title in the role and found no company at all.
+    name: 'LinkedIn (signed in)',
+    html: () => read('linkedin'),
+    url: 'https://www.linkedin.com/jobs/view/4312345678/',
+    expect: {
+      role: 'Outbound Sales Representative',   // not "… | GrowGeneration Corp | LinkedIn"
+      company: 'GrowGeneration Corp',
+      location: 'United States',
+      pay: '$20/hr',
+      work_mode: 'Remote',   // said Hybrid, then On-site, before the sidebar was walled off
+      term: 'Full-time',
+      source: 'LinkedIn',
+    },
+    requirementsStart: 'Proven experience in cold calling',
+  },
+  {
     name: 'Lever (Spotify)',
     html: () => read('lever'),
     url: 'https://jobs.lever.co/spotify/2193db3f-77c5-43b8-b030-8f92c9882bf1',
