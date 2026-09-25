@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { userIdForExtension } from '@/lib/auth';
 import { storeFor } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { OPTIONS, OPTIONS_FOR, WRITABLE, enabledSheets, sheetLabel, snapToKnown } from '@/lib/fields';
+import { OPTIONS as FIELD_OPTIONS, OPTIONS_FOR, WRITABLE, enabledSheets, sheetLabel, snapToKnown } from '@/lib/fields';
+import { allowedOrigin } from '@/lib/ext-ids';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,7 @@ function sanitise(body) {
     if (!s) continue;
     // A dropdown gets snapped to the value already in use, so "linkedin" and
     // "LinkedIn" stay one value in the charts.
-    out[key] = OPTIONS_FOR[key] ? snapToKnown(s, OPTIONS[OPTIONS_FOR[key]]) : s;
+    out[key] = OPTIONS_FOR[key] ? snapToKnown(s, FIELD_OPTIONS[OPTIONS_FOR[key]]) : s;
   }
   return out;
 }
@@ -77,30 +78,65 @@ async function auth(request) {
   return userId ? storeFor(supabaseAdmin(), userId) : null;
 }
 
+// The popup is a cross-origin caller: it runs on chrome-extension://<id>.
+// Only an id this tracker was configured to trust gets CORS headers back, so
+// no other extension and no web page can reach this endpoint from a browser.
+//
+// Allow-Credentials is deliberately absent. The endpoint authenticates on a
+// bearer token and nothing else, so a browser must never attach the signed-in
+// session cookie to a request from here.
+function corsFor(request) {
+  const origin = allowedOrigin(request.headers.get('origin'));
+  if (!origin) return { Vary: 'Origin' };
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
+}
+
+// The preflight. An Authorization header makes every call here a non-simple
+// request, so the browser asks first and will not send the real one without
+// this answer.
+export async function OPTIONS(request) {
+  return new NextResponse(null, { status: 204, headers: corsFor(request) });
+}
+
 const no = (message, status = 400) => NextResponse.json({ error: message }, { status });
 const dead = () => no('This extension is not connected. Connect it again from the tracker Settings.', 401);
+
+// A refusal the popup cannot read is a refusal it reports as "failed to
+// fetch", so the error responses carry the same headers as the good ones.
+function withCors(response, cors) {
+  for (const [k, v] of Object.entries(cors)) response.headers.set(k, v);
+  return response;
+}
 
 // Which sheets to offer, so the popup names the student's own tabs rather
 // than guessing at somebody who renamed them.
 export async function GET(request) {
+  const cors = corsFor(request);
   const store = await auth(request);
-  if (!store) return dead();
+  if (!store) return withCors(dead(), cors);
   const sheets = await store.sheets().catch(() => null);
-  return NextResponse.json({ ok: true, sheets: sheets ?? [] });
+  return NextResponse.json({ ok: true, sheets: sheets ?? [] }, { headers: cors });
 }
 
 export async function POST(request) {
+  const cors = corsFor(request);
   const store = await auth(request);
-  if (!store) return dead();
+  if (!store) return withCors(dead(), cors);
 
   const body = await request.json().catch(() => null);
-  if (!body) return no('Expected a JSON body.');
+  if (!body) return withCors(no('Expected a JSON body.'), cors);
 
   const fields = sanitise(body);
   if (!fields.role || !fields.company) {
     // The same rule the connector has, for the same reason: a row missing
     // either scores nothing and the student is never told why.
-    return no('A row needs both a job title and an employer.');
+    return withCors(no('A row needs both a job title and an employer.'), cors);
   }
 
   // The sheet arrives as a name, because that is what the person sees on the
@@ -124,8 +160,8 @@ export async function POST(request) {
         status: saved.status,
       },
       view_at: new URL(request.url).origin,
-    });
+    }, { headers: cors });
   } catch (e) {
-    return no(e.message ?? 'Could not save that.', 500);
+    return withCors(no(e.message ?? 'Could not save that.', 500), cors);
   }
 }

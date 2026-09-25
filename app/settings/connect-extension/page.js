@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { currentUserWithEmail, ensureProfile } from '@/lib/auth';
+import { EXTENSION_IDS } from '@/lib/ext-ids';
 import Connect from './Connect';
 
 export const dynamic = 'force-dynamic';
@@ -24,16 +25,10 @@ export const metadata = {
 // environment, which is a decision made once by whoever runs this, and an
 // extension not on that list cannot be paired no matter what link was
 // followed.
-const IDS = String(process.env.EXTENSION_IDS ?? '')
-  .split(',')
-  .map((s) => s.trim())
-  // A Chrome extension id is 32 characters, a to p. Anything else in that
-  // variable is a mistake and is dropped rather than sent to.
-  .filter((s) => /^[a-p]{32}$/.test(s));
 
 export default async function ConnectExtensionPage() {
   const user = await currentUserWithEmail();
   if (!user) redirect('/sign-in');
   await ensureProfile(user.id, user.email);
-  return <Connect ids={IDS} email={user.email} />;
+  return <Connect ids={EXTENSION_IDS} email={user.email} />;
 }
