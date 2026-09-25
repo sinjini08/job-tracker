@@ -357,6 +357,68 @@ export function looksLikeIndex(html) {
 // work whether or not the structured data happened to be switched on.
 const ADAPTERS = [
   {
+    // Indeed's search view is a list on the left and the posting you clicked
+    // on the right, in the same document. The whole page therefore looks like
+    // an index, which it is, and refusing it was right by the rule and wrong
+    // for the person: they are looking at one posting and it is all there.
+    //
+    // Everything here is a data-testid. They are what Indeed's own tests hold
+    // on to, which makes them the most stable thing on the page.
+    host: /(^|\.)indeed\.com$/,
+    read(html) {
+      const out = {};
+      // The element, walked to its own closing tag. A fixed window instead
+      // cuts mid-tag, and half an opening tag reads as text: the first go at
+      // this returned the rating element's style attribute as a line, and
+      // lost the location that came after it.
+      const region = (testid) => htmlToText(
+        sliceElement(html, new RegExp(`<[a-z]+[^>]*data-testid="${testid}"[^>]*>`, 'i')),
+      ).split('\n').map((l) => l.trim()).filter(Boolean);
+
+      const [role] = region('vj-job-title');
+      if (role) out.role = { value: role, from: MED };
+
+      // "DataAnnotation · 4.1 · Alexandria, VA • Remote". The rating and the
+      // separators are dropped; what is left is the company, then where.
+      const meta = region('company-info-metadata')
+        .filter((l) => !/^[\u00b7\u2022|]$/.test(l) && !/^\d(?:\.\d)?$/.test(l));
+      if (meta[0]) out.company = { value: meta[0], from: MED };
+      for (const line of meta.slice(1)) {
+        if (!out.work_mode && /^(remote|hybrid|on-?site)$/i.test(line)) {
+          out.work_mode = { value: /^on/i.test(line) ? 'On-site' : line[0].toUpperCase() + line.slice(1).toLowerCase(), from: MED };
+        } else if (!out.location && line.length < 80) {
+          out.location = { value: line, from: MED };
+        }
+      }
+
+      // The details panel is label then value, one per line: Pay, then the
+      // figure; Job type, then one line for each type offered.
+      const details = region('jobDetailsSection');
+      for (let i = 0; i < details.length; i += 1) {
+        if (/^pay$/i.test(details[i]) && details[i + 1]) {
+          out.pay = { value: details[i + 1], from: MED };
+        }
+        // A posting can be several types at once, as this one is: part-time,
+        // contract and full-time. The tracker holds one, so the first that it
+        // recognises is taken, in the order the posting lists them. It is the
+        // posting's own word either way, and the popup marks it for checking.
+        if (!out.category && /^(full-time|part-time|internship)$/i.test(details[i])) {
+          out.category = { value: details[i][0].toUpperCase() + details[i].slice(1).toLowerCase(), from: MED };
+        }
+      }
+
+      const at = html.search(/data-testid="vj-job-description-heading"/i);
+      if (at >= 0) {
+        const rest = html.slice(html.lastIndexOf('<', at));
+        const stop = rest.search(/data-testid="vj-report-job"/i);
+        const body = htmlToText(rest.slice(0, stop > 0 ? stop : 40000))
+          .replace(/^\s*Full job description\s*/i, '').trim();
+        if (body.length > 200) out.job_description = { value: body, from: MED };
+      }
+      return out;
+    },
+  },
+  {
     // LinkedIn, signed in. There is no JSON-LD on this view and no og: tags,
     // and every class name is a hash that changes between builds, so none of
     // the usual hooks exist. What is stable is the accessible labels, because
@@ -503,7 +565,12 @@ function generic(html) {
   return out;
 }
 
-function fromPage(html, pageUrl) {
+// The host's own reader, when there is one and it found the posting.
+//
+// Run before the listing check, not after. Indeed shows the posting you
+// clicked beside a list of the others, so the page is an index and also a
+// posting, and the reader knowing where to look settles it.
+function adapterFor(html, pageUrl) {
   let host = '';
   try { host = new URL(pageUrl).hostname.toLowerCase(); } catch { /* no url given */ }
   for (const a of ADAPTERS) {
@@ -515,7 +582,7 @@ function fromPage(html, pageUrl) {
       if (Object.keys(got).length) return got.role ? got : { ...generic(html), ...got };
     }
   }
-  return generic(html);
+  return null;
 }
 
 // ------------------------------------------------------------------ public
@@ -550,10 +617,11 @@ export function extractJob(html, pageUrl = '') {
     // No JSON-LD. Either the system never publishes it, or the employer has
     // it switched off, which is a real per-employer setting rather than a
     // property of the domain.
-    if (looksLikeIndex(html)) {
+    const read = adapterFor(html, pageUrl);
+    if (!read && looksLikeIndex(html)) {
       return { fields: {}, sure: {}, review: {}, structured: false, isIndex: true };
     }
-    for (const [key, got] of Object.entries(fromPage(html, pageUrl))) fields[key] = got;
+    for (const [key, got] of Object.entries(read ?? generic(html))) fields[key] = got;
     if (!fields.job_link) fields.job_link = { value: pageUrl, from: MED };
   }
 

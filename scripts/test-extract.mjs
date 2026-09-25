@@ -35,6 +35,24 @@ const CASES = [
     requirementsStart: '5+ years of experience',
   },
   {
+    // Indeed's search view: the list on the left and the posting you clicked
+    // on the right, one document. It is an index and a posting at once, and
+    // the listing check refused the whole thing before anything could read it.
+    name: 'Indeed (search view)',
+    html: () => read('indeed'),
+    url: 'https://www.indeed.com/jobs?q=frontend',
+    expect: {
+      role: 'Frontend Developer - AI Trainer',
+      company: 'DataAnnotation',
+      location: 'Alexandria, VA',
+      work_mode: 'Remote',
+      pay: '$50 - $100 an hour',
+      category: 'Part-time',   // the posting says part-time, contract and full-time
+      source: 'Indeed',
+    },
+    requirementsStart: 'Fluency in English',
+  },
+  {
     // Signed-in LinkedIn: no JSON-LD, no og: tags, and every class name is a
     // build hash. The first real page this was ever pointed at, and it put
     // the whole page title in the role and found no company at all.
@@ -177,6 +195,24 @@ console.log('\nLinkedIn, half rendered');
 // was glued onto the previous bullet because an opening <p> produced no line
 // break, and "The skills you will need to be successful in the above:" was
 // eleven words when the limit was six.
+// The refusal is still right, and it still has to be reachable. The same
+// fixture read as any other host is refused, which is what shows the Indeed
+// reader is doing the work rather than the check having been weakened.
+console.log('\nA page that is a list and a posting at once');
+{
+  const html = read('indeed');
+  const asIndeed = extractJob(html, 'https://www.indeed.com/jobs?q=frontend');
+  const asOther = extractJob(html, 'https://somewhere.example/x');
+  const pairs = [
+    ['the posting beside the list is read', asIndeed.isIndex === false && asIndeed.fields.role?.value === 'Frontend Developer - AI Trainer'],
+    ['and the same page elsewhere is still refused', asOther.isIndex === true],
+  ];
+  for (const [name, ok] of pairs) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`index bypass: ${name}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
+  }
+}
+
 console.log('\nRequirements, from a posting that gave none');
 {
   const lines = [
