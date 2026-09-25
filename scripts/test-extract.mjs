@@ -14,7 +14,7 @@
 // is worse than one that fills less and says which parts it is unsure about.
 
 import { readFileSync } from 'fs';
-import { extractJob, htmlToText } from '../lib/extract.js';
+import { extractJob, htmlToText, looksLikeIndex } from '../lib/extract.js';
 
 const read = (name) => readFileSync(new URL(`./fixtures/${name}.html`, import.meta.url), 'utf8');
 
@@ -63,6 +63,33 @@ const CASES = [
     },
     requirementsStart: 'Minimum 5 years of experience',
   },
+  // Same system, same domain, structured data switched off by the employer.
+  // Greenhouse publishes JobPosting for Stripe's board and not for Figma's,
+  // which is why the adapter cannot rely on the host to predict it.
+  {
+    name: 'Greenhouse, no JSON-LD (Figma)',
+    html: () => read('greenhouse-nold'),
+    url: 'https://job-boards.greenhouse.io/figma/jobs/5426468004',
+    expect: {
+      role: 'Account Executive, Enterprise',
+      company: 'Figma',                   // from "…at Figma" in <title>
+      location: 'San Francisco, CA',      // first of a bullet-separated list
+      source: 'Company site',
+    },
+    requirementsStart: null,
+  },
+  // No structured data and no adapter: meta tags and the biggest body block.
+  {
+    name: 'Bespoke careers page (Airbnb)',
+    html: () => read('bespoke-airbnb'),
+    url: 'https://careers.airbnb.com/positions/7789554',
+    expect: {
+      role: 'Associate Legal Counsel, Japan',
+      company: 'Airbnb',                  // og:site_name is "Careers at Airbnb"
+      source: 'Company site',
+    },
+    requirementsStart: null,
+  },
 ];
 
 let right = 0;
@@ -91,9 +118,13 @@ for (const c of CASES) {
   // requirements", which is exactly the wrong-field problem this is meant to
   // avoid.
   const req = got.fields.requirements?.value ?? '';
-  const reqOk = req.startsWith(c.requirementsStart) && !/looking for someone who/i.test(req);
-  if (reqOk) right += 1; else { wrong += 1; fails.push(`${c.name} requirements: got ${JSON.stringify(req.slice(0, 70))} want start ${JSON.stringify(c.requirementsStart)}`); }
-  console.log(`  ${reqOk ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${'requirements'.padEnd(16)} ${JSON.stringify(req.slice(0, 44))}`);
+  if (c.requirementsStart) {
+    const reqOk = req.startsWith(c.requirementsStart) && !/looking for someone who/i.test(req);
+    if (reqOk) right += 1; else { wrong += 1; fails.push(`${c.name} requirements: got ${JSON.stringify(req.slice(0, 70))} want start ${JSON.stringify(c.requirementsStart)}`); }
+    console.log(`  ${reqOk ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${'requirements'.padEnd(16)} ${JSON.stringify(req.slice(0, 44))}`);
+  } else {
+    console.log(`       ${'requirements'.padEnd(16)} ${req ? JSON.stringify(req.slice(0, 44)) : '(none, prose has no heading)'}`);
+  }
   console.log(`       fields filled: ${Object.keys(got.fields).length}, of which to check: ${Object.keys(got.review).length}`);
 }
 
@@ -111,6 +142,24 @@ for (const [input, want] of cases) {
   const ok = have === want;
   if (ok) right += 1; else { wrong += 1; fails.push(`htmlToText ${JSON.stringify(input)}: got ${JSON.stringify(have)}`); }
   console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${JSON.stringify(input).slice(0, 40).padEnd(42)} -> ${JSON.stringify(have).slice(0, 30)}`);
+}
+
+// A listing page is not a posting. The coverage sample included a company's
+// open-positions index, which would otherwise have become a row called
+// "Current job openings". Refusing has to be narrow, though: matching the bare
+// word "careers" refused a real Airbnb posting titled "… - Careers at Airbnb",
+// and refusing a real page is worse than accepting a bad one, because a bad
+// row can be deleted.
+console.log('\nListings, which are not postings');
+for (const [name, file, want] of [
+  ['an open-positions index', 'index-page', true],
+  ['a real posting on a careers domain', 'bespoke-airbnb', false],
+  ['a posting with JSON-LD', 'ashby', false],
+]) {
+  const got = looksLikeIndex(read(file));
+  const ok = got === want;
+  if (ok) right += 1; else { wrong += 1; fails.push(`looksLikeIndex(${file}) = ${got}, want ${want}`); }
+  console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(38)} refused: ${got}`);
 }
 
 const total = right + wrong;
