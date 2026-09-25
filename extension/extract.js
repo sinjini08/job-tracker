@@ -238,6 +238,7 @@ const SOURCE = [
   [/(^|\.)linkedin\.com$/, 'LinkedIn'],
   [/(^|\.)indeed\.(com|co\.uk|ca)$/, 'Indeed'],
   [/(^|\.)joinhandshake\.com$/, 'Handshake'],
+  [/(^|\.)jobright\.ai$/, 'Jobright'],
   [/(^|\.)glassdoor\.(com|co\.uk)$/, 'Glassdoor'],
   [/(^|\.)ziprecruiter\.com$/, 'ZipRecruiter'],
   [/(^|\.)monster\.com$/, 'Monster'],
@@ -373,6 +374,63 @@ export function looksLikeIndex(html) {
 // domain, so the host cannot be used to predict it and every adapter has to
 // work whether or not the structured data happened to be switched on.
 const ADAPTERS = [
+  {
+    // Jobright, which ships the whole posting as JSON in a script tag. No
+    // scraping needed, so this reads better than any of the others.
+    //
+    // The same blob also holds a good deal about the person looking at it:
+    // how well they match, which of their skills scored what, and the names
+    // of people they know at the company. None of that is the posting and
+    // none of it goes in a row. Only the keys named below are read.
+    //
+    // The link kept is the employer's own posting rather than the Jobright
+    // page, because that is where the application actually happens and it
+    // outlives anyone's account here.
+    host: /(^|\.)jobright\.ai$/,
+    read(html) {
+      const raw = html.match(/<script[^>]*id="jobright-helper-job-detail-info"[^>]*>([\s\S]*?)<\/script>/i);
+      if (!raw) return {};
+      let job;
+      let firm;
+      try {
+        const parsed = JSON.parse(decode(raw[1]));
+        job = parsed?.jobResult ?? {};
+        firm = parsed?.companyResult ?? {};
+      } catch { return {}; }
+
+      const out = {};
+      const say = (key, value, from = MED) => {
+        const v = clean(String(value ?? ''));
+        if (v) out[key] = { value: v, from };
+      };
+
+      say('role', job.jobTitle);
+      say('company', firm.companyName);
+      say('location', job.jobLocation);
+      say('pay', job.salaryDesc);
+      say('job_link', job.originalUrl || job.applyLink);
+
+      const MODE = { onsite: 'On-site', 'on-site': 'On-site', remote: 'Remote', hybrid: 'Hybrid' };
+      say('work_mode', MODE[String(job.workModel ?? '').toLowerCase()]);
+
+      const KIND = { internship: 'Internship', 'full-time': 'Full-time', 'part-time': 'Part-time' };
+      say('category', KIND[String(job.employmentType ?? '').toLowerCase().replace(/\s+/g, '-')]);
+
+      // What the candidate must have, which Jobright lists on its own.
+      const skills = Array.isArray(job.skillSummaries) ? job.skillSummaries.slice(0, 6) : [];
+      if (skills.length) out.requirements = { value: skills.join('\n'), from: MED };
+
+      // Jobright writes this summary itself rather than quoting the employer,
+      // so the employer's own posting is linked above and this is what the
+      // person was actually reading when they saved it.
+      const duties = Array.isArray(job.coreResponsibilities) ? job.coreResponsibilities : [];
+      const body = [job.jobSummary, duties.length ? `Responsibilities\n${duties.map((d) => `- ${d}`).join('\n')}` : '']
+        .filter(Boolean).join('\n\n');
+      if (body.length > 200) out.job_description = { value: body, from: MED };
+
+      return out;
+    },
+  },
   {
     // Handshake, which is where most US university students actually apply.
     //
@@ -862,7 +920,10 @@ export function extractJob(html, pageUrl = '') {
     ['work_mode', workMode(post ?? {}, haystack)],
     ['term', term(withRole, haystack, kind?.value)],
     ['pay', body ? payFromText(body) : null],
-    ['hours_per_week', body ? hoursFromText(body) : null],
+    // Requirements as well as the description: "Work 40 hours/week minimum"
+    // is a requirement, not a duty, and that is where a posting tends to put
+    // the commitment it is asking for.
+    ['hours_per_week', hoursFromText(`${body}\n${fields.requirements?.value ?? ''}`)],
     ['source', source(pageUrl)],
     ['requirements', body ? requirements(body) : null],
   ]) {

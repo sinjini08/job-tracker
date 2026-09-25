@@ -56,6 +56,29 @@ const CASES = [
     requirementsStart: 'For Manager (M3) level',
   },
   {
+    // Jobright ships the whole posting as JSON in a script tag, which makes
+    // it the cleanest of the lot to read. Twelve fields, the only fixture
+    // with a real term and the only one with hours.
+    name: 'Jobright (JSON in the page)',
+    html: () => read('jobright'),
+    url: 'https://jobright.ai/jobs/info/6ab5bc02b3db59402d0fecc2',
+    expect: {
+      role: 'Software Development Engineer Intern - Summer 2027 (USA) , Amazon Dedicated Cloud (ADC)',
+      company: 'Amazon',
+      location: 'Jessup, MD',
+      work_mode: 'On-site',
+      pay: '$109K/yr - $109K/yr',
+      category: 'Internship',
+      term: 'Summer 2027',            // named in the title
+      hours_per_week: 40,             // "Work 40 hours/week minimum", in the requirements
+      source: 'Jobright',
+      // Amazon's own posting, not the Jobright page: that is where the
+      // application happens and it outlives anyone's account here.
+      job_link: 'https://www.amazon.jobs/en/jobs/10559746/software-development-engineer-intern-summer-2027-usa-amazon-dedicated-cloud-adc',
+    },
+    requirementsStart: 'Are 18 years of age or older',
+  },
+  {
     // Handshake, where most US university students actually apply. No
     // JSON-LD, a generic page title, and styled-components class hashes, so
     // the role came out as "Handshake" and there was no company at all.
@@ -268,6 +291,20 @@ console.log('\nLinkedIn, half rendered');
 // the result in the same panel: "You do not match any qualifications", the
 // courses it wants, a prompt to update the profile. None of that is anything
 // the employer wrote and none of it belongs in a row.
+// Jobright's blob carries a great deal about the person reading it, next to
+// the posting itself: how strongly they match, which of their skills scored
+// what, and the names of people they know at the company. The fixture keeps
+// all of it, so this fails if any of it ever reaches a row.
+console.log('\nJobright: the posting is read, the person is not');
+{
+  const all = JSON.stringify(extractJob(read('jobright'), 'https://jobright.ai/jobs/info/x').fields);
+  for (const phrase of ['Ryan', 'socialConnections', 'recommendationScores', 'q_seniority_match', 'Strong Match', 'displayScore', 'isLiked']) {
+    const ok = !all.includes(phrase);
+    if (ok) right += 1; else { wrong += 1; fails.push(`jobright: "${phrase}" reached a field`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} "${phrase}" stays out of the row`);
+  }
+}
+
 console.log('\nHandshake keeps its profile matching to itself');
 {
   const { fields } = extractJob(read('handshake'), 'https://app.joinhandshake.com/stu/jobs/1');
