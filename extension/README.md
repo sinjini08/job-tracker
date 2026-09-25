@@ -33,8 +33,10 @@ The popup reads the tab once and closes.
     icons/          from the app's own mark
 
 `extract.js` is generated. Edit `lib/extract.js`, which is the copy with tests
-against saved postings, then `npm run ext:sync`. `npm run ext:check` fails if
-the two have drifted.
+against saved postings, then `npm run ext:sync`.
+
+The drift check runs as `pretest`, so `npm test` fails before the suite starts
+if the two have diverged. It is not a thing anybody has to remember.
 
 ## What it reads, and what it does not
 

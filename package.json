@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "extract": "node scripts/test-extract.mjs",
     "ext:sync": "node scripts/sync-extension.mjs",
-    "ext:check": "node scripts/sync-extension.mjs --check"
+    "ext:check": "node scripts/sync-extension.mjs --check",
+    "pretest": "node scripts/sync-extension.mjs --check"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",

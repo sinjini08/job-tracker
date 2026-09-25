@@ -3,6 +3,11 @@
 //   npm run ext:sync    write the copy
 //   npm run ext:check   fail if it has drifted
 //
+// The check also runs as `pretest`, which npm invokes before `npm test`, so a
+// drifted copy fails the suite before it starts. A guard nobody has to
+// remember to run is the only kind worth having: without that, the tested
+// extractor and the installed one could quietly become different code.
+//
 // A Chrome extension cannot import from outside its own directory, and this
 // project has no bundler for anything but Next. So the file is copied, and the
 // check is what stops the copy quietly becoming a fork: every fixture-tested
