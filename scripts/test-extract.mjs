@@ -47,7 +47,8 @@ const CASES = [
       location: 'United States',
       pay: '$20/hr',
       work_mode: 'Remote',   // said Hybrid, then On-site, before the sidebar was walled off
-      term: 'Full-time',
+      category: 'Full-time', // LinkedIn's employment type. Term here is academic: Fall 2026
+      term: undefined,
       source: 'LinkedIn',
     },
     requirementsStart: 'Proven experience in cold calling',
