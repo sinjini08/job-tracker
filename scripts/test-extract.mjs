@@ -129,8 +129,8 @@ const CASES = [
       location: 'United States',
       pay: '$20/hr',
       work_mode: 'Remote',   // said Hybrid, then On-site, before the sidebar was walled off
-      category: 'Full-time', // LinkedIn's employment type. Term here is academic: Fall 2026
-      term: undefined,
+      category: 'Full-time', // LinkedIn's employment type
+      term: 'Ongoing',       // term here is academic, and a permanent job has no season
       source: 'LinkedIn',
     },
     requirementsStart: 'Proven experience in cold calling',
@@ -386,6 +386,37 @@ for (const [name, file, want] of [
   if (ok) right += 1; else { wrong += 1; fails.push(`looksLikeIndex(${file}) = ${got}, want ${want}`); }
   console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(38)} refused: ${got}`);
 }
+
+// Term and hours were both empty on all ten fixtures. Term turned out not to
+// be broken: none of those ten postings names a season, which is what a
+// permanent job looks like. These are the postings that do say.
+console.log('\nTerm and hours, where a posting states them');
+{
+  const say = (title, line, employmentType = 'FULL_TIME') => {
+    const ld = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'JobPosting', title,
+      hiringOrganization: { name: 'Acme' }, employmentType,
+      description: `<p>About the role.</p><p>${line}</p><p>We build things and we care about them deeply, every day.</p>`,
+    });
+    const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+    const f = extractJob(html, 'https://example.com/j').fields;
+    return [f.term?.value ?? null, f.hours_per_week?.value ?? null];
+  };
+  const cases = [
+    ['a named season wins', say('Software Engineer Intern', 'Our Summer 2027 internship runs for twelve weeks.', 'INTERN'), ['Summer 2027', null]],
+    ['autumn is called Fall here', say('Co-op Student', 'This is our Autumn 2026 co-op placement.', 'INTERN'), ['Fall 2026', null]],
+    ['a permanent job is Ongoing', say('Software Engineer', 'This is a permanent position on our platform team.'), ['Ongoing', null]],
+    ['hours are read when stated', say('Research Assistant', 'You will work 15 hours per week during term.', 'PART_TIME'), [null, 15]],
+    ['a range gives its top end', say('Lab Assistant', 'Expect 10-20 hrs a week depending on the schedule.', 'PART_TIME'), [null, 20]],
+    ['nothing is invented from silence', say('Software Engineer Intern', 'You will join a small team and learn fast.', 'INTERN'), [null, null]],
+  ];
+  for (const [name, have, want] of cases) {
+    const ok = have[0] === want[0] && have[1] === want[1];
+    if (ok) right += 1; else { wrong += 1; fails.push(`term/hours: ${name}: got ${JSON.stringify(have)} want ${JSON.stringify(want)}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(34)} ${JSON.stringify(have)}`);
+  }
+}
+
 
 const total = right + wrong;
 console.log(`\n${right}/${total} correct (${Math.round((right / total) * 100)}%)`);

@@ -210,11 +210,28 @@ function workMode(post, text) {
 
 // Only when the posting says it. A term invented from today's date would be
 // wrong for half the year.
-function term(role, text) {
+function term(role, text, category) {
   const m = `${role} ${text.slice(0, 3000)}`.match(/\b(Summer|Fall|Autumn|Spring|Winter)\s+(20\d{2})\b/i);
+  if (m) {
+    const season = m[1].toLowerCase() === 'autumn' ? 'Fall' : m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
+    return { value: `${season} ${m[2]}`, from: MED };
+  }
+  // A permanent full-time job has no season and is not meant to have one, so
+  // the column stays empty on every posting that never says "Summer 2027".
+  // Ongoing is what this tracker calls that, and the category has already
+  // ruled out an internship by the time this runs.
+  if (category === 'Full-time') return { value: 'Ongoing', from: LOW };
+  return null;
+}
+
+// Hours a week, only where a posting states them. Part-time and campus jobs
+// usually do and salaried ones never do, so nothing is inferred from silence.
+function hoursFromText(text) {
+  const m = String(text ?? '').match(/\b(\d{1,2})(?:\s*(?:\u2013|-|to)\s*(\d{1,2}))?\s*(?:hours?|hrs?)\s*(?:per|a|\/)\s*week\b/i);
   if (!m) return null;
-  const season = m[1].toLowerCase() === 'autumn' ? 'Fall' : m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
-  return { value: `${season} ${m[2]}`, from: MED };
+  // A range gets its top end, because that is the commitment being asked for.
+  const n = Number(m[2] ?? m[1]);
+  return Number.isFinite(n) && n > 0 && n <= 80 ? { value: n, from: MED } : null;
 }
 
 const SOURCE = [
@@ -836,11 +853,16 @@ export function extractJob(html, pageUrl = '') {
   // A field guessed off somebody else's job is worse than an empty field.
   const haystack = `${withRole}\n${body}`;
 
+  // Category is settled before term, because a permanent full-time job is
+  // what makes the term Ongoing and an internship is what rules that out.
+  const kind = fields.category ?? category(post ?? {}, withRole, haystack);
+
   for (const [key, got] of [
-    ['category', category(post ?? {}, withRole, haystack)],
+    ['category', kind],
     ['work_mode', workMode(post ?? {}, haystack)],
-    ['term', term(withRole, haystack)],
+    ['term', term(withRole, haystack, kind?.value)],
     ['pay', body ? payFromText(body) : null],
+    ['hours_per_week', body ? hoursFromText(body) : null],
     ['source', source(pageUrl)],
     ['requirements', body ? requirements(body) : null],
   ]) {
