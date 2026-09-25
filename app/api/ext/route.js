@@ -147,7 +147,12 @@ export async function POST(request) {
   const match = sheets.find((s) => s.name.toLowerCase() === asked || s.key.toLowerCase() === asked);
   const type = match?.key ?? sheets[0]?.key ?? enabledSheets(null)[0];
 
-  if (!fields.status) fields.status = 'Applied';
+  // Saving a posting is not applying to one. The extension is used while
+  // reading a job, which is usually before anything has been sent, and a row
+  // that says Applied when nothing was applied to is worse than no row: it
+  // corrupts the count the whole tracker is built on. The popup offers
+  // Applied for the case where the person has just sent it.
+  if (!fields.status) fields.status = 'Wishlist';
 
   try {
     const saved = await store.createApplication({ ...fields, type });

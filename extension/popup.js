@@ -141,7 +141,7 @@ async function loadSheets() {
 }
 
 function collect() {
-  const out = { sheet: $('sheet').value };
+  const out = { sheet: $('sheet').value, status: $('status').value };
   for (const [key] of SHOW) {
     const el = $(`f-${key}`);
     if (el && el.value.trim()) out[key] = el.value.trim();

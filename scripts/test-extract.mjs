@@ -172,6 +172,45 @@ console.log('\nLinkedIn, half rendered');
   }
 }
 
+// A heading only counts if it is on its own line, and only if the wording is
+// one this recognises. A real posting failed both tests at once: the heading
+// was glued onto the previous bullet because an opening <p> produced no line
+// break, and "The skills you will need to be successful in the above:" was
+// eleven words when the limit was six.
+console.log('\nRequirements, from a posting that gave none');
+{
+  const lines = [
+    '<p>About the role:</p>',
+    '<p>You will drive pipeline generation across the USA.</p>',
+    '<ul><li>Own your pipeline: take full responsibility for prospecting.</li>',
+    '<li>Collaborate cross-functionally: work closely with Marketing.</li></ul>',
+    '<p>The skills you will need to be successful in the above:</p>',
+    '<ul><li>A minimum of 1 years experience in a BDR, SDR, or outbound sales role.</li>',
+    '<li>Demonstrated track record of exceeding pipeline generation targets</li>',
+    '<li>Fluent English speaker, with exceptional written communication skills</li>',
+    '<li>Experience with HubSpot CRM</li></ul>',
+    '<p>What\u2019s in it for you:</p><ul><li>Competitive commission</li></ul>',
+  ].join('');
+  const ld = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'JobPosting',
+    title: 'Business Development Representative',
+    hiringOrganization: { name: 'Goodnotes' },
+    description: lines,
+  });
+  const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+  const got = extractJob(html, 'https://www.linkedin.com/jobs/view/1/').fields.requirements?.value ?? '';
+  const want = [
+    ['the heading is found at all', Boolean(got)],
+    ['it starts at the skills, not the duties', got.startsWith('A minimum of 1 years')],
+    ['it does not run on into the benefits', !/commission/i.test(got)],
+    ['and not into the duties above it', !/Own your pipeline/i.test(got)],
+  ];
+  for (const [name, ok] of want) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`requirements: ${name}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
+  }
+}
+
 console.log('\nDescription cleanup');
 const cases = [
   ['<p>One</p><p>Two</p>', 'One\n\nTwo'],

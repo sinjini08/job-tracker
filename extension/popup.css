@@ -121,3 +121,9 @@ button, .as-button {
    have to discover that by pressing the button. */
 .row.missing > label .tag { background: var(--bad); color: var(--surface); }
 .row.missing input, .row.missing textarea { border-color: var(--bad); }
+
+/* Sheet and status side by side. Two full-width selects stacked read as a
+   form to work through; side by side they read as one choice about where
+   this row lands. */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two .field { margin-top: 12px; }

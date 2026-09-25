@@ -64,10 +64,19 @@
         it. Worth a glance before saving.
       </p>
 
-      <label class="field">
-        <span>Sheet</span>
-        <select id="sheet"></select>
-      </label>
+      <div class="two">
+        <label class="field">
+          <span>Sheet</span>
+          <select id="sheet"></select>
+        </label>
+        <label class="field">
+          <span>Status</span>
+          <select id="status">
+            <option value="Wishlist">Saved to look at</option>
+            <option value="Applied">Already applied</option>
+          </select>
+        </label>
+      </div>
 
       <p id="error" class="error" hidden></p>
       <div class="actions">
