@@ -117,6 +117,29 @@ function render(result, url) {
   show('form');
 }
 
+// The tracker is asked which lines of the description are the requirements.
+// It answers with the text off those lines, or with nothing, and nothing is
+// the ordinary case rather than a failure: no key configured, a timeout, or a
+// posting that genuinely has no such section all look the same from here.
+async function askForRequirements() {
+  try {
+    const r = await fetch(`${api}/requirements`, {
+      method: 'POST',
+      headers: { ...auth(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: extracted.fields.job_description.value }),
+      signal: AbortSignal.timeout(9000),
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    // 'derived' and not 'json-ld', so it arrives marked CHECK like anything
+    // else that was worked out rather than read.
+    if (d.requirements) extracted.fields.requirements = { value: d.requirements, from: 'derived' };
+  } catch {
+    // Never blocks the save. A missing field is a much smaller problem than
+    // a popup stuck on "Reading the page".
+  }
+}
+
 async function loadSheets() {
   const sel = $('sheet');
   sel.textContent = '';
@@ -198,6 +221,12 @@ async function start() {
       return;
     }
     await loadSheets();
+    // Only when the page's own wording defeated the matcher. The deterministic
+    // answer is preferred whenever there is one: it is free, instant, and it
+    // was read off the page rather than judged.
+    if (!extracted.fields.requirements && extracted.fields.job_description) {
+      await askForRequirements();
+    }
     render(extracted, url);
   } catch (e) {
     show('form');

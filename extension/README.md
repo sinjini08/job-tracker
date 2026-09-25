@@ -93,3 +93,26 @@ browser never sends to a server, so the token stays out of access logs on both
 sides. It is held in `chrome.storage.local`, which is not encrypted: anyone
 with your unlocked machine and your Chrome profile can read it, the same as a
 logged-in session. Disconnect from Settings revokes it.
+
+## The one place a model is used
+
+Everything structured is read, not guessed: role, company, location, pay,
+work mode and category come off JSON-LD, meta tags, labelled elements or the
+page title. A model would only add cost and a chance of error there.
+
+Requirements are different. Which stretch of prose lists what the candidate
+must have is a judgement, and postings word that heading endlessly many ways.
+The matcher handles the common ones and a real posting defeated it with "The
+skills you will need to be successful in the above".
+
+So when the matcher finds nothing, `/api/ext/requirements` sends the
+description and asks for **line numbers**. The reply is two integers, checked
+against the lines that were sent, and the text is then cut from those same
+lines. Nothing the model writes is passed through, which is why inventing a
+requirement is not something it is able to do rather than something it is
+asked not to do. `scripts/test-req-span.mjs` covers the ways a reply can be
+wrong, including one that answers correctly while also supplying invented
+text.
+
+It needs `ANTHROPIC_API_KEY`. Without one the endpoint returns no answer and
+the field stays empty, which is exactly what happened before it existed.

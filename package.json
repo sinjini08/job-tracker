@@ -10,7 +10,7 @@
     "test": "node scripts/test.mjs",
     "contrast": "node scripts/contrast.mjs",
     "lint": "eslint .",
-    "extract": "node scripts/test-extract.mjs",
+    "extract": "node scripts/test-extract.mjs && node scripts/test-req-span.mjs",
     "ext:sync": "node scripts/sync-extension.mjs",
     "ext:check": "node scripts/sync-extension.mjs --check",
     "pretest": "node scripts/sync-extension.mjs --check"

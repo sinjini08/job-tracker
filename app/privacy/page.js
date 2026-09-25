@@ -63,7 +63,14 @@ export default function PrivacyPage() {
           then sends is the posting it read and the sheet you picked. It can add rows and see what
           your sheet tabs are called, and that is all: it cannot read the rows already in your
           tracker, change them, or delete anything. Disconnecting it in Settings stops it working
-          and leaves your assistant connection alone.</li>
+          and leaves your assistant connection alone.
+          <br /><br />
+          One part of it uses a language model. When a posting writes its requirements heading in
+          a way the extension does not recognise, the text of that posting is sent to Anthropic to
+          be asked which lines are the requirements. Only the posting is sent, never your rows,
+          your notes or your name, and the model answers with line numbers rather than words, so
+          what lands in the field is the posting's own text. Nothing is sent when the extension
+          works out the requirements by itself, which is the usual case.</li>
       </ul>
 
       <h2>Who else is involved</h2>
