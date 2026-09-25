@@ -65,7 +65,7 @@ const CASES = [
     expect: {
       role: 'Software Development Engineer Intern - Summer 2027 (USA) , Amazon Dedicated Cloud (ADC)',
       company: 'Amazon',
-      location: 'Jessup, MD',
+      location: 'Jessup, MD / Seattle, WA / Arlington, VA / Denver, CO',  // all four, not the first
       work_mode: 'On-site',
       pay: '$109K/yr - $109K/yr',
       category: 'Internship',
@@ -76,7 +76,9 @@ const CASES = [
       // application happens and it outlives anyone's account here.
       job_link: 'https://www.amazon.jobs/en/jobs/10559746/software-development-engineer-intern-summer-2027-usa-amazon-dedicated-cloud-adc',
     },
-    requirementsStart: 'Are 18 years of age or older',
+    // Eligibility first, because "U.S. Citizen Only" decides whether a
+    // student can apply at all and Jobright files it away from the rest.
+    requirementsStart: 'No H1B',
   },
   {
     // Handshake, where most US university students actually apply. No
@@ -302,6 +304,26 @@ console.log('\nJobright: the posting is read, the person is not');
     const ok = !all.includes(phrase);
     if (ok) right += 1; else { wrong += 1; fails.push(`jobright: "${phrase}" reached a field`); }
     console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} "${phrase}" stays out of the row`);
+  }
+}
+
+// The posting states fifteen requirements and four locations. Saving the
+// first of each threw away the ones that decide whether a student can apply.
+console.log('\nJobright: nothing the posting states is dropped');
+{
+  const { fields } = extractJob(read('jobright'), 'https://jobright.ai/jobs/info/x');
+  const reqs = fields.requirements?.value ?? '';
+  const pairs = [
+    ['all four locations are kept', (fields.location?.value ?? '').split(' / ').length === 4],
+    ['all fifteen requirements are kept', reqs.split('\n').length === 18],
+    ['including the degree conferral window', reqs.includes('October 2027')],
+    ['and the quarter-remaining rule', reqs.includes('quarter/semester/trimester')],
+    ['eligibility is lifted to the top', reqs.startsWith('No H1B')],
+    ['and the citizenship gate is there', reqs.includes('U.S. Citizen Only')],
+  ];
+  for (const [name, ok] of pairs) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`jobright: ${name}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
   }
 }
 
