@@ -92,7 +92,7 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, sheet = 'All
             <Card title="Points per day" subtitle="Applying scores, and getting further scores more. You earn these whether or not you are in a league"
               table={{ cols: ['Day', 'Points'], rows: (daily ?? []).map((d) => [d.day, d.pts]) }}>
               <DayChart monthOnly={false}
-                series={daily ? [{ key: 'me', label: 'You', daily: daily.map((d) => d.pts) }] : []} />
+                series={daily ? [{ key: 'me', label: 'You', daily: daily.map((d) => d.pts), mine: true }] : []} />
             </Card>
 
             <Breakdown data={data} tip={tip} />

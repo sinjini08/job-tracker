@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 
 // Points per day, drawn as lines over a soft fill, with the daily target as a
 // dashed rule so "above the line" reads as "won that day".
@@ -36,6 +36,9 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   const showTarget = Number(target) > 0;
   const [hover, setHover] = useState(null);
   const svgRef = useRef(null);
+  // useId returns something with punctuation in it, which is legal in an id
+  // and not legal inside url(#...). Stripped to letters and digits.
+  const gradId = useId().replace(/[^a-zA-Z0-9]/g, '');
 
   const { lines, dates, max, hidden } = useMemo(() => {
     const longest = Math.max(0, ...series.map((s) => s.daily?.length ?? 0));
@@ -56,6 +59,8 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
       color: SERIES[i],
       values: s.daily.slice(slice),
     }));
+    // Yours last, so it draws over the others rather than under them.
+    lines.sort((a, b) => Number(Boolean(a.mine)) - Number(Boolean(b.mine)));
     const max = Math.max(showTarget ? target * 1.2 : 0, ...lines.flatMap((l) => l.values), 1);
     return { lines, dates, max, hidden: ranked.length - shown.length };
   }, [series, target, monthOnly, showTarget]);
@@ -63,6 +68,8 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   if (!lines.length || dates.length < 2) {
     return <p className="muted">No days to draw yet. Points show up here as you log applications.</p>;
   }
+
+  const filled = lines.find((l) => l.mine) ?? (lines.length === 1 ? lines[0] : null);
 
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
@@ -176,6 +183,15 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img"
         onMouseMove={onMove} onMouseLeave={() => setHover(null)}
         aria-label={`Points per day for ${lines.map((l) => l.label).join(', ')}`}>
+        <defs>
+          {filled && (
+            <linearGradient id={`fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={filled.color} stopOpacity="0.30" />
+              <stop offset="100%" stopColor={filled.color} stopOpacity="0" />
+            </linearGradient>
+          )}
+        </defs>
+
         {[0, 0.5, 1].map((f) => (
           <line key={f} className="chart-grid" x1={PAD.left} x2={W - PAD.right}
             y1={PAD.top + plotH * f} y2={PAD.top + plotH * f} />
@@ -187,14 +203,19 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
         {/* Grouped so the fills and lines rise together off the baseline.
             non-scaling-stroke keeps the 2px line 2px while it's mid-scale. */}
         <g className="chart-rise" style={{ transformOrigin: `0px ${PAD.top + plotH}px` }}>
-          {lines.map((l) => (
-            <path key={`a-${l.key ?? l.label}`} d={area(l.values)} fill={l.color} opacity="0.12" />
-          ))}
-        {/* The target sits above the fills so it never gets lost under them. */}
+          {/* One fill. Three of them overlapped into brown sludge and buried
+              the lines they were meant to support, which is the whole reason
+              a chart like this reads as cluttered. Everybody else is a
+              stroke, thinner and quieter, so the shape of your own month is
+              the thing the eye lands on. */}
+          {filled && <path d={area(filled.values)} fill={`url(#fill-${gradId})`} />}
+        {/* The target sits above the fill so it never gets lost under it. */}
         {showTarget && <line className="chart-target" x1={PAD.left} x2={W - PAD.right} y1={y(target)} y2={y(target)} />}
           {lines.map((l) => (
             <path key={`l-${l.key ?? l.label}`} d={path(l.values)} fill="none" stroke={l.color}
-              strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
+              strokeWidth={l === filled ? 2.5 : 1.6}
+              opacity={filled && l !== filled ? 0.7 : 1}
+              strokeLinejoin="round" strokeLinecap="round"
               vectorEffect="non-scaling-stroke" />
           ))}
         </g>
@@ -204,7 +225,7 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
             <line className="chart-cross" x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + plotH} />
             {lines.map((l) => (
               <circle key={`d-${l.key ?? l.label}`} cx={x(hover)} cy={y(l.values[hover] ?? 0)} r="4"
-                fill={l.color} stroke="#fff" strokeWidth="2" />
+                fill={l.color} stroke="var(--viz-surface)" strokeWidth="2" />
             ))}
           </>
         )}

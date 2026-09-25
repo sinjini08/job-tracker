@@ -543,7 +543,10 @@ function Standings({ rows, period }) {
 function MonthPanel({ rows, mine, target, history }) {
   const series = rows
     .filter((r) => Array.isArray(r.daily))
-    .map((r) => ({ key: r.user_id, label: r.display_name + (r.is_me ? ' (you)' : ''), daily: r.daily }));
+        // is_me goes through: the chart fills one line and leaves the rest as
+    // strokes, and yours is the one worth filling.
+    .map((r) => ({ key: r.user_id, label: r.display_name + (r.is_me ? ' (you)' : ''),
+      daily: r.daily, mine: Boolean(r.is_me) }));
   const hidden = rows.length - series.length;
 
   return (

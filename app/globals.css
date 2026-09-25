@@ -832,11 +832,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   /* Series colours in fixed order, checked for colourblind separation against
      the #f5f5f0 surface. 1 and 2 are On-Campus and Off-Campus; 3-5 are there
      for the by-source and by-category charts. */
-  --series-1: #1f9d55;
-  --series-2: #2a78d6;
-  --series-3: #e0651f;
-  --series-4: #8a5bd0;
-  --series-5: #d1478c;
+  --series-1: #7c4dd8;
+  --series-2: #0f8f83;
+  --series-3: #d4741a;
+  --series-4: #c2358c;
+  --series-5: #2a6fd6;
   /* Funnel: one hue, light to dark, ending past the logo green. Seven steps,
      one per pipeline stage (Applied … Accepted). */
   --ord-0: #eceee9;
@@ -869,11 +869,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
    for separation against white and lose most of it against #1d221f. */
 :root[data-theme="dark"] .viz-root,
 :root[data-theme="dark"] .charts {
-  --series-1: #3fc47a;
-  --series-2: #5aa7f0;
-  --series-3: #ff8f52;
-  --series-4: #b088e8;
-  --series-5: #ff5fb0;
+  --series-1: #a98af0;
+  --series-2: #3fc4b4;
+  --series-3: #f0954a;
+  --series-4: #ef72b8;
+  --series-5: #6aa7f5;
   --ord-0: #232a25;
   --ord-1: #196c36;
   --ord-2: #39804d;
@@ -897,11 +897,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .viz-root,
   :root:not([data-theme="light"]) .charts {
-    --series-1: #3fc47a;
-    --series-2: #5aa7f0;
-    --series-3: #ff8f52;
-    --series-4: #b088e8;
-    --series-5: #ff5fb0;
+    --series-1: #a98af0;
+    --series-2: #3fc4b4;
+    --series-3: #f0954a;
+    --series-4: #ef72b8;
+    --series-5: #6aa7f5;
     --ord-0: #232a25;
   --ord-1: #196c36;
     --ord-2: #39804d;
@@ -1746,8 +1746,10 @@ body:has(.login) { overflow: auto; }
 .chart-legend i { width: 10px; height: 10px; border-radius: 2px; }
 .chart-legend i.rule { width: 14px; height: 0; border-top: 2px dashed var(--viz-base); border-radius: 0; }
 .chart-svg { width: 100%; height: auto; display: block; }
-.chart-grid { stroke: var(--viz-grid); stroke-width: 1; }
-.chart-axis { font-size: 10px; fill: var(--viz-muted); }
+.chart-grid {
+  stroke-dasharray: 2 5;
+  stroke-linecap: round; stroke: var(--viz-grid); stroke-width: 1; opacity: 0.6; }
+.chart-axis { font-size: 10px; fill: var(--viz-muted); opacity: 0.75; }
 .chart-target { stroke: var(--viz-base); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .chart-cross { stroke: var(--viz-base); stroke-width: 1; }
 .chart-readout {
