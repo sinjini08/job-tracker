@@ -9,7 +9,8 @@
     "start": "next start",
     "test": "node scripts/test.mjs",
     "contrast": "node scripts/contrast.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "extract": "node scripts/test-extract.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",
