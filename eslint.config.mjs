@@ -27,7 +27,14 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import react from 'eslint-plugin-react';
 
 const config = [
-  { ignores: ['.next/**', 'node_modules/**', 'brand/**', 'public/**', 'app/dev-preview/**'] },
+  {
+    ignores: [
+      '.next/**', 'node_modules/**', 'brand/**', 'public/**', 'app/dev-preview/**',
+      // Written by scripts/sync-extension.mjs from lib/extract.js, which is
+      // linted. npm run ext:check is what keeps the copy honest.
+      'extension/extract.js',
+    ],
+  },
 
   ...next,
 
@@ -70,6 +77,15 @@ const config = [
   {
     files: ['scripts/**/*.cjs'],
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
+  },
+
+  // The extension runs in a browser with the extension APIs and no Node.
+  // Declared rather than silenced: no-undef catching `chrome` was the rule
+  // doing its job, and turning it off here would have turned it off for the
+  // typos it is actually there to find.
+  {
+    files: ['extension/**/*.js'],
+    languageOptions: { globals: { ...globals.browser, ...globals.webextensions } },
   },
 ];
 

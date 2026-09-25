@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   await ensureProfile(user.id, user.email);
 
   const [{ data: profile }, connections] = await Promise.all([
-    user.sb.from('profiles').select('share_token, mcp_token_hash').eq('id', user.id).maybeSingle(),
+    user.sb.from('profiles').select('share_token, mcp_token_hash, ext_token_hash').eq('id', user.id).maybeSingle(),
     listConnections(user.id),
   ]);
   return (
@@ -20,6 +20,7 @@ export default async function SettingsPage() {
       email={user.email}
       shareToken={profile?.share_token ?? null}
       connectorOn={Boolean(profile?.mcp_token_hash)}
+      extensionOn={Boolean(profile?.ext_token_hash)}
       connections={connections}
     />
   );

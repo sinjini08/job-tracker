@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Save this posting</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Three states, one at a time. Nothing is fetched or read until the
+       person has clicked the icon, which is also when the browser grants
+       this tab at all. -->
+  <main id="app">
+    <section id="pairing" hidden>
+      <h1>Connect your tracker</h1>
+      <p class="hint">
+        Open the tracker, go to Settings, and copy the extension link. It is
+        kept in this browser and nowhere else.
+      </p>
+      <label class="field">
+        <span>Extension link</span>
+        <input id="token" type="text" spellcheck="false" autocomplete="off"
+          placeholder="https://myjobtracker.co/api/ext/..." />
+      </label>
+      <p id="pair-error" class="error" hidden></p>
+      <button id="pair" class="primary">Connect</button>
+    </section>
+
+    <section id="reading" hidden>
+      <p class="hint">Reading the page…</p>
+    </section>
+
+    <section id="refused" hidden>
+      <h1>That looks like a list</h1>
+      <p class="hint">
+        This page lists several jobs rather than describing one. Open the
+        posting you are applying to and try again.
+      </p>
+      <button id="refused-close" class="ghost">Close</button>
+    </section>
+
+    <section id="form" hidden>
+      <header class="head">
+        <h1 id="title">Save this posting</h1>
+        <p id="from" class="from"></p>
+      </header>
+
+      <div id="fields"></div>
+
+      <p id="review-note" class="hint" hidden>
+        The marked fields were worked out from the page rather than read from
+        it. Worth a glance before saving.
+      </p>
+
+      <label class="field">
+        <span>Sheet</span>
+        <select id="sheet"></select>
+      </label>
+
+      <p id="error" class="error" hidden></p>
+      <div class="actions">
+        <button id="save" class="primary">Save to tracker</button>
+        <button id="unpair" class="link">Disconnect</button>
+      </div>
+    </section>
+
+    <section id="done" hidden>
+      <h1>Saved</h1>
+      <p id="done-what" class="hint"></p>
+      <a id="done-link" class="primary as-button" target="_blank" rel="noreferrer">Open the tracker</a>
+    </section>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

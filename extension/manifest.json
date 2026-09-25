@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Job Application Tracker",
+  "version": "0.1.0",
+  "description": "File the job posting you are looking at into your tracker, without retyping it.",
+  "action": {
+    "default_title": "Save this posting",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}

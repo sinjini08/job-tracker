@@ -217,11 +217,14 @@ function CopyField({ value }) {
   );
 }
 
-export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector, connections: initialConnections = [] }) {
+export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector,
+  extensionOn: initialExtension = false, connections: initialConnections = [] }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const [shareUrl, setShareUrl] = useState(shareToken ? `/s/${shareToken}` : null);
   const [connectorOn, setConnectorOn] = useState(initialConnector);
   const [connectorUrl, setConnectorUrl] = useState(null); // shown once, right after creating
+  const [extensionOn, setExtensionOn] = useState(initialExtension);
+  const [extensionUrl, setExtensionUrl] = useState(null); // shown once, same reason
   const [assistant, setAssistant] = useState('claude');
   const [connections, setConnections] = useState(initialConnections);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -367,6 +370,46 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
               </div>
             </div>
           )}
+        </section>
+
+        <section className="settings-card">
+          <h2>Save jobs from your browser</h2>
+          <p>The browser extension reads the posting you are looking at, anywhere you apply, and
+            files it. Nothing is sent until you press save, and it can only add to your tracker,
+            never read it.</p>
+          <ol className="settings-steps">
+            <li>Install the extension, then click its icon on a job posting.</li>
+            <li>Paste the link below when it asks to be connected.</li>
+          </ol>
+          {extensionUrl ? (
+            <>
+              <p className="settings-warn">Copy this now. It will not be shown again, and anyone
+                with it can add rows to your tracker.</p>
+              <CopyField value={extensionUrl} />
+            </>
+          ) : (
+            <p className="settings-status">
+              {extensionOn ? '\u25cf An extension is connected.' : '\u25cb No extension connected.'}
+            </p>
+          )}
+          <div className="settings-actions">
+            <button className="btn ghost-dark" disabled={busy === 'ext'} onClick={act('ext', async () => {
+              if (extensionOn && !confirm('Make a new link? The one in your browser stops working.')) return;
+              const { url } = await call('/api/settings/extension', 'POST');
+              setExtensionUrl(url); setExtensionOn(true);
+            })}>{extensionOn ? 'Make a new link' : 'Create an extension link'}</button>
+            {extensionOn && (
+              <button className="btn ghost-dark" disabled={busy === 'ext'} onClick={act('ext', async () => {
+                if (!confirm('Disconnect the extension?')) return;
+                await call('/api/settings/extension', 'DELETE');
+                setExtensionOn(false); setExtensionUrl(null);
+              })}>Disconnect</button>
+            )}
+          </div>
+          <p className="settings-note">
+            Separate from the assistant connector above on purpose. This link only adds rows, and
+            turning it off does not disconnect Claude or ChatGPT.
+          </p>
         </section>
 
         <section className="settings-card">

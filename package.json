@@ -10,7 +10,9 @@
     "test": "node scripts/test.mjs",
     "contrast": "node scripts/contrast.mjs",
     "lint": "eslint .",
-    "extract": "node scripts/test-extract.mjs"
+    "extract": "node scripts/test-extract.mjs",
+    "ext:sync": "node scripts/sync-extension.mjs",
+    "ext:check": "node scripts/sync-extension.mjs --check"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",
