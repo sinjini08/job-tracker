@@ -32,10 +32,13 @@ const SHOW = [
   ['term', 'Term', 'input'],
   ['category', 'Category', 'input'],
   ['work_mode', 'Work mode', 'input'],
-  ['deadline', 'Deadline', 'input'],
+  ['hours_per_week', 'Hours per week', 'input'],
+  ['deadline', 'Deadline', 'date'],
   ['source', 'Found on', 'input'],
   ['requirements', 'Key requirements', 'textarea'],
 ];
+
+const control = (kind) => document.createElement(kind === 'textarea' ? 'textarea' : 'input');
 
 // The address and the token are kept apart, because the token is only ever
 // put in a header. Nothing here builds a URL containing it.
@@ -71,11 +74,13 @@ function render(result, url) {
   $('from').textContent = [fields.company?.value, new URL(url).hostname.replace(/^www\./, '')]
     .filter(Boolean).join(' · ');
 
-  const box = $('fields');
-  box.textContent = '';
+  const found = $('fields');
+  const absent = $('absent');
+  found.textContent = '';
+  absent.textContent = '';
   let anyReview = false;
-
   let missing = false;
+  let offered = 0;
 
   for (const [key, label, kind] of SHOW) {
     const got = fields[key];
@@ -86,7 +91,25 @@ function render(result, url) {
     // without them. Leaving those out when the page did not give them up is
     // a dead end: the person is told the row needs an employer and has
     // nowhere to type one. So they are always here, empty if need be.
-    if (!got && !REQUIRED.has(key)) continue;
+    // What the page could have said and did not is offered rather than
+    // dropped. Plenty of postings never state a deadline or the hours, and
+    // the person often knows. It goes in a fold, because a column of empty
+    // boxes reads as a form to work through and usually none of it is needed.
+    if (!got && !REQUIRED.has(key)) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const lab = document.createElement('label');
+      lab.htmlFor = `f-${key}`;
+      lab.textContent = label;
+      const input = control(kind);
+      if (kind === 'date') input.type = 'date';
+      input.id = `f-${key}`;
+      if (kind === 'textarea') input.rows = 3;
+      row.append(lab, input);
+      absent.append(row);
+      offered += 1;
+      continue;
+    }
     const blank = !got;
     const review = blank || got.from !== 'json-ld';
     if (review && !blank) anyReview = true;
@@ -103,17 +126,20 @@ function render(result, url) {
       tag.textContent = blank ? 'NEEDED' : 'CHECK';
       lab.append(tag);
     }
-    const input = document.createElement(kind);
+    const input = control(kind);
+    if (kind === 'date') input.type = 'date';
     input.id = `f-${key}`;
     input.value = got ? got.value : '';
     if (blank) input.placeholder = `The page did not say. Type the ${label.toLowerCase()}.`;
     if (kind === 'textarea') input.rows = 3;
     row.append(lab, input);
-    box.append(row);
+    found.append(row);
   }
 
   $('review-note').hidden = !anyReview || missing;
   $('missing-note').hidden = !missing;
+  $('absent-wrap').hidden = offered === 0;
+  $('absent-count').textContent = String(offered);
   show('form');
 }
 

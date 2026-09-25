@@ -56,6 +56,26 @@ const CASES = [
     requirementsStart: 'For Manager (M3) level',
   },
   {
+    // The same Workday posting at its own URL, which does publish JSON-LD.
+    // That used to mean the page reader never ran, and the structured data
+    // has no salary and calls the employment type OTHER, so pay and category
+    // came back empty on the richer page. Both run now.
+    name: 'Workday (direct URL, has JSON-LD)',
+    html: () => read('workday-direct'),
+    url: 'https://workday.wd5.myworkdayjobs.com/en-US/Workday/job/x_JR-0110265',
+    expect: {
+      role: 'Manager, Talent Acquisition - North America Revenue',
+      company: 'Workday, Inc.',                          // JSON-LD's name, not the page's
+      location: 'USA, CA, Pleasanton, United States of America',
+      deadline: '2026-10-30',                            // validThrough
+      pay: '$149,700 USD - $224,500 USD',                // prose; JSON-LD has no baseSalary
+      category: 'Full-time',                             // JSON-LD says OTHER
+      work_mode: 'Flex',                                 // JSON-LD says TELECOMMUTE
+      source: 'Company site',
+    },
+    requirementsStart: 'For Manager (M3) level',
+  },
+  {
     // Indeed's search view: the list on the left and the posting you clicked
     // on the right, one document. It is an index and a posting at once, and
     // the listing check refused the whole thing before anything could read it.
