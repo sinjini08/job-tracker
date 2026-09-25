@@ -1,13 +1,18 @@
 import { extractJob } from './extract.js';
 
-// The popup is the whole extension. There is no background worker and no
-// content script sitting on every page: clicking the icon is what grants this
-// one tab, the page is read once, and the popup closes.
+// The popup does all the work. There is no content script sitting on every
+// page: clicking the icon is what grants this one tab, the page is read once,
+// and the popup closes.
 //
 // Which is also why the permissions are only activeTab and scripting. An
 // extension that asks to read every page you visit is a heavy thing to install
 // for a job tracker, and it is not needed: the person is looking at the
 // posting when they click.
+//
+// background.js exists for one reason and is otherwise asleep: a popup closes
+// when focus leaves it, which is exactly when the connect tab opens, so the
+// service worker is what is still listening when the tracker sends the token
+// back.
 
 const $ = (id) => document.getElementById(id);
 const show = (id) => {
@@ -157,7 +162,10 @@ async function save() {
 
 async function start() {
   endpoint = await store.get();
-  if (!endpoint) { show('pairing'); $('token').focus(); return; }
+  // Focus the button, not the box: the box now lives inside a collapsed
+  // fallback, and focusing something folded away either does nothing or
+  // springs the fold open for no reason.
+  if (!endpoint) { show('pairing'); $('connect').focus(); return; }
 
   show('reading');
   try {
@@ -180,6 +188,24 @@ async function start() {
     $('save').disabled = true;
   }
 }
+
+// The handshake. The popup cannot stay open across a tab switch, so it opens
+// the tracker and stops; the service worker is what receives the token, and
+// this listener is what notices the write and carries on.
+$('connect').addEventListener('click', async () => {
+  const err = $('pair-error');
+  err.hidden = true;
+  // Where to send them. Whatever they last paired with, else the real site.
+  const site = endpoint ? new URL(endpoint).origin : 'https://myjobtracker.co';
+  await chrome.tabs.create({ url: `${site}/settings/connect-extension` });
+  window.close();
+});
+
+// When the service worker stores a token, the popup picks it up the next time
+// it is opened. Nothing to poll: chrome.storage fires this in any open popup.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.endpoint?.newValue) start();
+});
 
 $('pair').addEventListener('click', async () => {
   const value = $('token').value.trim();

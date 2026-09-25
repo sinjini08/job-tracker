@@ -13,16 +13,24 @@
     <section id="pairing" hidden>
       <h1>Connect your tracker</h1>
       <p class="hint">
-        Open the tracker, go to Settings, and copy the extension link. It is
-        kept in this browser and nowhere else.
+        One click. The tracker opens, you confirm, and the link is kept in this
+        browser and nowhere else.
       </p>
-      <label class="field">
-        <span>Extension link</span>
-        <input id="token" type="text" spellcheck="false" autocomplete="off"
-          placeholder="https://myjobtracker.co/api/ext/..." />
-      </label>
+      <button id="connect" class="primary">Connect to my tracker</button>
+
+      <!-- The handshake needs a real https origin, which rules out a local
+           dev server, so pasting stays as the way in for that and for anybody
+           self-hosting. Folded away because almost nobody needs it. -->
+      <details class="fallback">
+        <summary>Paste a link instead</summary>
+        <label class="field">
+          <span>Extension link</span>
+          <input id="token" type="text" spellcheck="false" autocomplete="off"
+            placeholder="https://myjobtracker.co/api/ext/..." />
+        </label>
+        <button id="pair" class="ghost">Use this link</button>
+      </details>
       <p id="pair-error" class="error" hidden></p>
-      <button id="pair" class="primary">Connect</button>
     </section>
 
     <section id="reading" hidden>

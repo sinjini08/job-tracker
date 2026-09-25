@@ -79,6 +79,16 @@ const config = [
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
 
+  // The one page in the app that can see chrome.runtime. The extension names
+  // this origin in externally_connectable, which is what puts that object on
+  // the page, so the global is real here and nowhere else in app/. Declared
+  // for this path rather than disabling no-undef, which would then also stop
+  // catching typos on the page.
+  {
+    files: ['app/settings/connect-extension/**/*.js'],
+    languageOptions: { globals: { chrome: 'readonly' } },
+  },
+
   // The extension runs in a browser with the extension APIs and no Node.
   // Declared rather than silenced: no-undef catching `chrome` was the rule
   // doing its job, and turning it off here would have turned it off for the
