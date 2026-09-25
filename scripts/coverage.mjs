@@ -37,6 +37,7 @@ const CASES = [
   ['indeed', 'https://www.indeed.com/jobs?q=frontend'],
   ['workday', 'https://workday.wd5.myworkdayjobs.com/Workday/job/x_JR-0110265'],
   ['workday-direct', 'https://workday.wd5.myworkdayjobs.com/en-US/Workday/job/x_JR-0110265'],
+  ['handshake', 'https://app.joinhandshake.com/stu/jobs/11462397'],
 ];
 
 // Every column has to be in exactly one group, or a new column could be added
@@ -64,7 +65,7 @@ for (const [name, url] of CASES) {
   console.log(`  ${pad(name, 22)}${row.join('')}`);
 }
 
-console.log(`\n  ${pad('filled, of 9 sites', 22)}${[...ALWAYS, ...OFTEN].map((k) => pad(`${tally[k]}/9`, 10)).join('')}`);
+console.log(`\n  ${pad('filled, of 10 sites', 22)}${[...ALWAYS, ...OFTEN].map((k) => pad(`${tally[k]}/10`, 10)).join('')}`);
 
 console.log(`\nNever taken from a page, because only the person knows it:\n  ${THEIRS.join(', ')}`);
 

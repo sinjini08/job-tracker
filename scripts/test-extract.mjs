@@ -56,6 +56,29 @@ const CASES = [
     requirementsStart: 'For Manager (M3) level',
   },
   {
+    // Handshake, where most US university students actually apply. No
+    // JSON-LD, a generic page title, and styled-components class hashes, so
+    // the role came out as "Handshake" and there was no company at all.
+    //
+    // The fixture keeps the list on the left and points it at other
+    // employers, because the first attempt read the document's first
+    // employer link and answered with one of them.
+    name: 'Handshake (detail beside a list)',
+    html: () => read('handshake'),
+    url: 'https://app.joinhandshake.com/stu/jobs/11462397',
+    expect: {
+      role: 'Software Engineer',
+      company: 'TradingBlock',        // not the industry link beside it, nor one from the list
+      location: 'Chicago, IL',
+      work_mode: 'Hybrid',            // "Hybrid or onsite, based in Chicago, IL"
+      pay: 'US$80\u2013US90k/yr',
+      category: 'Full-time',
+      deadline: '2026-10-25',         // "Apply by October 25, 2026 at 12:59 AM"
+      source: 'Handshake',
+    },
+    requirementsStart: 'We aren\u2019t looking for years of experience',
+  },
+  {
     // The same Workday posting at its own URL, which does publish JSON-LD.
     // That used to mean the page reader never ran, and the structured data
     // has no salary and calls the employment type OTHER, so pay and category
@@ -241,6 +264,21 @@ console.log('\nLinkedIn, half rendered');
 // reader is doing the work rather than the check having been weakened.
 // Workday publishes no pay field, so it is read out of the description. A
 // posting is full of other numbers, and none of them are wages.
+// Handshake matches a posting against the student's own profile and shows
+// the result in the same panel: "You do not match any qualifications", the
+// courses it wants, a prompt to update the profile. None of that is anything
+// the employer wrote and none of it belongs in a row.
+console.log('\nHandshake keeps its profile matching to itself');
+{
+  const { fields } = extractJob(read('handshake'), 'https://app.joinhandshake.com/stu/jobs/1');
+  const all = JSON.stringify(fields);
+  for (const phrase of ['do not match any qualifications', 'Update profile', 'Matching is based on your profile']) {
+    const ok = !all.includes(phrase);
+    if (ok) right += 1; else { wrong += 1; fails.push(`handshake: "${phrase}" reached a field`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} "${phrase}" stays out of the row`);
+  }
+}
+
 console.log('\nPay written into the prose');
 {
   const say = (line) => {
