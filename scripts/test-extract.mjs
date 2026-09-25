@@ -48,6 +48,7 @@ const CASES = [
       company: 'Workday',                // from "Careers at Workday", not the subdomain slug
       location: 'USA, CA, Pleasanton',   // the list says Canada, BC, Vancouver
       work_mode: 'Flex',                 // the tenant's own word, not translated into Hybrid
+      pay: '$149,700 USD - $224,500 USD', // no field for it; read out of the prose
       category: 'Full-time',             // the list says Part Time
       deadline: '2026-10-30',            // "End Date: October 30, 2026"
       source: 'Company site',
@@ -218,6 +219,34 @@ console.log('\nLinkedIn, half rendered');
 // The refusal is still right, and it still has to be reachable. The same
 // fixture read as any other host is refused, which is what shows the Indeed
 // reader is doing the work rather than the check having been weakened.
+// Workday publishes no pay field, so it is read out of the description. A
+// posting is full of other numbers, and none of them are wages.
+console.log('\nPay written into the prose');
+{
+  const say = (line) => {
+    const ld = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'JobPosting', title: 'Engineer',
+      hiringOrganization: { name: 'Acme' },
+      description: `<p>About the role.</p><p>${line}</p><p>We build things and we care about them deeply, every day.</p>`,
+    });
+    const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+    return extractJob(html, 'https://example.com/j').fields.pay?.value ?? null;
+  };
+  const cases = [
+    ['a labelled range is taken', say('Primary Location Base Pay Range: $149,700 USD - $224,500 USD'), '$149,700 USD - $224,500 USD'],
+    ['an hourly rate is taken', say('Compensation: $32.50 per hour, depending on experience.'), '$32.50 per hour'],
+    ['pounds work too', say('Salary: \u00a345,000 - \u00a352,000 depending on experience'), '\u00a345,000 - \u00a352,000'],
+    ['a budget is not a wage', say('You will manage a $5M budget across the region and report on spend.'), null],
+    ['nor is a revenue figure', say('Our customers include firms with over $1B in annual revenue.'), null],
+    ['nor is a warning about fees', say('Acme will never ask candidates to pay a recruiting fee in order to apply.'), null],
+  ];
+  for (const [name, have, want] of cases) {
+    const ok = have === want;
+    if (ok) right += 1; else { wrong += 1; fails.push(`pay: ${name}: got ${JSON.stringify(have)}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(30)} ${have ?? '(none)'}`);
+  }
+}
+
 console.log('\nA page that is a list and a posting at once');
 {
   const html = read('indeed');
