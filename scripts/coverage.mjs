@@ -10,7 +10,7 @@
 // so those are reported and not judged. The rest is the person's own record
 // of what they did, which no web page can know and the extension must never
 // invent.
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { extractJob } from '../lib/extract.js';
