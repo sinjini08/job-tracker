@@ -58,6 +58,12 @@ export default function PrivacyPage() {
         <li><b>An assistant.</b> If you connect Claude or ChatGPT, it can read and write your
           applications, and only yours. You approve the connection with a sign-in and can revoke
           it in Settings at any time.</li>
+        <li><b>The browser extension.</b> Only if you install it. It reads a page only when you
+          click its icon on that page, and it sends nothing anywhere until you press save. What it
+          then sends is the posting it read and the sheet you picked. It can add rows and see what
+          your sheet tabs are called, and that is all: it cannot read the rows already in your
+          tracker, change them, or delete anything. Disconnecting it in Settings stops it working
+          and leaves your assistant connection alone.</li>
       </ul>
 
       <h2>Who else is involved</h2>

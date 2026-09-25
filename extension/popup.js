@@ -35,14 +35,19 @@ const SHOW = [
   ['requirements', 'Key requirements', 'textarea'],
 ];
 
+// The address and the token are kept apart, because the token is only ever
+// put in a header. Nothing here builds a URL containing it.
 const store = {
-  get: () => new Promise((res) => chrome.storage.local.get(['endpoint'], (v) => res(v.endpoint ?? ''))),
-  set: (endpoint) => new Promise((res) => chrome.storage.local.set({ endpoint }, res)),
-  clear: () => new Promise((res) => chrome.storage.local.remove('endpoint', res)),
+  get: () => new Promise((res) => chrome.storage.local.get(['api', 'token'], (v) => res(v))),
+  set: (api, token) => new Promise((res) => chrome.storage.local.set({ api, token }, res)),
+  clear: () => new Promise((res) => chrome.storage.local.remove(['api', 'token'], res)),
 };
 
-let endpoint = '';
+let api = '';
+let token = '';
 let extracted = null;
+
+const auth = () => ({ Authorization: `Bearer ${token}` });
 
 // Read the page as rendered, not as served. A fetch of the same URL gets the
 // HTML before any JavaScript has run; this runs in the tab, so a posting
@@ -103,7 +108,7 @@ async function loadSheets() {
   const sel = $('sheet');
   sel.textContent = '';
   try {
-    const r = await fetch(endpoint, { method: 'GET' });
+    const r = await fetch(api, { method: 'GET', headers: auth() });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error ?? 'Could not reach the tracker.');
     for (const s of d.sheets ?? []) {
@@ -142,9 +147,9 @@ async function save() {
   btn.textContent = 'Saving…';
   $('error').hidden = true;
   try {
-    const r = await fetch(endpoint, {
+    const r = await fetch(api, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...auth(), 'Content-Type': 'application/json' },
       body: JSON.stringify(collect()),
     });
     const d = await r.json();
@@ -161,11 +166,11 @@ async function save() {
 }
 
 async function start() {
-  endpoint = await store.get();
+  ({ api = '', token = '' } = await store.get());
   // Focus the button, not the box: the box now lives inside a collapsed
   // fallback, and focusing something folded away either does nothing or
   // springs the fold open for no reason.
-  if (!endpoint) { show('pairing'); $('connect').focus(); return; }
+  if (!api || !token) { show('pairing'); $('connect').focus(); return; }
 
   show('reading');
   try {
@@ -196,7 +201,7 @@ $('connect').addEventListener('click', async () => {
   const err = $('pair-error');
   err.hidden = true;
   // Where to send them. Whatever they last paired with, else the real site.
-  const site = endpoint ? new URL(endpoint).origin : 'https://myjobtracker.co';
+  const site = api ? new URL(api).origin : 'https://myjobtracker.co';
   await chrome.tabs.create({ url: `${site}/settings/connect-extension` });
   window.close();
 });
@@ -204,7 +209,7 @@ $('connect').addEventListener('click', async () => {
 // When the service worker stores a token, the popup picks it up the next time
 // it is opened. Nothing to poll: chrome.storage fires this in any open popup.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.endpoint?.newValue) start();
+  if (area === 'local' && changes.token?.newValue) start();
 });
 
 $('pair').addEventListener('click', async () => {
@@ -213,15 +218,16 @@ $('pair').addEventListener('click', async () => {
   err.hidden = true;
   // Checked here rather than on save, so a mistyped link fails while the
   // person is still looking at the box they typed it into.
-  if (!/^https?:\/\/[^\s]+\/api\/ext\/[A-Za-z0-9_-]{20,}$/.test(value)) {
+  const found = /^(https?:\/\/[^\s/#]+\/api\/ext)#([A-Za-z0-9_-]{20,})$/.exec(value);
+  if (!found) {
     err.textContent = 'That does not look like the extension link. Copy the whole thing from Settings.';
     err.hidden = false;
     return;
   }
   try {
-    const r = await fetch(value, { method: 'GET' });
+    const r = await fetch(found[1], { method: 'GET', headers: { Authorization: `Bearer ${found[2]}` } });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'The tracker did not accept that link.');
-    await store.set(value);
+    await store.set(found[1], found[2]);
     start();
   } catch (e) {
     err.textContent = e.message;
@@ -233,7 +239,8 @@ $('save').addEventListener('click', save);
 $('refused-close').addEventListener('click', () => window.close());
 $('unpair').addEventListener('click', async () => {
   await store.clear();
-  endpoint = '';
+  api = '';
+  token = '';
   show('pairing');
 });
 

@@ -82,6 +82,14 @@ structured data are shown plainly; anything worked out from the page is marked
 Listing pages are refused rather than turned into a row called "Current job
 openings".
 
-The token only reaches `/api/ext`, which can add a row and amend one it was
-just shown. It cannot list, read or delete anything, and it is separate from
+The token only reaches `/api/ext`, which does two things: add a row, and list
+what your sheet tabs are called so the popup can ask which one. It cannot read
+the rows in them, change a row, or delete anything, and it is separate from
 the assistant connector's token so turning one off leaves the other alone.
+
+It travels in an `Authorization: Bearer` header, never in the URL. The link
+the tracker hands over keeps it in the fragment (`/api/ext#<token>`), which a
+browser never sends to a server, so the token stays out of access logs on both
+sides. It is held in `chrome.storage.local`, which is not encrypted: anyone
+with your unlocked machine and your Chrome profile can read it, the same as a
+logged-in session. Disconnect from Settings revokes it.

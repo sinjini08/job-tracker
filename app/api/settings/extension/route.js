@@ -17,9 +17,11 @@ export async function POST(request) {
   const { error } = await user.sb.from('profiles')
     .update({ ext_token_hash: hashToken(token) }).eq('id', user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // The extension is given the whole address rather than a bare token, so
-  // nothing has to hardcode the origin and a self-hosted copy works.
-  return NextResponse.json({ url: `${new URL(request.url).origin}/api/ext/${token}` });
+  // One string rather than an address and a secret to keep together, so
+  // nothing hardcodes the origin and a self-hosted copy works. The token sits
+  // in the fragment on purpose: a browser never sends a fragment to a server,
+  // so this link cannot turn up in an access log the way a path would.
+  return NextResponse.json({ url: `${new URL(request.url).origin}/api/ext#${token}` });
 }
 
 export async function DELETE() {

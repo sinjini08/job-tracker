@@ -77,8 +77,9 @@ export default function Connect({ ids, email }) {
       ) : (
         <>
           <p className="legal-lede">
-            This lets the extension add job postings to your tracker. It cannot read what is
-            already in it, and it cannot delete anything.
+            This lets the extension add job postings to your tracker, and see what your sheet
+            tabs are called so it can ask which one to save to. It cannot read the rows already
+            in your tracker, change them, or delete anything.
           </p>
           <p>
             You can disconnect it at any time from <Link href="/settings">Settings</Link>, which

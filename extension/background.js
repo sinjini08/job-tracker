@@ -10,7 +10,9 @@
 // else before this code runs. The checks below are for the case where that
 // origin is serving something it should not be.
 
-const ENDPOINT = /^https:\/\/[^\s/]+\/api\/ext\/[A-Za-z0-9_-]{20,}$/;
+// The shape the tracker hands over: its own address, then the token in the
+// fragment, which is the part a browser keeps to itself.
+const LINK = /^https:\/\/[^\s/#]+\/api\/ext#([A-Za-z0-9_-]{20,})$/;
 
 chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   // Belt and braces over the manifest: the sender's origin has to be the
@@ -22,16 +24,17 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
 
   if (message?.type !== 'jt-pair') { reply({ ok: false, error: 'Unknown message.' }); return true; }
 
-  const endpoint = String(message.endpoint ?? '');
+  const link = String(message.endpoint ?? '');
+  const found = LINK.exec(link);
   // The token must point back at the site that sent it. Without this, a page
   // on the tracker's origin could pair the extension to an endpoint somebody
   // else controls, and every posting saved afterwards would go there.
-  if (!ENDPOINT.test(endpoint) || new URL(endpoint).origin !== origin) {
+  if (!found || new URL(link).origin !== origin) {
     reply({ ok: false, error: 'That link does not belong to this site.' });
     return true;
   }
 
-  chrome.storage.local.set({ endpoint }, () => {
+  chrome.storage.local.set({ api: `${origin}/api/ext`, token: found[1] }, () => {
     reply({ ok: true });
   });
   return true; // the reply is sent after the write, so keep the channel open
