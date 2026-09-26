@@ -1423,7 +1423,7 @@ body:has(.login) { overflow: auto; }
 .ring { flex: none; }
 .ring-track { stroke: var(--viz-grid); }
 .ring-fill { stroke: var(--ord-4); transition: stroke-dashoffset 0.4s ease; }
-.ring-fill.met { stroke: var(--series-1); }
+.ring-fill.met { stroke: var(--ord-6); }
 .ring-num { font-size: 30px; font-weight: 700; fill: var(--viz-ink); }
 .ring-sub { font-size: 11px; fill: var(--viz-muted); }
 
@@ -1441,7 +1441,7 @@ body:has(.login) { overflow: auto; }
 }
 .day-list.tall .day-row { grid-template-columns: 24px 34px minmax(110px, 1fr) minmax(60px, 2fr) 56px; }
 .day-row.me { background: var(--xl-green-tint); border-color: #bfe0cb; }
-.day-row.won .day-bar i { background: var(--series-1); }
+.day-row.won .day-bar i { background: var(--ord-6); }
 /* Block, not flex: the "you" badge has to sit inline after the name rather
    than becoming a row of its own. */
 .day-name { font-weight: 600; color: var(--viz-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -1451,11 +1451,15 @@ body:has(.login) { overflow: auto; }
 .day-score { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--viz-ink); }
 .day-score.big { font-size: 18px; }
 .day-flag { text-align: right; font-size: 12px; color: var(--viz-muted); white-space: nowrap; }
-/* --series-1 is a chart hue, chosen to sit apart from four others on a card.
-   It was never chosen to carry white text, and it does not: 3.49:1 in light,
-   2.24:1 in dark. The bar's green is the one picked with white on top of it,
-   and it is already restated per theme. The bars at .day-row.won and .trace
-   keep the chart hue, because a bar carries no text. */
+/* Clearing the target is marked with --ord-6, two steps up the funnel's own
+   green ramp from the --ord-4 an unfinished bar wears. The ramp is restated
+   per theme and runs the other way in dark, so the met state is the more
+   prominent of the two against whichever surface it lands on.
+   It used to wear --series-1, which is wrong twice over: that hue is
+   On-Campus and the first slot of the categorical order, so a won bar and a
+   real data series read as the same thing, and it is a purple in a screen
+   that is otherwise entirely green. The chip beside it keeps --xl-green,
+   which is the green picked to carry white text; --ord-6 never does. */
 .won-chip {
   background: var(--xl-green);
   color: #fff;
@@ -1529,7 +1533,7 @@ body:has(.login) { overflow: auto; }
 .trace { display: flex; align-items: flex-end; gap: 1px; height: 18px; justify-content: flex-end; }
 .trace i { width: 4px; min-height: 1px; background: var(--ord-4); border-radius: 1px 1px 0 0; }
 .trace i.empty { height: 1px; background: var(--viz-grid); }
-.trace i.hit { background: var(--series-1); }
+.trace i.hit { background: var(--ord-6); }
 
 /* settings */
 .league-settings { display: flex; flex-direction: column; gap: 16px; }
@@ -1795,7 +1799,7 @@ body:has(.login) { overflow: auto; }
 .chart-readout > b { color: var(--viz-ink); }
 .chart-readout span { display: inline-flex; align-items: center; gap: 5px; color: var(--viz-ink-2); }
 .chart-readout i { width: 9px; height: 9px; border-radius: 2px; }
-.chart-readout em { font-style: normal; color: var(--series-1); font-weight: 600; }
+.chart-readout em { font-style: normal; color: var(--ord-6); font-weight: 600; }
 
 /* the ring can be beaten, so it says by how much */
 .ring-wrap { position: relative; flex: none; }
