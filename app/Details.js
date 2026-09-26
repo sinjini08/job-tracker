@@ -87,7 +87,11 @@ export default function Details({ row, apiBase = '/api', canEdit, custom = [], f
       )}
 
       <section className="det-grid">
-        <h3>Contact</h3>
+        {/* "Contact" on its own did not say whose. Everything under it is one
+            person at the employer and what you sent them, so the heading says
+            that: the name, the email, the LinkedIn, the date and the how all
+            follow from it. */}
+        <h3>Who you reached out to</h3>
         <ShortField label="Name" value={row.contact} canEdit={canEdit}
           onSave={(v) => onPatch({ contact: v })} />
         <ShortField label="Email" value={row.contact_email} type="email" canEdit={canEdit}
