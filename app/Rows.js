@@ -21,7 +21,7 @@ const WIDTH = {
   status: 118, date_applied: 92, next_follow_up: 108, deadline: 92, priority: 88,
   category: 108, term: 104, location: 'minmax(0, 1fr)', work_mode: 86, pay: 100,
   source: 104, resume_version: 96, referral: 84, cover_letter: 96,
-  hours_per_week: 92, job_link: 'minmax(0, 1fr)', outreach_method: 104, days: 80,
+  hours_per_week: 92, job_link: 'minmax(0, 1fr)', days: 80,
 };
 
 // A date close enough to matter reads better as a distance than as a number.
