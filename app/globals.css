@@ -742,7 +742,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .drawer .btn.ghost:hover { background: var(--head-bg); }
 .drawer .btn.primary { background: var(--xl-green); color: #fff; }
 .drawer .btn.primary:hover { background: var(--xl-green-dark); }
-.drawer .btn.danger { align-self: flex-start; background: var(--surface); color: var(--due); border-color: #f1c4bf; }
+/* align-self: flex-start used to be here and was the whole reason the button
+   looked wrong in the drawer: the row aligns to the bottom, and this pulled
+   the button up to the top of it, level with the SHEET label rather than with
+   the select underneath. Measured at 19px out. The colours now come from the
+   unscoped .btn.danger, so there is nothing left for this rule to say. */
 .drawer .btn.danger:hover { background: #fdecea; }
 .drawer-body {
   flex: 1;
