@@ -11,3 +11,4 @@ node_modules/
 app/dev-preview/
 .claude/
 dist/
+public/_shot/
