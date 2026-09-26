@@ -323,6 +323,22 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--surface);
   color: var(--text);
 }
+/* Every .btn.primary on the site was defined inside .toolbar or .workbar, so
+   the same markup on any other page fell back to the bare .btn above and
+   rendered as a small plain box. The connect page looked like unstyled text
+   because of it. These are the unscoped defaults; the scoped ones below are
+   more specific and still win where they apply. */
+.btn.primary {
+  background: var(--xl-green);
+  border-color: var(--xl-green);
+  color: #fff;
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) { background: var(--xl-green-dark); border-color: var(--xl-green-dark); }
+.btn.primary:disabled { opacity: 0.6; cursor: default; }
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--sand); }
+.btn.ghost:hover { background: var(--sand); }
+
 .toolbar .btn.primary { background: #fff; color: var(--xl-green-dark); font-weight: 600; }
 .toolbar .btn.primary:hover { background: var(--xl-green-tint); }
 .toolbar .btn.ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.5); }
@@ -3261,3 +3277,55 @@ body:has(.land) { overflow: auto; }
   stroke-linejoin: round;
 }
 .workbar .back-to-sheet:hover { border-color: var(--green-ink); color: var(--xl-green-dark); }
+
+
+/* ---------- connecting the browser extension ---------- */
+/* Not a prose page. It exists to be read in ten seconds and pressed once, so
+   it is a card with one thing to do rather than the .legal chassis the
+   privacy and terms pages use. */
+.cx {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  /* Paper, not --bg. --bg is white and so is --surface, so a card on it had
+     nothing but a hairline to separate it from the page. */
+  background: var(--paper);
+}
+.cx-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--sand);
+  border-radius: 14px;
+  padding: 30px 28px 26px;
+  color: var(--text);
+}
+.cx-mark { display: block; line-height: 0; margin-bottom: 18px; }
+.cx-card h1 { margin: 0; font-size: 21px; letter-spacing: -0.01em; }
+.cx-who { margin: 5px 0 0; font-size: 13px; color: var(--muted); }
+
+/* What it can and cannot do, as four lines rather than a paragraph nobody
+   finishes. The mark differs in shape as well as colour, so it still reads
+   without colour vision. */
+.cx-can { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.cx-can li { display: flex; gap: 10px; font-size: 14px; line-height: 1.45; }
+.cx-can span {
+  flex: none;
+  width: 18px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+.cx-can .yes { color: var(--green-ink); }
+.cx-can .no { color: var(--muted); }
+
+.cx-go { width: 100%; height: 40px; margin-top: 24px; border-radius: 9px; font-size: 15px; }
+.cx-note { margin: 16px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.cx-note a { color: var(--green-ink); }
+.cx-err { margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--bad); }
+
+/* The done state keeps the card, so pressing the button does not throw the
+   page away and replace it with something that looks unrelated. */
+.cx-done { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px; font-weight: 600; }
+.cx-done b { color: var(--green-ink); font-size: 17px; }

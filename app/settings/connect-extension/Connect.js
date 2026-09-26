@@ -11,8 +11,8 @@ import Logo from '@/app/Logo';
 // is then forgotten by this page, which is the difference between this and
 // telling somebody to copy a secret out of a settings screen.
 
-export default function Connect({ ids, email }) {
-  const [state, setState] = useState('ready'); // ready | working | done | fail
+export default function Connect({ ids, email, initial = 'ready' }) {
+  const [state, setState] = useState(initial); // ready | working | done | fail
   const [error, setError] = useState(null);
 
   const pair = async () => {
@@ -59,40 +59,48 @@ export default function Connect({ ids, email }) {
   };
 
   return (
-    <main className="legal">
-      <header className="legal-head">
-        <Link href="/" className="legal-mark"><Logo size={36} tone="dark" /></Link>
-        <h1>Connect the extension</h1>
-        <p className="legal-sub">Signed in as {email}</p>
-      </header>
+    <main className="cx">
+      <div className="cx-card">
+        <Link href="/" className="cx-mark" aria-label="Job Application Tracker"><Logo size={30} tone="dark" /></Link>
 
-      {state === 'done' ? (
-        <>
-          <p className="legal-lede">
-            Connected. Open a job posting, click the extension icon, and it will fill in what it
-            can read from the page.
-          </p>
-          <p><Link href="/">Back to the tracker</Link></p>
-        </>
-      ) : (
-        <>
-          <p className="legal-lede">
-            This lets the extension add job postings to your tracker, and see what your sheet
-            tabs are called so it can ask which one to save to. It cannot read the rows already
-            in your tracker, change them, or delete anything.
-          </p>
-          <p>
-            You can disconnect it at any time from <Link href="/settings">Settings</Link>, which
-            stops the extension working without touching Claude or ChatGPT.
-          </p>
-          {error && <p className="settings-error" role="alert">{error}</p>}
-          <p className="legal-foot">
-            <button className="btn primary" onClick={pair} disabled={state === 'working'}>
-              {state === 'working' ? 'Connecting…' : 'Connect the extension'}
+        {state === 'done' ? (
+          <>
+            <p className="cx-done"><b>✓</b> Connected</p>
+            <p className="cx-note">
+              Open a job posting, click the extension icon, and it fills in what it can read from
+              the page. Nothing is saved until you press save.
+            </p>
+            <p className="cx-note"><Link href="/">Back to the tracker</Link></p>
+          </>
+        ) : (
+          <>
+            <h1>Connect the extension</h1>
+            <p className="cx-who">{email}</p>
+
+            {/* Four lines rather than two paragraphs. What it can do is the
+                reason to press the button; what it cannot do is the reason
+                it is safe to, and that is the part worth being concrete
+                about rather than reassuring about. */}
+            <ul className="cx-can">
+              <li><span className="yes">✓</span> Add job postings to your tracker</li>
+              <li><span className="yes">✓</span> See what your sheet tabs are called, to ask which one</li>
+              <li><span className="no">✕</span> Read the rows already in your tracker</li>
+              <li><span className="no">✕</span> Change or delete anything</li>
+            </ul>
+
+            <button className="btn primary cx-go" onClick={pair} disabled={state === 'working'}>
+              {state === 'working' ? 'Connecting…' : 'Connect'}
             </button>
-          </p>
-        </>
-      )}
+
+            {error && <p className="cx-err" role="alert">{error}</p>}
+
+            <p className="cx-note">
+              You can disconnect it whenever you like from <Link href="/settings">Settings</Link>.
+              That stops the extension without touching Claude or ChatGPT.
+            </p>
+          </>
+        )}
+      </div>
     </main>
   );
 }
