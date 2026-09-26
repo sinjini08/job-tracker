@@ -1260,7 +1260,10 @@ body:has(.settings) { overflow: auto; }
 .settings-card p b { color: var(--text); }
 .settings-status { font-weight: 600; color: var(--text) !important; }
 .settings-warn { background: var(--warn-wash); border: 1px solid var(--warn-edge); border-radius: 6px; padding: 8px 10px; color: var(--warn-ink) !important; }
-.settings-error { background: var(--danger-wash); border: 1px solid var(--danger-edge); color: var(--due); border-radius: 6px; padding: 8px 10px; margin: 0; }
+/* !important for the same reason the warning box above has it: .settings-card p
+   is a class and a type, so it outranks this and the message came out in
+   --muted. Making the state visible in the preview is what showed it. */
+.settings-error { background: var(--danger-wash); border: 1px solid var(--danger-edge); color: var(--due) !important; border-radius: 6px; padding: 8px 10px; margin: 0; }
 .settings-steps { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.7; }
 .settings-steps code { background: var(--head-bg); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--text); word-break: break-all; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
