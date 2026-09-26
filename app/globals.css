@@ -61,6 +61,22 @@
   --chip-high-bg: #fbdbd7;       --chip-high-fg: #a82113;
   --chip-medium-bg: #fcebc4;     --chip-medium-fg: #8a5a00;
   --chip-low-bg: #e7eaf0;        --chip-low-fg: #44516a;
+
+  /* Medals, warm chips and the trophy inks. Every one of these was written
+     inline as a light-mode literal, so on a dark card they read as leaks from
+     the other theme: a cream disc, a peach pill, a brown ink. The light values
+     here are the ones those rules already had. */
+  --medal-1-bg: #f1d68a;   --medal-1-fg: #6b4e08;
+  --medal-2-bg: #dcdce2;   --medal-2-fg: #4a4a52;
+  --medal-3-bg: #e8c8a8;   --medal-3-fg: #6d4520;
+  --plinth-1-bg: #f5d9a3;  --plinth-1-fg: #8a6412;
+  --plinth-2-bg: #dfe2e9;  --plinth-2-fg: #62687a;
+  --plinth-3-bg: #e8c7a9;  --plinth-3-fg: #7d5026;
+  --hot-bg: #fdf0e2;       --hot-fg: #8a4b06;
+  --gold-chip-bg: #f7ecd7; --gold-chip-fg: #7a5a12;
+  --gold-ink: #c79a2a;
+  --gold-ink-bright: #d9a327;
+  --gold-ink-deep: #a8801f;
   --row-h: 28px;
   --rownum-w: 44px;
   /* The machine's own interface font: SF on a Mac, Segoe UI Variable on
@@ -119,6 +135,21 @@
   --chip-high-bg: #451709;       --chip-high-fg: #ff9478;
   --chip-medium-bg: #40320d;     --chip-medium-fg: #f2c964;
   --chip-low-bg: #272d38;        --chip-low-fg: #aebbd3;
+
+  /* The same set in dark, built the way the status chips are: a dark tinted
+     ground with a light tinted ink on it, rather than the light theme's
+     inverse. Every pair is measured; the numbers are in the commit. */
+  --medal-1-bg: #40320d;   --medal-1-fg: #f2c964;
+  --medal-2-bg: #2f333b;   --medal-2-fg: #c9d0dd;
+  --medal-3-bg: #3b2817;   --medal-3-fg: #e3b38c;
+  --plinth-1-bg: #4a3a10;  --plinth-1-fg: #f7d88f;
+  --plinth-2-bg: #343943;  --plinth-2-fg: #d3d9e4;
+  --plinth-3-bg: #43301d;  --plinth-3-fg: #ecc09a;
+  --hot-bg: #3d2410;       --hot-fg: #f0a868;
+  --gold-chip-bg: #3a2f10; --gold-chip-fg: #ecd08a;
+  --gold-ink: #e0b544;
+  --gold-ink-bright: #eec554;
+  --gold-ink-deep: #e0b544;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -164,6 +195,21 @@
     --chip-high-bg: #451709;       --chip-high-fg: #ff9478;
     --chip-medium-bg: #40320d;     --chip-medium-fg: #f2c964;
     --chip-low-bg: #272d38;        --chip-low-fg: #aebbd3;
+
+    /* The same set in dark, built the way the status chips are: a dark tinted
+       ground with a light tinted ink on it, rather than the light theme's
+       inverse. Every pair is measured; the numbers are in the commit. */
+    --medal-1-bg: #40320d;   --medal-1-fg: #f2c964;
+    --medal-2-bg: #2f333b;   --medal-2-fg: #c9d0dd;
+    --medal-3-bg: #3b2817;   --medal-3-fg: #e3b38c;
+    --plinth-1-bg: #4a3a10;  --plinth-1-fg: #f7d88f;
+    --plinth-2-bg: #343943;  --plinth-2-fg: #d3d9e4;
+    --plinth-3-bg: #43301d;  --plinth-3-fg: #ecc09a;
+    --hot-bg: #3d2410;       --hot-fg: #f0a868;
+    --gold-chip-bg: #3a2f10; --gold-chip-fg: #ecd08a;
+    --gold-ink: #e0b544;
+    --gold-ink-bright: #eec554;
+    --gold-ink-deep: #e0b544;
   }
 }
 
@@ -1433,8 +1479,8 @@ body:has(.login) { overflow: auto; }
   color: var(--viz-ink-2);
 }
 .pill b { color: var(--viz-ink); font-size: 13px; }
-.pill.hot { background: #fdf0e2; color: #8a4b06; }
-.pill.hot b { color: #8a4b06; }
+.pill.hot { background: var(--hot-bg); color: var(--hot-fg); }
+.pill.hot b { color: var(--hot-fg); }
 
 .ring { flex: none; }
 .ring-track { stroke: var(--viz-grid); }
@@ -1497,13 +1543,13 @@ body:has(.login) { overflow: auto; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.rank.r1 { background: #f1d68a; color: #6b4e08; }
-.rank.r2 { background: #dcdce2; color: #4a4a52; }
-.rank.r3 { background: #e8c8a8; color: #6d4520; }
+.rank.r1 { background: var(--medal-1-bg); color: var(--medal-1-fg); }
+.rank.r2 { background: var(--medal-2-bg); color: var(--medal-2-fg); }
+.rank.r3 { background: var(--medal-3-bg); color: var(--medal-3-fg); }
 .rank.lead { box-shadow: 0 0 0 2px var(--xl-green); }
 /* You are marked one way everywhere: a green tint on your row. A badge
    saying "you" beside the highlight said the same thing twice. */
-.member-list li.me { border-color: #bfe0cb; background: var(--xl-green-tint); }
+.member-list li.me { border-color: var(--won-edge); background: var(--xl-green-tint); }
 
 /* past winners */
 .winner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -1780,9 +1826,9 @@ body:has(.login) { overflow: auto; }
   font-size: 18px;
   font-weight: 700;
 }
-.place-1 .plinth-bar { background: #f5d9a3; color: #8a6412; }
-.place-2 .plinth-bar { background: #dfe2e9; color: #62687a; }
-.place-3 .plinth-bar { background: #e8c7a9; color: #7d5026; }
+.place-1 .plinth-bar { background: var(--plinth-1-bg); color: var(--plinth-1-fg); }
+.place-2 .plinth-bar { background: var(--plinth-2-bg); color: var(--plinth-2-fg); }
+.place-3 .plinth-bar { background: var(--plinth-3-bg); color: var(--plinth-3-fg); }
 .plinth.me .plinth-name { color: var(--xl-green-dark); }
 
 /* day-by-day chart */
@@ -1957,8 +2003,8 @@ body:has(.login) { overflow: auto; }
 .pill { display: inline-flex; align-items: center; gap: 5px; }
 .pill svg { flex: none; }
 .won-chip { display: inline-flex; align-items: center; gap: 4px; }
-.cup { display: inline-grid; place-items: center; color: #c79a2a; }
-.cup-big { color: #d9a327; font-size: 0; line-height: 0; }
+.cup { display: inline-grid; place-items: center; color: var(--gold-ink); }
+.cup-big { color: var(--gold-ink-bright); font-size: 0; line-height: 0; }
 
 /* who runs the league */
 .host {
@@ -1968,8 +2014,8 @@ body:has(.login) { overflow: auto; }
   letter-spacing: 0.04em;
   padding: 1px 6px;
   border-radius: 8px;
-  background: #f1e3c4;
-  color: #7a5a12;
+  background: var(--gold-chip-bg);
+  color: var(--gold-chip-fg);
   vertical-align: middle;
 }
 .member-list li.current { border-color: var(--green-ink); background: var(--xl-green-tint); }
@@ -2002,10 +2048,10 @@ body:has(.login) { overflow: auto; }
    cursor already says the thing is pressable. */
 .name-btn:hover { color: var(--green-ink); }
 .name-btn:focus-visible { outline: 2px solid var(--xl-green); outline-offset: 2px; border-radius: 3px; }
-.name-cup { margin-left: 6px; color: #c79a2a; }
+.name-cup { margin-left: 6px; color: var(--gold-ink); }
 .name-cup svg { vertical-align: -4px; }
-.pill.gold { background: #f7ecd7; color: #7a5a12; }
-.pill.gold b { color: #7a5a12; }
+.pill.gold { background: var(--gold-chip-bg); color: var(--gold-chip-fg); }
+.pill.gold b { color: var(--gold-chip-fg); }
 
 /* finished months, kept after the board resets */
 .months { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
@@ -2029,12 +2075,12 @@ body:has(.login) { overflow: auto; }
 .month-rows li.me { background: var(--xl-green-tint); }
 .mr-rank { color: var(--viz-muted); font-variant-numeric: tabular-nums; }
 .mr-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--viz-ink); }
-.mr-cup { color: #c79a2a; display: inline-grid; place-items: center; }
+.mr-cup { color: var(--gold-ink); display: inline-grid; place-items: center; }
 .mr-days { color: var(--viz-muted); font-size: 12px; }
 .mr-points { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--viz-ink); }
 .points-list .pv-label { display: inline-flex; align-items: center; gap: 8px; }
-.pv-cup { color: #c79a2a; display: inline-grid; place-items: center; }
-.points-list.bonus .pv-points { color: #a8801f; }
+.pv-cup { color: var(--gold-ink); display: inline-grid; place-items: center; }
+.points-list.bonus .pv-points { color: var(--gold-ink-deep); }
 
 /* ---------- the column picker ---------- */
 .cols-drawer { width: min(440px, 100vw); }
