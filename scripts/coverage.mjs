@@ -20,7 +20,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const read = (name) => readFileSync(join(here, 'fixtures', `${name}.html`), 'utf8');
 
 const ALWAYS = ['role', 'company', 'job_link', 'source', 'job_description'];
-const OFTEN = ['location', 'pay', 'work_mode', 'category', 'deadline', 'requirements', 'term', 'hours_per_week'];
+const OFTEN = ['location', 'pay', 'work_mode', 'work_auth', 'category', 'deadline', 'requirements', 'term', 'hours_per_week'];
 const THEIRS = [
   'type', 'status', 'priority', 'date_applied', 'next_follow_up', 'referral',
   'outreach_method', 'resume_version', 'cover_letter', 'remind', 'contact',

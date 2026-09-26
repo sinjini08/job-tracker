@@ -32,6 +32,7 @@ const SHOW = [
   ['term', 'Term', 'input'],
   ['category', 'Category', 'input'],
   ['work_mode', 'Work mode', 'input'],
+  ['work_auth', 'Work authorisation', 'input'],
   ['hours_per_week', 'Hours per week', 'input'],
   ['deadline', 'Deadline', 'date'],
   ['source', 'Found on', 'input'],

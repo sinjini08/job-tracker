@@ -76,9 +76,11 @@ const CASES = [
       // application happens and it outlives anyone's account here.
       job_link: 'https://www.amazon.jobs/en/jobs/10559746/software-development-engineer-intern-summer-2027-usa-amazon-dedicated-cloud-adc',
     },
-    // Eligibility first, because "U.S. Citizen Only" decides whether a
-    // student can apply at all and Jobright files it away from the rest.
-    requirementsStart: 'No H1B',
+    // The gate has a column of its own now, so the requirements are the
+    // requirements. Clearance rather than No H1B or citizens-only: a posting
+    // naming several is filed under the narrowest.
+    work_auth: 'Clearance required',
+    requirementsStart: 'Are 18 years of age or older',
   },
   {
     // Handshake, where most US university students actually apply. No
@@ -315,11 +317,10 @@ console.log('\nJobright: nothing the posting states is dropped');
   const reqs = fields.requirements?.value ?? '';
   const pairs = [
     ['all four locations are kept', (fields.location?.value ?? '').split(' / ').length === 4],
-    ['all fifteen requirements are kept', reqs.split('\n').length === 18],
+    ['all fifteen requirements are kept', reqs.split('\n').length === 15],
     ['including the degree conferral window', reqs.includes('October 2027')],
     ['and the quarter-remaining rule', reqs.includes('quarter/semester/trimester')],
-    ['eligibility is lifted to the top', reqs.startsWith('No H1B')],
-    ['and the citizenship gate is there', reqs.includes('U.S. Citizen Only')],
+    ['the gate is in its own column, not the text', !reqs.includes('No H1B') && fields.work_auth?.value === 'Clearance required'],
   ];
   for (const [name, ok] of pairs) {
     if (ok) right += 1; else { wrong += 1; fails.push(`jobright: ${name}`); }
@@ -346,13 +347,10 @@ console.log('\nHandshake keeps its profile matching to itself');
 // line, its value on the next. A real IBM posting stated its city, state,
 // country, work arrangement and salary range in one, and every one of them
 // came back empty because nothing read it.
-// Who may hold the job at all, which a posting states wherever it likes.
-//
-// The most consequential sentence in the IBM posting is "IBM will not be
-// providing visa sponsorship for this position now or in the future", and it
-// sits in a wall of legal boilerplate with no heading of its own. For an
-// international student that line decides whether the rest is worth reading.
-console.log('\nThe eligibility gate comes first');
+// Who the posting will consider, which it states wherever it likes and never
+// where you would look. This is the first thing an international student
+// needs and it used to be nowhere in a row.
+console.log('\nWork authorisation');
 {
   const say = (body) => {
     const ld = JSON.stringify({
@@ -361,33 +359,48 @@ console.log('\nThe eligibility gate comes first');
       description: body.split('\n').map((l) => `<p>${l}</p>`).join(''),
     });
     const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
-    return extractJob(html, 'https://careers.example.com/j').fields.requirements?.value ?? '';
+    const f = extractJob(html, 'https://careers.example.com/j').fields;
+    return [f.work_auth?.value ?? null, f.requirements?.value ?? ''];
   };
-  const ibm = say([
-    'Required technical and professional expertise',
-    '- Prior (project or internship) experience in software development',
-    '- Strong verbal and written communication skills',
-    '- Proficiency in C++, C, Java, Golang, Ruby, Python, Perl, SQL.',
-    'IBM is also committed to compliance with all fair employment practices regarding citizenship and immigration status.',
-    'IBM will not be providing visa sponsorship for this position now or in the future.',
-  ].join('\n'));
+  const LIST = 'Requirements\n- Three years of Python\n- Strong communication skills';
 
-  const pairs = [
-    ['the sponsorship line leads', ibm.startsWith('IBM will not be providing visa sponsorship')],
-    ['with its subject, not headless', !ibm.startsWith('will not')],
-    ['the real requirements follow it', ibm.includes('Prior (project or internship) experience')],
-    ['and it is not repeated inside them', ibm.split('visa sponsorship').length === 2],
-    ['boilerplate ends the list', !ibm.includes('fair employment practices')],
-    ['a heading nothing knew is still found', ibm.includes('Proficiency in C++')],
-    ['a compliance statement is not a gate',
-      !say('Qualifications\n- Three years of Python\nAcme is committed to compliance with all fair employment practices regarding citizenship.').includes('citizenship')],
-    ['must be authorised to work counts',
-      say('Requirements\n- Three years of Python\nYou must be legally authorized to work in the United States.').includes('authorized to work')],
-    ['a clearance requirement counts',
-      say('Requirements\n- Three years of Python\nAn active security clearance is required for this role.').includes('security clearance')],
+  const cases = [
+    ['IBM, in its boilerplate', `${LIST}\nIBM will not be providing visa sponsorship for this position now or in the future.`, 'No sponsorship'],
+    ['Jobright, as a tag', `${LIST}\nNo H1B`, 'No sponsorship'],
+    ['said as "without sponsorship"', `${LIST}\nYou must have the ability to work without a need for current or future visa sponsorship.`, 'No sponsorship'],
+    ['citizens only', `${LIST}\nU.S. Citizen Only`, 'US citizen only'],
+    ['a clearance', `${LIST}\nAn active security clearance is required for this role.`, 'Clearance required'],
+    ['Handshake, OPT and CPT', `${LIST}\nWork authorisation required. Open to candidates with OPT/CPT.`, 'OPT / CPT accepted'],
+    ['sponsorship offered', `${LIST}\nVisa sponsorship is available for this position.`, 'Sponsorship available'],
+    // The narrowest rule is the one worth recording, so a posting naming
+    // several is filed under the one that rules the most people out.
+    ['the narrowest rule wins', `${LIST}\nNo H1B. Security Clearance Required. U.S. Citizen Only.`, 'Clearance required'],
+    ['a posting that never says', LIST, null],
+    // "opt" is a word. Half the postings on the internet say "opt in".
+    ['"opt in" is not OPT', `${LIST}\nYou can opt in to our newsletter and opt out whenever you like.`, null],
+    // Ambiguous on purpose: somebody sponsored is also authorised to work, so
+    // this phrasing alone is not a statement about sponsorship.
+    ['"must be authorised to work" alone is not enough', `${LIST}\nYou must be legally authorized to work in the United States.`, null],
   ];
-  for (const [name, ok] of pairs) {
-    if (ok) right += 1; else { wrong += 1; fails.push(`eligibility: ${name}`); }
+  for (const [name, body, want] of cases) {
+    const [got] = say(body);
+    const ok = got === want;
+    if (ok) right += 1; else { wrong += 1; fails.push(`work_auth: ${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(42)} ${got ?? '(none)'}`);
+  }
+
+  // And it comes out of the requirements, which are requirements again.
+  const [, reqs] = say(`Required technical and professional expertise
+- Prior (project or internship) experience in software development
+- Proficiency in C++, C, Java, Golang, Ruby, Python, Perl, SQL.
+IBM is also committed to compliance with all fair employment practices regarding citizenship and immigration status.
+IBM will not be providing visa sponsorship for this position now or in the future.`);
+  for (const [name, ok] of [
+    ['the heading nothing knew is still found', reqs.includes('Proficiency in C++')],
+    ['the sponsorship sentence is not in there too', !reqs.includes('visa sponsorship')],
+    ['nor is the boilerplate below it', !reqs.includes('fair employment practices')],
+  ]) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`work_auth: ${name}`); }
     console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
   }
 }
@@ -407,9 +420,12 @@ console.log('\nThe key-details table at the foot of a posting');
     ['city, state and country are joined', f.location?.value === 'San Jose, California, United States'],
     ['the salary range needs no currency symbol', f.pay?.value === '120,960 - 181,440 per year'],
     ['work arrangement is read from its label', f.work_mode?.value === 'Hybrid'],
-    // "Regular" means permanent, not full-time. A regular part-time job is an
-    // ordinary thing, so nothing is put in the column the posting never filled.
-    ['"Employment type: Regular" is not full-time', f.category === undefined],
+    // "Regular" is read as Full-time. Strictly it means permanent rather than
+    // temporary, but a posting offering 120,960 a year and calling the
+    // employment regular is a full-time job in every sense that matters to
+    // somebody filing it, and the field is marked for checking.
+    ['"Employment type: Regular" is read as full-time', f.category?.value === 'Full-time'],
+    ['and the term follows from it', f.term?.value === 'Ongoing'],
     ['nor does 120 hours vacation become the pay', !/120 hours/.test(f.pay?.value ?? '')],
     ['nor 56 hours sick time the hours a week', f.hours_per_week === undefined],
   ];
