@@ -76,6 +76,20 @@ changing `name` in the manifest.
 
 **Description**:
 
+The first submission was rejected for keyword spam (violation reference
+Yellow Argon) over one line, which named the eight sites the extractor has
+adapters for: LinkedIn, Indeed, Handshake, Jobright, Workday, Greenhouse,
+Lever and Ashby. A list of other companies' product names in a store
+description is keyword stuffing whatever the intent, and the policy covers
+the description, title, icon, screenshots and promotional images. So the line
+now says what those sites are rather than naming them. Do not put the list
+back.
+
+The names stay in the `scripting` justification and in the reviewer notes
+below, where they are the substance of the argument rather than metadata: a
+plain fetch really does return an empty shell on those sites, and a reviewer
+needs somewhere concrete to test.
+
     Save a job posting to your tracker without retyping it.
 
     Open a job, click the icon, and it reads what the page says: the role, the
@@ -83,8 +97,8 @@ changing `name` in the manifest.
     requirements, and whether the employer sponsors visas. Check what it found,
     pick a sheet, and save.
 
-    Works where students actually apply: LinkedIn, Indeed, Handshake, Jobright,
-    Workday, Greenhouse, Lever, Ashby, and company careers pages.
+    Works on the big job boards, on the systems companies use to take
+    applications, and on company careers pages.
 
     - Reads the page you are looking at, only when you click the icon
     - Marks a row applied in one click when you send the application
