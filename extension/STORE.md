@@ -96,7 +96,8 @@ changing `name` in the manifest.
     value in a column is worse than an empty one. A page listing many jobs is
     refused rather than turned into a row called "Current openings".
 
-    Requires a free account at myjobtracker.co.
+    Requires an account at myjobtracker.co. Free, and currently invite-only
+    while it is in early access.
 
 **Category**: Productivity
 
@@ -174,6 +175,11 @@ required canvas. Centre it on a 1280x800 background rather than scaling it up.
 
 ## After it is published
 
-The store assigns a new extension id, different from the unpacked one.
-`EXTENSION_IDS` has to hold both, comma separated, or connecting will work for
-whichever is missing. Keep the unpacked id so development still works.
+The store assigned `bnmemnhbjchapcpjkdlncfghhmgnpmdo`, different from the
+unpacked id `hhlelfpalhafkmmpbobjbbjaclienjcj`. `EXTENSION_IDS` holds both,
+comma separated, in Vercel and in `.env.local`, because a reviewer installs
+the store build and the connect page refuses any id not on that list. Keep the
+unpacked id so development still works.
+
+Verified after the deploy: production answers CORS for both of those and
+refuses a made-up id.
