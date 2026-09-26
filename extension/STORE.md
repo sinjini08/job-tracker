@@ -7,17 +7,59 @@ to build if the extractor copies have drifted from `lib/`.
 The store will not let you unpublish a version, only replace it, so the pack
 script runs the sync check first rather than trusting anyone to remember.
 
-## Before you pay the fee: one thing to settle
+## Letting a reviewer in
 
 A reviewer has to be able to use the extension, and this one is useless
 without an account on myjobtracker.co. Sign-up is behind a waitlist and an
-invite code, and sign-in is Google only, so a reviewer cannot get in and
-cannot be handed a Google account.
+invite code, and the invite route creates an invitation bound to one specific
+email address, so a code alone opens nothing: you would have to know the
+reviewer's address in advance. Submissions get rejected for exactly this,
+with "we were unable to test the functionality".
 
-Submissions get rejected for exactly this, with "we were unable to test the
-functionality". Sort it first. The narrow fix is to turn on email and password
-in Clerk for one account, make that account, and put its credentials in the
-reviewer notes field. Nothing else needs to change.
+Email and password sign-in is already on in Clerk, so there is nothing to
+change there. What is in the way is **Device Trust**, under Configure ->
+System policies, which treats a new device as untrusted for password sign-ins
+and asks for a code by email. The reviewer signs in from their machine with
+correct credentials, and then waits for a code that arrives in an inbox they
+cannot reach.
+
+There is no per-user exemption, only one toggle. So it is a submission-day
+step rather than something to change now:
+
+1. Make a test account. Use the invite code on the landing page with an email
+   you control, sign up, then set a password on it in Clerk (Users -> that
+   user -> set password). Put a couple of saved rows on it so the reviewer has
+   something to look at.
+2. Turn Device Trust off, immediately before submitting.
+3. Submit, with the credentials in the reviewer notes.
+4. Turn Device Trust back on the moment it is approved.
+
+Leaving it off for those few days exposes one throwaway account and nothing
+else: it only ever applied to password sign-ins, and after this the test
+account is the only account with a password. Yours and your friend's are
+Google-only, so password sign-in fails for them whatever this is set to.
+
+**Reviewer notes**, to paste into the submission:
+
+    The extension saves job postings into the user's own tracker at
+    myjobtracker.co, so it needs an account there. Sign-up is invite-only, so
+    here is a test account:
+
+        https://myjobtracker.co/sign-in
+        email:    <test account email>
+        password: <test account password>
+
+    To see it work end to end:
+    1. Sign in with the account above.
+    2. Open https://myjobtracker.co/settings/connect-extension and press
+       Connect. This hands the extension an add-only token for that account.
+    3. Open any job posting, for example on LinkedIn, Indeed or a company
+       careers page, and click the extension's icon. It reads the posting and
+       shows what it found.
+    4. Press "Save to tracker", then reload myjobtracker.co to see the row.
+
+    The extension reads a page only when the icon is clicked, holds no host
+    permissions, and cannot read or delete anything already in the tracker.
 
 ## Store listing
 
