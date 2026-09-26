@@ -84,10 +84,10 @@ export default function Connect({ ids, email, initial = 'ready' }) {
                 reads as a warning even when it is meant as a reassurance. */}
             <ul className="cx-can">
               <li><span className="yes">✓</span> Save any job posting straight from your browser</li>
-              <li><span className="yes">✓</span> As a wishlist job, or one you have already applied to</li>
-              <li><span className="yes">✓</span> Mark it applied the moment you send it</li>
+              <li><span className="yes">✓</span> Fills in the role, pay, location and requirements</li>
+              <li><span className="yes">✓</span> Wishlist or applied, and one click to change it</li>
               <li><span className="yes">✓</span> Tells you when a job is already in your tracker</li>
-              <li><span className="yes">✓</span> Keeps track on the go, with no retyping</li>
+              <li><span className="yes">✓</span> LinkedIn, Indeed, Handshake, Workday and more</li>
             </ul>
 
             <p className="cx-note">
