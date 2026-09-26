@@ -13,6 +13,7 @@
     "extract": "node scripts/test-extract.mjs && node scripts/test-req-span.mjs && node scripts/test-applied.mjs && node scripts/test-ext-patch.mjs && node scripts/coverage.mjs",
     "ext:sync": "node scripts/sync-extension.mjs",
     "ext:check": "node scripts/sync-extension.mjs --check",
+    "ext:pack": "node scripts/pack-extension.mjs",
     "pretest": "node scripts/sync-extension.mjs --check"
   },
   "dependencies": {

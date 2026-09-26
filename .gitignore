@@ -10,3 +10,4 @@ node_modules/
 # here would ship. Kept on disk, out of the build.
 app/dev-preview/
 .claude/
+dist/
