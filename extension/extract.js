@@ -203,8 +203,48 @@ function workMode(post, text) {
   // address, so the address cannot be read as meaning on-site.
   if (type === 'TELECOMMUTE') return { value: 'Remote', from: HIGH };
   if (/\bhybrid\b/i.test(text)) return { value: 'Hybrid', from: MED };
-  if (/\bfully remote\b|\bremote[- ]first\b|\b100% remote\b/i.test(text)) return { value: 'Remote', from: MED };
-  if (/\bon[- ]?site\b|\bin[- ]office\b/i.test(text)) return { value: 'On-site', from: MED };
+  // "Remote Eligible" is how a great many employers say it, Airbnb included,
+  // and none of the phrasings here matched it. The bare word is still not
+  // enough: a posting says "occasional remote work" and means the opposite.
+  if (/\b(?:fully|100%)\s+remote\b|\bremote[- ](?:first|eligible|friendly)\b|\bthis (?:position|role|job) is[^.]{0,20}\bremote\b|\bremote (?:position|role)\b/i.test(text)) {
+    return { value: 'Remote', from: MED };
+  }
+  // "based in the office" is as common as "in-office" and was not matched.
+  if (/\bon[- ]?site\b|\bin[- ]?(?:the\s+)?office\b/i.test(text)) return { value: 'On-site', from: MED };
+  return null;
+}
+
+// Where the job is, when a page states it in prose and nowhere else.
+//
+// Bespoke careers pages have no structured data and no labelled field, but
+// they nearly all write a heading. Airbnb's says "Your Location:" and then
+// "This position is US - Remote Eligible", and both the place and the
+// arrangement were being lost because nothing looked there.
+//
+// Only the sentence under that heading is read, and only a shape that is
+// recognisably a place is taken from it, so the surrounding prose about
+// registered entities and excluded states cannot become an address.
+const LOCATION_HEAD = /(?:^|\n)\s*(?:your\s+)?location\s*:?\s*([\s\S]{0,200})/i;
+const CITY_STATE = /\b([A-Z][a-zA-Z.'\u2019-]+(?:\s+[A-Z][a-zA-Z.'\u2019-]+)*,\s*[A-Z]{2})\b/;
+const COUNTRY = [
+  [/\b(?:United States|U\.?S\.?A?\.?)\b/i, 'United States'],
+  [/\bUnited Kingdom\b|\bU\.?K\.?\b/i, 'United Kingdom'],
+  [/\bCanada\b/i, 'Canada'],
+  [/\bIreland\b/i, 'Ireland'],
+  [/\bIndia\b/i, 'India'],
+  [/\bAustralia\b/i, 'Australia'],
+  [/\bGermany\b/i, 'Germany'],
+  [/\bSingapore\b/i, 'Singapore'],
+];
+
+function placeFromText(text) {
+  const near = String(text ?? '').match(LOCATION_HEAD)?.[1];
+  if (!near) return null;
+  // A city and state beats a country: it is the more useful of the two and
+  // the more likely to be what the heading was actually announcing.
+  const city = near.match(CITY_STATE);
+  if (city) return { value: city[1], from: MED };
+  for (const [re, name] of COUNTRY) if (re.test(near)) return { value: name, from: MED };
   return null;
 }
 
@@ -980,6 +1020,7 @@ export function extractJob(html, pageUrl = '') {
     // is a requirement, not a duty, and that is where a posting tends to put
     // the commitment it is asking for.
     ['hours_per_week', hoursFromText(`${body}\n${fields.requirements?.value ?? ''}`)],
+    ['location', body ? placeFromText(body) : null],
     ['source', source(pageUrl)],
     ['requirements', body ? requirements(body) : null],
   ]) {

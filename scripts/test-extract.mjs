@@ -338,6 +338,40 @@ console.log('\nHandshake keeps its profile matching to itself');
   }
 }
 
+// A bespoke careers page has no structured data and no labelled fields, so
+// the only place the arrangement and the place are stated is the prose. A
+// real Airbnb posting said "Your Location: This position is US - Remote
+// Eligible" and both came back empty.
+console.log('\nWhere the job is, said in prose');
+{
+  const say = (line) => {
+    const ld = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'JobPosting', title: 'Engineer',
+      hiringOrganization: { name: 'Acme' },
+      description: `<p>About the role.</p><p>${line}</p><p>We build things and we care about them deeply, every day.</p>`,
+    });
+    const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+    const f = extractJob(html, 'https://careers.example.com/j').fields;
+    return [f.location?.value ?? null, f.work_mode?.value ?? null];
+  };
+  const cases = [
+    ['Airbnb, exactly as written', say('Your Location:</p><p>This position is US - Remote Eligible. The role may include occasional work at an office.'), ['United States', 'Remote']],
+    ['a city and state beats a country', say('Location:</p><p>Austin, TX, United States. Some travel expected.'), ['Austin, TX', null]],
+    ['a country on its own', say('Your Location:</p><p>This role is based in Canada.'), ['Canada', null]],
+    ['remote-friendly counts', say('This is a remote-friendly role on a distributed team.'), [null, 'Remote']],
+    ['so does "this role is fully remote"', say('This role is fully remote across the country.'), [null, 'Remote']],
+    ['no location heading, no location', say('We are a distributed team spread across Austin, TX and elsewhere.'), [null, null]],
+    ['prose about entities is not an address', say('Your Location:</p><p>You must live in a state where Acme, Inc. has a registered entity.'), [null, null]],
+    ['occasional remote work is not remote', say('The role is based in the office, with occasional remote work allowed.'), [null, 'On-site']],
+    ['hybrid still wins where it is said', say('Your Location:</p><p>London, UK. This is a hybrid role, three days in office.'), ['London, UK', 'Hybrid']],
+  ];
+  for (const [name, have, want] of cases) {
+    const ok = have[0] === want[0] && have[1] === want[1];
+    if (ok) right += 1; else { wrong += 1; fails.push(`location: ${name}: got ${JSON.stringify(have)} want ${JSON.stringify(want)}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name.padEnd(36)} ${JSON.stringify(have)}`);
+  }
+}
+
 console.log('\nPay written into the prose');
 {
   const say = (line) => {
