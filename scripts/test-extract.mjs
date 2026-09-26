@@ -346,6 +346,52 @@ console.log('\nHandshake keeps its profile matching to itself');
 // line, its value on the next. A real IBM posting stated its city, state,
 // country, work arrangement and salary range in one, and every one of them
 // came back empty because nothing read it.
+// Who may hold the job at all, which a posting states wherever it likes.
+//
+// The most consequential sentence in the IBM posting is "IBM will not be
+// providing visa sponsorship for this position now or in the future", and it
+// sits in a wall of legal boilerplate with no heading of its own. For an
+// international student that line decides whether the rest is worth reading.
+console.log('\nThe eligibility gate comes first');
+{
+  const say = (body) => {
+    const ld = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'JobPosting', title: 'Engineer',
+      hiringOrganization: { name: 'Acme' },
+      description: body.split('\n').map((l) => `<p>${l}</p>`).join(''),
+    });
+    const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+    return extractJob(html, 'https://careers.example.com/j').fields.requirements?.value ?? '';
+  };
+  const ibm = say([
+    'Required technical and professional expertise',
+    '- Prior (project or internship) experience in software development',
+    '- Strong verbal and written communication skills',
+    '- Proficiency in C++, C, Java, Golang, Ruby, Python, Perl, SQL.',
+    'IBM is also committed to compliance with all fair employment practices regarding citizenship and immigration status.',
+    'IBM will not be providing visa sponsorship for this position now or in the future.',
+  ].join('\n'));
+
+  const pairs = [
+    ['the sponsorship line leads', ibm.startsWith('IBM will not be providing visa sponsorship')],
+    ['with its subject, not headless', !ibm.startsWith('will not')],
+    ['the real requirements follow it', ibm.includes('Prior (project or internship) experience')],
+    ['and it is not repeated inside them', ibm.split('visa sponsorship').length === 2],
+    ['boilerplate ends the list', !ibm.includes('fair employment practices')],
+    ['a heading nothing knew is still found', ibm.includes('Proficiency in C++')],
+    ['a compliance statement is not a gate',
+      !say('Qualifications\n- Three years of Python\nAcme is committed to compliance with all fair employment practices regarding citizenship.').includes('citizenship')],
+    ['must be authorised to work counts',
+      say('Requirements\n- Three years of Python\nYou must be legally authorized to work in the United States.').includes('authorized to work')],
+    ['a clearance requirement counts',
+      say('Requirements\n- Three years of Python\nAn active security clearance is required for this role.').includes('security clearance')],
+  ];
+  for (const [name, ok] of pairs) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`eligibility: ${name}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
+  }
+}
+
 console.log('\nThe key-details table at the foot of a posting');
 {
   const body = readFileSync(new URL('./fixtures/ibm-details.txt', import.meta.url), 'utf8');
