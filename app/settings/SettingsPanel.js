@@ -4,12 +4,39 @@ import { useEffect, useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from '../Logo';
 import { BUILTIN_SHEETS, SHEET_DEFAULTS, enabledSheets, isCustomSheet, newSheetKey } from '@/lib/fields';
+import { RISE, tryPlayMark } from '@/lib/mark-sound';
+import { setSoundOn, soundOn } from '@/lib/sound-pref';
 
 async function call(url, method) {
   const res = await fetch(url, { method });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
   return data;
+}
+
+// The win chime, on or off. Read on mount rather than in the initial state:
+// localStorage does not exist while this renders on the server, and a first
+// render that disagreed with the browser's value would be a hydration error.
+function SoundSetting() {
+  const [on, setOn] = useState(true);
+  useEffect(() => setOn(soundOn()), []);
+
+  return (
+    <>
+      <p>A short chime when you win a day, a week or a month. Nothing else in the tracker
+        makes a noise.</p>
+      <label className="settings-check">
+        <span>Play the win sound</span>
+        <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); setSoundOn(e.target.checked); }} />
+      </label>
+      <div className="settings-actions">
+        {/* Doubles as the thing that proves it works: a click is also the
+            gesture the browser wants before it will let audio start. */}
+        <button className="btn ghost-dark" type="button" disabled={!on}
+          onClick={() => tryPlayMark(1, RISE)}>Hear it</button>
+      </div>
+    </>
+  );
 }
 
 // Which sheets you keep, and what you call them. The stored value behind a
@@ -452,6 +479,11 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
               })}>Turn off sharing</button>
             )}
           </div>
+        </section>
+
+        <section className="settings-card">
+          <h2>Sound</h2>
+          <SoundSetting />
         </section>
 
         <section className="settings-card">

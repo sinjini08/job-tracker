@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Trophy } from './Icons';
+import { RISE, tryPlayMark } from '@/lib/mark-sound';
+import { soundOn } from '@/lib/sound-pref';
 
 // A trophy and a burst of confetti across the screen for a couple of seconds
 // when you win a day, a week or a month.
@@ -9,7 +11,15 @@ import { Trophy } from './Icons';
 // It fires once per win, ever: `seenKey` is written to localStorage, so
 // reloading the page or coming back tomorrow doesn't replay yesterday's
 // party. It also respects prefers-reduced-motion — the trophy still appears,
-// the confetti doesn't.
+// the confetti doesn't. A chime plays with it unless sound is switched
+// off in Settings.
+
+// When the last chime started. React mounts an effect twice in development
+// (StrictMode), and a sound that is already scheduled cannot be called back,
+// so without this the chime plays over itself in dev and sounds like a fault
+// in the sound rather than in the harness. Two real celebrations queue 2600ms
+// apart, well clear of this window, so the second still gets its own chime.
+let lastChime = 0;
 
 const COLORS = ['#1f9d55', '#69b57f', '#f1d68a', '#e0651f', '#2a78d6', '#d1478c'];
 const PIECES = 90;
@@ -57,6 +67,21 @@ function Celebration({ title, detail, onDone }) {
     size: 6 + Math.random() * 7,
     round: Math.random() > 0.65,
   })), [reduced]);
+
+  // Mount only, and deliberately not folded into the effect below: that one
+  // re-runs whenever the league re-renders, and a chime that replayed on a
+  // refetch would stutter. A new win remounts this, because the queue keys
+  // each celebration, so mounting is exactly once per win.
+  useEffect(() => {
+    if (!soundOn()) return;
+    if (Date.now() - lastChime < 1500) return;
+    lastChime = Date.now();
+    // There is no animation to wait for here, so the sound starts now and the
+    // impact lands 340ms in, under the confetti with the card arriving. It
+    // plays only if the page has been clicked at some point: audio cannot
+    // start in an untouched document, and tryPlayMark gives up quietly.
+    tryPlayMark(1, RISE);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(onDone, HOLD_MS);
