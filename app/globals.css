@@ -886,6 +886,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
      green keeps the eye. */
   --viz-wait: #dddbcd;
   --viz-over: #a9a699;
+  /* The won hero's wash, and the tinted edge that both the won hero and your
+     own row on the board wear. Written inline as light-mode hexes until now,
+     which in dark mode put a near-white wash behind the ring's near-white
+     number and drew a pale green border on a dark card. */
+  --won-wash: #eaf6ee;
+  --won-edge: #bfe0cb;
 }
 
 /* The charts in dark. Not a flip of the light ramp: a sequential scale reads
@@ -918,6 +924,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   --viz-ring: rgba(255, 255, 255, 0.12);
   --viz-wait: #646b65;
   --viz-over: #454945;
+  /* Dark: the wash is the surface lifted towards green rather than towards
+     white, so --viz-ink still reads on it at 11.6:1, and the edge is a green
+     that shows against #1d221f without glowing. */
+  --won-wash: #223029;
+  --won-edge: #33503d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -946,6 +957,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
     --viz-ring: rgba(255, 255, 255, 0.12);
   --viz-wait: #646b65;
   --viz-over: #454945;
+    /* Dark: the wash is the surface lifted towards green rather than towards
+       white, so --viz-ink still reads on it at 11.6:1, and the edge is a green
+       that shows against #1d221f without glowing. */
+    --won-wash: #223029;
+    --won-edge: #33503d;
   }
 }
 .charts {
@@ -1405,7 +1421,7 @@ body:has(.login) { overflow: auto; }
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
 }
-.hero.won { background: linear-gradient(90deg, #eaf6ee, var(--viz-surface) 70%); border-color: #bfe0cb; }
+.hero.won { background: linear-gradient(90deg, var(--won-wash), var(--viz-surface) 70%); border-color: var(--won-edge); }
 .hero-copy h2 { margin: 0; font-size: 26px; color: var(--viz-ink); }
 .hero-copy p { margin: 6px 0 0; color: var(--viz-ink-2); max-width: 44ch; line-height: 1.5; }
 .hero-pills { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
@@ -1440,7 +1456,7 @@ body:has(.login) { overflow: auto; }
   border: 1px solid var(--viz-ring);
 }
 .day-list.tall .day-row { grid-template-columns: 24px 34px minmax(110px, 1fr) minmax(60px, 2fr) 56px; }
-.day-row.me { background: var(--xl-green-tint); border-color: #bfe0cb; }
+.day-row.me { background: var(--xl-green-tint); border-color: var(--won-edge); }
 .day-row.won .day-bar i { background: var(--ord-6); }
 /* Block, not flex: the "you" badge has to sit inline after the name rather
    than becoming a row of its own. */
