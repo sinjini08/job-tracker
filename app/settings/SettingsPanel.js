@@ -42,10 +42,10 @@ function SoundSetting() {
 // Which sheets you keep, and what you call them. The stored value behind a
 // sheet never changes, so a rename is a label and turning one off is a hide:
 // the rows are still there, and switching it back on brings them back.
-function SheetSettings() {
-  const [prefs, setPrefs] = useState(null);
+function SheetSettings({ initial }) {
+  const [prefs, setPrefs] = useState(initial);
   // What is saved, edited by the checkboxes and by adding or removing a sheet.
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraft] = useState(initial);
   // What is typed in the boxes on the right, which are rename fields rather
   // than name fields: blank means leave this sheet called what it is called.
   // That is the only way a sheet you made can work, because it has no built-in
@@ -54,22 +54,6 @@ function SheetSettings() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  useEffect(() => {
-    let live = true;
-    fetch('/api/profile')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Could not load your settings'))))
-      .then((p) => {
-        if (!live) return;
-        const next = { enabled: enabledSheets(p.sheets_enabled), names: p.sheet_names ?? {} };
-        setPrefs(next);
-        setDraft(next);
-      })
-      .catch((e) => live && setErr(e.message));
-    return () => { live = false; };
-  }, []);
-
-  if (err) return <section className="settings-card"><h2>Your sheets</h2><p className="settings-error">{err}</p></section>;
-  if (!draft) return null;
 
   // What a sheet would be called if this were saved now: whatever is in its
   // box, else the name it already has. Null for a sheet you have just added
@@ -154,6 +138,10 @@ function SheetSettings() {
       <h2>Your sheets</h2>
       <p>Keep the sheets you use, call them whatever you like, and add sheets of your own.
         The tabs follow.</p>
+      {/* Inside the card, not instead of it. The only error that can reach
+          here now is a failed save, and replacing the card with the message
+          would throw away the edits that did not save. */}
+      {err && <p className="settings-error" role="alert">{err}</p>}
 
       <div className="sheet-rows">
         {BUILTIN_SHEETS.map((key) => (
@@ -249,7 +237,7 @@ function CopyField({ value }) {
 // link: the page would be telling somebody to install something they cannot.
 const EXTENSION_URL = process.env.NEXT_PUBLIC_EXTENSION_URL || '';
 
-export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector,
+export default function SettingsPanel({ email, sheets, shareToken, connectorOn: initialConnector,
   extensionOn: initialExtension = false, connections: initialConnections = [] }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const [shareUrl, setShareUrl] = useState(shareToken ? `/s/${shareToken}` : null);
@@ -284,7 +272,7 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
         <h1>Settings</h1>
         {error && <p className="settings-error" role="alert">{error}</p>}
 
-        <SheetSettings />
+        <SheetSettings initial={sheets} />
 
         <section className="settings-card">
           <h2>Connect an assistant</h2>
