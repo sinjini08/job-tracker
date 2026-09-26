@@ -18,7 +18,26 @@ const ext = join(root, 'extension');
 
 execFileSync('node', [join(here, 'sync-extension.mjs'), '--check'], { stdio: 'inherit' });
 
-const { version, name } = JSON.parse(readFileSync(join(ext, 'manifest.json'), 'utf8'));
+const manifest = JSON.parse(readFileSync(join(ext, 'manifest.json'), 'utf8'));
+const { version, name } = manifest;
+
+// The store's own limits, checked here rather than discovered at the upload
+// form. The first attempt was rejected for a 148-character description
+// against a limit of 132, after the zip had been built and carried over to
+// the browser, which is a slow way to find out.
+const LIMITS = [
+  ['name', 45],
+  ['description', 132],
+  ['short_name', 12],
+];
+const tooLong = LIMITS
+  .filter(([key, max]) => typeof manifest[key] === 'string' && manifest[key].length > max)
+  .map(([key, max]) => `${key} is ${manifest[key].length} characters, the store allows ${max}`);
+if (tooLong.length) {
+  console.error('\x1b[31mthe store would reject this manifest:\x1b[0m');
+  for (const line of tooLong) console.error(`  ${line}`);
+  process.exit(1);
+}
 
 // Named so two builds of different versions cannot be confused for each other
 // on the way to the upload form.

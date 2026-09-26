@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Job Application Tracker",
   "version": "1.0.0",
-  "description": "Keep track of your job applications on the go. File the posting you are looking at, and mark it applied when you send it, without retyping anything.",
+  "description": "Save the job posting you are looking at into your tracker, and mark it applied when you send it. No retyping.",
   "action": {
     "default_title": "Save this posting",
     "default_popup": "popup.html"
