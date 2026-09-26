@@ -55,6 +55,15 @@ let extracted = null;
 
 const auth = () => ({ Authorization: `Bearer ${token}` });
 
+// Where "Open the tracker" goes.
+//
+// ?sheet=1 on purpose. The tracker remembers the last tab you were on, which
+// is right for an ordinary visit and wrong for this link: somebody who has
+// just saved a row wants the sheet with the row in it, and was landing on
+// Insights or the League instead. The app already honours this parameter, for
+// the same reason, on Settings' "Back to my sheet".
+const trackerUrl = () => `${new URL(api).origin}/?sheet=1`;
+
 // Read the page as rendered, not as served. A fetch of the same URL gets the
 // HTML before any JavaScript has run; this runs in the tab, so a posting
 // assembled in the browser is there to be read.
@@ -262,7 +271,7 @@ async function save() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error ?? 'Could not save that.');
     $('done-what').textContent = `${d.saved.role} at ${d.saved.company}, on ${d.saved.sheet}.`;
-    $('done-link').href = d.view_at;
+    $('done-link').href = trackerUrl();
     show('done');
   } catch (e) {
     $('error').textContent = e.message;
@@ -298,7 +307,7 @@ async function start() {
           `${existing.role} at ${existing.company} is still down as ${existing.status}.`;
         $('applied-yes').onclick = () => markApplied(existing.id, $('applied-err'), (saved) => {
           $('done-what').textContent = `${saved.role} at ${saved.company} is now Applied.`;
-          $('done-link').href = new URL(api).origin;
+          $('done-link').href = trackerUrl();
           $('done').querySelector('h1').textContent = 'Updated';
           show('done');
         });
@@ -333,7 +342,7 @@ async function start() {
         $('known-what').textContent = `${saved.role} at ${saved.company} is now Applied.`;
         $('known-apply').hidden = true;
       });
-      $('known-open').href = new URL(api).origin;
+      $('known-open').href = trackerUrl();
       show('known');
       return;
     }

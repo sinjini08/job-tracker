@@ -243,7 +243,13 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
       const saved = localStorage.getItem('jt_tab');
       const wantsSheet = new URLSearchParams(window.location.search).has('sheet');
       if (wantsSheet) {
-        setTab(saved === 'Off-Campus' ? 'Off-Campus' : 'On-Campus');
+        // The sheet they were last on, if that is a sheet they still have,
+        // and otherwise their first one. It used to name On-Campus whenever
+        // the remembered tab was not Off-Campus, so anybody who keeps only
+        // one sheet and was last on Insights landed on a sheet they do not
+        // have. The guard above moves them off it once preferences load, so
+        // this was a flash of the wrong sheet rather than a dead end.
+        setTab(sheets.includes(saved) ? saved : sheets[0]);
         window.history.replaceState(null, '', window.location.pathname);
       } else if (TABS.includes(saved)) {
         setTab(saved);
