@@ -77,16 +77,18 @@ export default function Connect({ ids, email, initial = 'ready' }) {
             <h1>Connect the extension</h1>
             <p className="cx-who">{email}</p>
 
-            {/* Four lines rather than two paragraphs. What it can do is the
-                reason to press the button; what it cannot do is the reason
-                it is safe to, and that is the part worth being concrete
-                about rather than reassuring about. */}
+            {/* What it does, and nothing it does not. A list of things a
+                tool cannot do reads as a warning even when it is meant as a
+                reassurance, and the useful version of that point is that
+                whatever lands in the sheet is still yours to change. */}
             <ul className="cx-can">
               <li><span className="yes">✓</span> Add job postings to your tracker</li>
-              <li><span className="yes">✓</span> See what your sheet tabs are called, to ask which one</li>
-              <li><span className="no">✕</span> Read the rows already in your tracker</li>
-              <li><span className="no">✕</span> Change or delete anything</li>
+              <li><span className="yes">✓</span> Ask which sheet to save them to</li>
             </ul>
+
+            <p className="cx-note">
+              Anything it adds is yours to edit or delete in the sheet, like any other row.
+            </p>
 
             <button className="btn primary cx-go" onClick={pair} disabled={state === 'working'}>
               {state === 'working' ? 'Connecting…' : 'Connect'}

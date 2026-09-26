@@ -3320,8 +3320,8 @@ body:has(.land) { overflow: auto; }
 .cx-can .yes { color: var(--green-ink); }
 .cx-can .no { color: var(--muted); }
 
-.cx-go { width: 100%; height: 40px; margin-top: 24px; border-radius: 9px; font-size: 15px; }
-.cx-note { margin: 16px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.cx-go { width: 100%; height: 40px; margin-top: 22px; border-radius: 9px; font-size: 15px; }
+.cx-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .cx-note a { color: var(--green-ink); }
 .cx-err { margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--bad); }
 
