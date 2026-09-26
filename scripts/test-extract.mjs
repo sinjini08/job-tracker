@@ -342,6 +342,37 @@ console.log('\nHandshake keeps its profile matching to itself');
 // the only place the arrangement and the place are stated is the prose. A
 // real Airbnb posting said "Your Location: This position is US - Remote
 // Eligible" and both came back empty.
+// The key-details table a lot of careers pages end with: a label on one
+// line, its value on the next. A real IBM posting stated its city, state,
+// country, work arrangement and salary range in one, and every one of them
+// came back empty because nothing read it.
+console.log('\nThe key-details table at the foot of a posting');
+{
+  const body = readFileSync(new URL('./fixtures/ibm-details.txt', import.meta.url), 'utf8');
+  const ld = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'JobPosting',
+    title: 'Entry level Backend Developer - San Jose, CA - 2027',
+    hiringOrganization: { name: 'IBM' },
+    description: body.split('\n').map((l) => (l.trim() ? `<p>${l}</p>` : '')).join(''),
+  });
+  const html = `<html><head><title>x</title><${'script'} type="application/ld+json">${ld}</${'script'}></head><body></body></html>`;
+  const f = extractJob(html, 'https://careers.ibm.com/en_US/careers/JobDetail/x/131805').fields;
+  const pairs = [
+    ['city, state and country are joined', f.location?.value === 'San Jose, California, United States'],
+    ['the salary range needs no currency symbol', f.pay?.value === '120,960 - 181,440 per year'],
+    ['work arrangement is read from its label', f.work_mode?.value === 'Hybrid'],
+    // "Regular" means permanent, not full-time. A regular part-time job is an
+    // ordinary thing, so nothing is put in the column the posting never filled.
+    ['"Employment type: Regular" is not full-time', f.category === undefined],
+    ['nor does 120 hours vacation become the pay', !/120 hours/.test(f.pay?.value ?? '')],
+    ['nor 56 hours sick time the hours a week', f.hours_per_week === undefined],
+  ];
+  for (const [name, ok] of pairs) {
+    if (ok) right += 1; else { wrong += 1; fails.push(`ibm table: ${name}`); }
+    console.log(`  ${ok ? '\x1b[32mok\x1b[0m  ' : '\x1b[31mFAIL\x1b[0m'} ${name}`);
+  }
+}
+
 console.log('\nWhere the job is, said in prose');
 {
   const say = (line) => {
