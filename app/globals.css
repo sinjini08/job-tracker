@@ -77,6 +77,14 @@
   --gold-ink: #c79a2a;
   --gold-ink-bright: #d9a327;
   --gold-ink-deep: #a8801f;
+
+  /* Washes and edges that are not a hue in their own right: a pale ground
+     with a border to match, for a state or a message. Each was written inline
+     as a light-mode literal, which in dark mode meant a near-white panel, and
+     on the danger buttons a near-white flash on hover. */
+  --wash-green: #eaf6ee;   --edge-green: #bfe0cb;
+  --danger-wash: #fdecea;  --danger-edge: #f1c4bf;
+  --warn-wash: #fff8e6;    --warn-edge: #e6d6a8;    --warn-ink: #7a5a00;
   --row-h: 28px;
   --rownum-w: 44px;
   /* The machine's own interface font: SF on a Mac, Segoe UI Variable on
@@ -150,6 +158,13 @@
   --gold-ink: #e0b544;
   --gold-ink-bright: #eec554;
   --gold-ink-deep: #e0b544;
+
+  /* The same, lifted off the dark surface rather than dropped from white.
+     --viz-ink reads on the green wash at 11.6:1, --due on the danger wash at
+     6.2:1, and --warn-ink on its own wash at 10.0:1. */
+  --wash-green: #223029;   --edge-green: #33503d;
+  --danger-wash: #351d19;  --danger-edge: #6b3029;
+  --warn-wash: #332b0f;    --warn-edge: #554a22;    --warn-ink: #f0d98a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -210,6 +225,13 @@
     --gold-ink: #e0b544;
     --gold-ink-bright: #eec554;
     --gold-ink-deep: #e0b544;
+
+    /* The same, lifted off the dark surface rather than dropped from white.
+       --viz-ink reads on the green wash at 11.6:1, --due on the danger wash at
+       6.2:1, and --warn-ink on its own wash at 10.0:1. */
+    --wash-green: #223029;   --edge-green: #33503d;
+    --danger-wash: #351d19;  --danger-edge: #6b3029;
+    --warn-wash: #332b0f;    --warn-edge: #554a22;    --warn-ink: #f0d98a;
   }
 }
 
@@ -388,8 +410,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
    .settings and .league-settings, and none of them reached the expanded row
    in list view. Delete application rendered there as ordinary dark text on
    white, which is the one button on the page that must not look ordinary. */
-.btn.danger { background: var(--surface); color: var(--due); border-color: #f1c4bf; }
-.btn.danger:hover:not(:disabled) { background: #fdecea; }
+.btn.danger { background: var(--surface); color: var(--due); border-color: var(--danger-edge); }
+.btn.danger:hover:not(:disabled) { background: var(--danger-wash); }
 
 .toolbar .btn.primary { background: #fff; color: var(--xl-green-dark); font-weight: 600; }
 .toolbar .btn.primary:hover { background: var(--xl-green-tint); }
@@ -474,7 +496,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   user-select: none;
   border-bottom: 1px solid var(--head-line);
 }
-.grid thead tr.headers th:hover { background: #eeeee4; }
+.grid thead tr.headers th:hover { background: var(--hover); }
 .grid thead th.hl { background: var(--xl-green-tint); color: var(--xl-green-dark); box-shadow: inset 0 -2px 0 var(--xl-green); }
 .sort { color: var(--green-ink); font-size: 10px; }
 
@@ -740,7 +762,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 999px;
-  background: #e3e3d5;
+  background: var(--sand);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -793,7 +815,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
    the button up to the top of it, level with the SHEET label rather than with
    the select underneath. Measured at 19px out. The colours now come from the
    unscoped .btn.danger, so there is nothing left for this rule to say. */
-.drawer .btn.danger:hover { background: #fdecea; }
+.drawer .btn.danger:hover { background: var(--danger-wash); }
 .drawer-body {
   flex: 1;
   overflow: auto;
@@ -932,12 +954,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
      green keeps the eye. */
   --viz-wait: #dddbcd;
   --viz-over: #a9a699;
-  /* The won hero's wash, and the tinted edge that both the won hero and your
-     own row on the board wear. Written inline as light-mode hexes until now,
-     which in dark mode put a near-white wash behind the ring's near-white
-     number and drew a pale green border on a dark card. */
-  --won-wash: #eaf6ee;
-  --won-edge: #bfe0cb;
 }
 
 /* The charts in dark. Not a flip of the light ramp: a sequential scale reads
@@ -970,11 +986,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   --viz-ring: rgba(255, 255, 255, 0.12);
   --viz-wait: #646b65;
   --viz-over: #454945;
-  /* Dark: the wash is the surface lifted towards green rather than towards
-     white, so --viz-ink still reads on it at 11.6:1, and the edge is a green
-     that shows against #1d221f without glowing. */
-  --won-wash: #223029;
-  --won-edge: #33503d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1003,11 +1014,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
     --viz-ring: rgba(255, 255, 255, 0.12);
   --viz-wait: #646b65;
   --viz-over: #454945;
-    /* Dark: the wash is the surface lifted towards green rather than towards
-       white, so --viz-ink still reads on it at 11.6:1, and the edge is a green
-       that shows against #1d221f without glowing. */
-    --won-wash: #223029;
-    --won-edge: #33503d;
   }
 }
 .charts {
@@ -1037,7 +1043,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* An offer is the thing the whole tab is for, so the tile says so when there
    is one. The number and its label carry the meaning; the tint only adds to
    it, and the tile looks the same as the others when the count is nought. */
-.stat.good { border-color: rgba(31, 157, 85, 0.45); background: linear-gradient(180deg, #f2fbf5, var(--viz-surface) 70%); }
+.stat.good { border-color: rgba(31, 157, 85, 0.45); background: linear-gradient(180deg, var(--wash-green), var(--viz-surface) 70%); }
 .stat.good .stat-value { color: var(--xl-green-dark); }
 
 /* Two columns, fixed, not auto-fit.
@@ -1090,7 +1096,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .pie-key { list-style: none; margin: 0; padding: 0; flex: 1 1 180px; min-width: 0; }
 .pie-key li { display: grid; grid-template-columns: 12px 1fr auto 44px; align-items: center; gap: 10px; padding: 4px 2px; border-radius: 4px; outline: none; }
-.pie-key li:hover { background: #f4f5f1; }
+.pie-key li:hover { background: var(--hover); }
 .pie-key li:focus-visible { box-shadow: 0 0 0 2px var(--xl-green); }
 .pie-key li.none { opacity: 0.5; }
 .pie-key i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -1253,8 +1259,8 @@ body:has(.settings) { overflow: auto; }
 .settings-card p { margin: 0; color: var(--muted); line-height: 1.5; }
 .settings-card p b { color: var(--text); }
 .settings-status { font-weight: 600; color: var(--text) !important; }
-.settings-warn { background: #fff8e6; border: 1px solid #e6d6a8; border-radius: 6px; padding: 8px 10px; color: #7a5a00 !important; }
-.settings-error { background: #fdecea; border: 1px solid #f1c4bf; color: var(--due); border-radius: 6px; padding: 8px 10px; margin: 0; }
+.settings-warn { background: var(--warn-wash); border: 1px solid var(--warn-edge); border-radius: 6px; padding: 8px 10px; color: var(--warn-ink) !important; }
+.settings-error { background: var(--danger-wash); border: 1px solid var(--danger-edge); color: var(--due); border-radius: 6px; padding: 8px 10px; margin: 0; }
 .settings-steps { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.7; }
 .settings-steps code { background: var(--head-bg); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--text); word-break: break-all; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1267,8 +1273,8 @@ body:has(.settings) { overflow: auto; }
 .settings .btn.primary:disabled { opacity: 0.6; }
 .btn.ghost-dark { background: var(--surface); border-color: var(--head-line); color: var(--text); }
 .btn.ghost-dark:hover { background: var(--head-bg); }
-.settings .btn.danger { background: var(--surface); color: var(--due); border-color: #f1c4bf; }
-.settings .btn.danger:hover { background: #fdecea; }
+.settings .btn.danger { background: var(--surface); color: var(--due); border-color: var(--danger-edge); }
+.settings .btn.danger:hover { background: var(--danger-wash); }
 .copy-field { display: flex; gap: 8px; }
 .copy-field input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--head-line); border-radius: 4px; padding: 0 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--head-bg); }
 @media (max-width: 1180px) { .whoami { display: none; } }
@@ -1467,7 +1473,7 @@ body:has(.login) { overflow: auto; }
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
 }
-.hero.won { background: linear-gradient(90deg, var(--won-wash), var(--viz-surface) 70%); border-color: var(--won-edge); }
+.hero.won { background: linear-gradient(90deg, var(--wash-green), var(--viz-surface) 70%); border-color: var(--edge-green); }
 .hero-copy h2 { margin: 0; font-size: 26px; color: var(--viz-ink); }
 .hero-copy p { margin: 6px 0 0; color: var(--viz-ink-2); max-width: 44ch; line-height: 1.5; }
 .hero-pills { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
@@ -1502,7 +1508,7 @@ body:has(.login) { overflow: auto; }
   border: 1px solid var(--viz-ring);
 }
 .day-list.tall .day-row { grid-template-columns: 24px 34px minmax(110px, 1fr) minmax(60px, 2fr) 56px; }
-.day-row.me { background: var(--xl-green-tint); border-color: var(--won-edge); }
+.day-row.me { background: var(--xl-green-tint); border-color: var(--edge-green); }
 .day-row.won .day-bar i { background: var(--ord-6); }
 /* Block, not flex: the "you" badge has to sit inline after the name rather
    than becoming a row of its own. */
@@ -1549,7 +1555,7 @@ body:has(.login) { overflow: auto; }
 .rank.lead { box-shadow: 0 0 0 2px var(--xl-green); }
 /* You are marked one way everywhere: a green tint on your row. A badge
    saying "you" beside the highlight said the same thing twice. */
-.member-list li.me { border-color: var(--won-edge); background: var(--xl-green-tint); }
+.member-list li.me { border-color: var(--edge-green); background: var(--xl-green-tint); }
 
 /* past winners */
 .winner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -1637,8 +1643,8 @@ body:has(.login) { overflow: auto; }
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
 }
-.league-settings .btn.danger { align-self: flex-start; background: var(--surface); color: var(--due); border-color: #f1c4bf; }
-.league-settings .btn.danger:hover { background: #fdecea; }
+.league-settings .btn.danger { align-self: flex-start; background: var(--surface); color: var(--due); border-color: var(--danger-edge); }
+.league-settings .btn.danger:hover { background: var(--danger-wash); }
 
 .league-err { color: var(--due); margin: 0 0 12px; }
 .league-fine { margin: 12px 0 0; font-size: 12px; color: var(--viz-muted); line-height: 1.5; }
@@ -3252,7 +3258,7 @@ body:has(.land) { overflow: auto; }
   white-space: nowrap;
 }
 .rowpin:hover { border-color: var(--grid-line); color: var(--text); }
-.rowpin.on { background: var(--xl-green-tint); border-color: #bfe0cb; color: var(--green); }
+.rowpin.on { background: var(--xl-green-tint); border-color: var(--edge-green); color: var(--green); }
 
 /* A long field, closed until you want it. The connector stores a whole posting
    when a student pastes one, so three open text areas made the panel mostly
