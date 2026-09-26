@@ -23,10 +23,10 @@ function SoundSetting() {
 
   return (
     <>
-      <p>A short chime when you win a day, a week or a month. Nothing else in the tracker
-        makes a noise.</p>
+      <p>The opening animation, and a short chime when you win a day, a week or a month.
+        Nothing else in the tracker makes a noise.</p>
       <label className="settings-check">
-        <span>Play the win sound</span>
+        <span>Play sounds</span>
         <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); setSoundOn(e.target.checked); }} />
       </label>
       <div className="settings-actions">

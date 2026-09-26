@@ -14,13 +14,6 @@ import { soundOn } from '@/lib/sound-pref';
 // the confetti doesn't. A chime plays with it unless sound is switched
 // off in Settings.
 
-// When the last chime started. React mounts an effect twice in development
-// (StrictMode), and a sound that is already scheduled cannot be called back,
-// so without this the chime plays over itself in dev and sounds like a fault
-// in the sound rather than in the harness. Two real celebrations queue 2600ms
-// apart, well clear of this window, so the second still gets its own chime.
-let lastChime = 0;
-
 const COLORS = ['#1f9d55', '#69b57f', '#f1d68a', '#e0651f', '#2a78d6', '#d1478c'];
 const PIECES = 90;
 const HOLD_MS = 2600;
@@ -71,11 +64,11 @@ function Celebration({ title, detail, onDone }) {
   // Mount only, and deliberately not folded into the effect below: that one
   // re-runs whenever the league re-renders, and a chime that replayed on a
   // refetch would stutter. A new win remounts this, because the queue keys
-  // each celebration, so mounting is exactly once per win.
+  // each celebration, so mounting is exactly once per win. The guard against
+  // StrictMode's double mount lives in tryPlayMark, which the opening needs
+  // just as much.
   useEffect(() => {
     if (!soundOn()) return;
-    if (Date.now() - lastChime < 1500) return;
-    lastChime = Date.now();
     // There is no animation to wait for here, so the sound starts now and the
     // impact lands 340ms in, under the confetti with the card arriving. It
     // plays only if the page has been clicked at some point: audio cannot

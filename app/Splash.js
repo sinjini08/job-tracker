@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { tryPlayMark } from '@/lib/mark-sound';
+import { soundOn } from '@/lib/sound-pref';
 
 // The opening: the target draws itself round its own gap, the bullseye lands,
 // the dart arrives along the line it points down, and the mark shrinks away
@@ -12,6 +14,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 //
 // It plays once per browser session, gets out of the way on any click or key,
 // and stands still for anyone who has asked for less motion.
+//
+// The sound goes with it, on the beat the dart lands, which is what playMark's
+// default lead is measured for. Whether it is audible is the browser's call
+// rather than ours: audio cannot start in a document nobody has touched, and a
+// session's first load is exactly that, so tryPlayMark reports false and the
+// opening runs silent. It becomes audible on a site Chrome has built media
+// engagement for, which it earns by the sound having played. So this is a
+// thing that starts silent on a machine and turns itself on, rather than a
+// thing that works or does not.
 
 const SEEN = 'jt_splash_seen';
 const RUN_MS = 2750;   // the whole thing, including the hand-off at the end
@@ -39,6 +50,11 @@ export default function Splash() {
     if (seen) { setState('done'); return; }
 
     setState('playing');
+    // Fired here rather than on a timer: the sound carries its own 1.28s of
+    // silence before the impact, so it has to start when the animation does.
+    // Nothing waits on it and a blocked context costs nothing.
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!still && soundOn()) tryPlayMark();
     const at = (ms, fn) => timers.current.push(setTimeout(fn, ms));
     at(RUN_MS - FADE_MS, () => setState('leaving'));
     at(RUN_MS, finish);
