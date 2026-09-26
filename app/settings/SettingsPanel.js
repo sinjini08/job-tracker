@@ -217,6 +217,11 @@ function CopyField({ value }) {
   );
 }
 
+// Where to install the extension. Absent until it is published, and the
+// button simply is not rendered, because a dead store link is worse than no
+// link: the page would be telling somebody to install something they cannot.
+const EXTENSION_URL = process.env.NEXT_PUBLIC_EXTENSION_URL || '';
+
 export default function SettingsPanel({ email, shareToken, connectorOn: initialConnector,
   extensionOn: initialExtension = false, connections: initialConnections = [] }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -374,17 +379,34 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
 
         <section className="settings-card">
           <h2>Save jobs from your browser</h2>
+          {/* This used to say the extension "can only add to your tracker,
+              never read it", which stopped being true when it learned to
+              notice a job you had already saved and to move a row to
+              Applied. It still cannot read the rows themselves, which is the
+              part worth promising, so that is what it says now. */}
           <p>The browser extension reads the posting you are looking at, anywhere you apply, and
-            files it. Nothing is sent until you press save, and it can only add to your tracker,
-            never read it.</p>
+            files it. Nothing is sent until you press save. It can add rows and move one to
+            Applied; it cannot read the rows already in your tracker, or delete anything.</p>
+          {/* The steps described pasting a link, which is now the fallback.
+              Pressing Connect in the popup opens a page here and hands the
+              token over without anybody copying a secret. */}
           <ol className="settings-steps">
-            <li>Install the extension, then click its icon on a job posting.</li>
-            <li>Paste the link below when it asks to be connected.</li>
+            <li>Install the extension.</li>
+            <li>Click its icon on a job posting, and press Connect to my tracker.</li>
+            <li>Confirm on the page it opens. That is all.</li>
           </ol>
+          {EXTENSION_URL && (
+            <p className="settings-actions">
+              <a className="btn primary" href={EXTENSION_URL} target="_blank" rel="noreferrer">
+                Get the extension
+              </a>
+            </p>
+          )}
           {extensionUrl ? (
             <>
               <p className="settings-warn">Copy this now. It will not be shown again, and anyone
-                with it can add rows to your tracker.</p>
+                with it can add rows to your tracker. You only need this if Connect cannot reach
+                the extension, which happens on a local build.</p>
               <CopyField value={extensionUrl} />
             </>
           ) : (
@@ -397,7 +419,7 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
               if (extensionOn && !confirm('Make a new link? The one in your browser stops working.')) return;
               const { url } = await call('/api/settings/extension', 'POST');
               setExtensionUrl(url); setExtensionOn(true);
-            })}>{extensionOn ? 'Make a new link' : 'Create an extension link'}</button>
+            })}>{extensionOn ? 'Make a new link' : 'Create a link to paste instead'}</button>
             {extensionOn && (
               <button className="btn ghost-dark" disabled={busy === 'ext'} onClick={act('ext', async () => {
                 if (!confirm('Disconnect the extension?')) return;
@@ -407,8 +429,8 @@ export default function SettingsPanel({ email, shareToken, connectorOn: initialC
             )}
           </div>
           <p className="settings-note">
-            Separate from the assistant connector above on purpose. This link only adds rows, and
-            turning it off does not disconnect Claude or ChatGPT.
+            Separate from the assistant connector above on purpose. This link only adds rows and
+            moves one to Applied, and turning it off does not disconnect Claude or ChatGPT.
           </p>
         </section>
 
