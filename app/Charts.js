@@ -51,7 +51,7 @@ export default function Charts({ rows, events, sheets = SHEET_KEYS, sheet = 'All
         <div className="viz-empty">
           <p className="viz-empty-title">No applications here yet</p>
           <p>Charts fill in as you log applications, either by typing in the sheets or by
-            pasting a job posting to Claude.</p>
+            pasting a job posting to a connected AI assistant.</p>
         </div>
       ) : (
         <>
