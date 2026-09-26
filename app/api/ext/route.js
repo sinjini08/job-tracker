@@ -4,6 +4,8 @@ import { storeFor } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { OPTIONS as FIELD_OPTIONS, OPTIONS_FOR, WRITABLE, enabledSheets, sheetLabel, snapToKnown } from '@/lib/fields';
 import { allowedOrigin } from '@/lib/ext-ids';
+import { statusPatch } from '@/lib/ext-patch';
+import { isoDate } from '@/lib/iso-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +35,6 @@ const MAX = {
 };
 const DATES = new Set(['deadline', 'date_applied', 'next_follow_up', 'reached_out_on']);
 const FLAGS = new Set(['referral', 'cover_letter', 'remind']);
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 // Only fields the tracker has, only values it recognises, nothing longer than
 // the column. A posting is somebody else's HTML and is treated that way.
@@ -49,8 +50,11 @@ function sanitise(body) {
       continue;
     }
     if (DATES.has(key)) {
-      const s = String(raw).slice(0, 10);
-      if (ISO.test(s)) out[key] = s;
+      // A date that is only the right shape is not enough: "2026-13-45" gets
+      // past a regex and the database then refuses the whole insert, so one
+      // bad deadline on a scraped page cost the entire row.
+      const when = isoDate(raw);
+      if (when) out[key] = when;
       continue;
     }
     // Runs of whitespace collapse to one space. A posting scraped out of HTML
@@ -90,7 +94,7 @@ function corsFor(request) {
   if (!origin) return { Vary: 'Origin' };
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
@@ -121,7 +125,28 @@ export async function GET(request) {
   const store = await auth(request);
   if (!store) return withCors(dead(), cors);
   const sheets = await store.sheets().catch(() => null);
-  return NextResponse.json({ ok: true, sheets: sheets ?? [] }, { headers: cors });
+
+  // Optionally: is this posting already here. The caller supplies the link,
+  // so this can only answer about a page somebody is already looking at, and
+  // it answers with what that question needs rather than with the row. It
+  // exists because saving the same job twice is easy and noticing afterwards
+  // is not.
+  const link = new URL(request.url).searchParams.get('link') ?? '';
+  const existing = link ? await store.findByLink(link).catch(() => null) : null;
+
+  return NextResponse.json({
+    ok: true,
+    sheets: sheets ?? [],
+    existing: existing && {
+      id: existing.id,
+      role: existing.role,
+      company: existing.company,
+      status: existing.status,
+      sheet: sheetLabel(existing.type, null),
+      saved_at: existing.created_at,
+      date_applied: existing.date_applied,
+    },
+  }, { headers: cors });
 }
 
 export async function POST(request) {
@@ -168,5 +193,35 @@ export async function POST(request) {
     }, { headers: cors });
   } catch (e) {
     return withCors(no(e.message ?? 'Could not save that.', 500), cors);
+  }
+}
+
+// Moving a row you already have to Applied, and nothing else.
+//
+// The PATCH this replaces accepted every writable column, which meant a
+// token kept in browser storage could rewrite any row in the tracker. This
+// one takes a status and the date it happened, which is the whole of what
+// the extension has to say after somebody presses Apply on a careers site.
+//
+// The database logs the status change and awards the points by trigger, so a
+// row moved from here behaves exactly like one moved by hand.
+export async function PATCH(request) {
+  const cors = corsFor(request);
+  const store = await auth(request);
+  if (!store) return withCors(dead(), cors);
+
+  const body = await request.json().catch(() => null);
+  const asked = statusPatch(body, new Date().toISOString().slice(0, 10));
+  if (asked.why) return withCors(no(asked.why), cors);
+
+  try {
+    // Scoped to the signed-in user by the store, so an id belonging to
+    // somebody else finds nothing rather than changing anything.
+    const saved = await store.updateApplication(asked.id, asked.patch);
+    return NextResponse.json({
+      saved: { id: saved.id, role: saved.role, company: saved.company, status: saved.status },
+    }, { headers: cors });
+  } catch (e) {
+    return withCors(no(e.message ?? 'Could not update that.', 500), cors);
   }
 }

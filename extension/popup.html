@@ -37,6 +37,26 @@
       <p class="hint">Reading the page…</p>
     </section>
 
+    <!-- You just pressed Apply somewhere. One button, because this is the
+         one moment the tracker can be brought up to date for free. -->
+    <section id="applied" hidden>
+      <h1>Looks like you applied</h1>
+      <p id="applied-what" class="hint"></p>
+      <p id="applied-err" class="error" hidden></p>
+      <button id="applied-yes" class="primary">Mark as applied</button>
+      <button id="applied-no" class="ghost">Not now</button>
+    </section>
+
+    <!-- Already saved. Shown instead of a second row for the same job. -->
+    <section id="known" hidden>
+      <h1>Already in your tracker</h1>
+      <p id="known-what" class="hint"></p>
+      <p id="known-err" class="error" hidden></p>
+      <button id="known-apply" class="primary" hidden>Mark as applied</button>
+      <a id="known-open" class="ghost as-button" target="_blank" rel="noreferrer">Open the tracker</a>
+      <button id="known-close" class="link">Close</button>
+    </section>
+
     <section id="refused" hidden>
       <h1>That looks like a list</h1>
       <p class="hint">

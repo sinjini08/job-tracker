@@ -1,4 +1,4 @@
-import { extractJob } from './extract.js';
+import { extractJob, looksApplied } from './extract.js';
 
 // The popup does all the work. There is no content script sitting on every
 // page: clicking the icon is what grants this one tab, the page is read once,
@@ -66,6 +66,19 @@ async function readTab() {
   });
   if (!hit?.result) throw new Error('This page cannot be read. Chrome blocks extensions on its own pages.');
   return hit.result;
+}
+
+// The page somebody applied from. A confirmation page rarely names the job,
+// but the browser knows which page it came from, and that is the posting.
+async function cameFrom() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [hit] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => document.referrer,
+    });
+    return hit?.result ?? '';
+  } catch { return ''; }
 }
 
 function render(result, url) {
@@ -166,28 +179,59 @@ async function askForRequirements() {
   }
 }
 
-async function loadSheets() {
+// The one call the popup makes before showing anything: which sheets there
+// are, and whether this posting is already one of the rows.
+async function ask(link) {
+  const url = link ? `${api}?link=${encodeURIComponent(link)}` : api;
+  const r = await fetch(url, { method: 'GET', headers: auth() });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error ?? 'Could not reach the tracker.');
+  return d;
+}
+
+const ago = (iso) => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (!Number.isFinite(days)) return '';
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
+};
+
+// Move a row to Applied. Used from both of the states below.
+async function markApplied(id, errBox, done) {
+  errBox.hidden = true;
+  try {
+    const r = await fetch(api, {
+      method: 'PATCH',
+      headers: { ...auth(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: 'Applied' }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error ?? 'Could not update that.');
+    done(d.saved);
+  } catch (e) {
+    errBox.textContent = e.message;
+    errBox.hidden = false;
+  }
+}
+
+function fillSheets(sheets) {
   const sel = $('sheet');
   sel.textContent = '';
-  try {
-    const r = await fetch(api, { method: 'GET', headers: auth() });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error ?? 'Could not reach the tracker.');
-    for (const s of d.sheets ?? []) {
-      const o = document.createElement('option');
-      o.value = s.name;
-      o.textContent = s.name;
-      sel.append(o);
-    }
-  } catch {
-    // The sheets are a convenience. Failing to fetch them should not stop
-    // somebody saving; the endpoint falls back to their first sheet.
+  for (const s of sheets ?? []) {
+    const o = document.createElement('option');
+    o.value = s.name;
+    o.textContent = s.name;
+    sel.append(o);
+  }
+  if (!sel.options.length) {
     const o = document.createElement('option');
     o.value = '';
     o.textContent = 'Default sheet';
     sel.append(o);
   }
 }
+
 
 function collect() {
   const out = { sheet: $('sheet').value, status: $('status').value };
@@ -237,6 +281,32 @@ async function start() {
   show('reading');
   try {
     const { html, url } = await readTab();
+
+    // Three things this page might be, and they are asked in this order
+    // because the later ones are the expensive ones.
+    //
+    // A confirmation page, which is the moment worth catching: somebody has
+    // just pressed Apply and the row that says Wishlist is now wrong. The
+    // tracker is asked about the page they applied from, which is where the
+    // browser came from.
+    if (looksApplied(html)) {
+      const from = await cameFrom();
+      const { existing } = await ask(from || url).catch(() => ({}));
+      if (existing && existing.status !== 'Applied') {
+        $('applied-what').textContent =
+          `${existing.role} at ${existing.company} is still down as ${existing.status}.`;
+        $('applied-yes').onclick = () => markApplied(existing.id, $('applied-err'), (saved) => {
+          $('done-what').textContent = `${saved.role} at ${saved.company} is now Applied.`;
+          $('done-link').href = new URL(api).origin;
+          $('done').querySelector('h1').textContent = 'Updated';
+          show('done');
+        });
+        $('applied-no').onclick = () => window.close();
+        show('applied');
+        return;
+      }
+    }
+
     extracted = extractJob(html, url);
     if (extracted.isIndex) { show('refused'); return; }
     if (!extracted.fields.role && !extracted.fields.company) {
@@ -246,7 +316,28 @@ async function start() {
         'This page does not look like a job posting. Open one and try again.';
       return;
     }
-    await loadSheets();
+
+    // Saving the same job twice is easy and noticing afterwards is not, so
+    // the tracker is asked before the form is offered rather than after.
+    const link = extracted.fields.job_link?.value || url;
+    const answer = await ask(link).catch(() => ({}));
+    const known = answer.existing;
+    if (known) {
+      const applied = known.status === 'Applied';
+      $('known-what').textContent = applied
+        ? `${known.role} at ${known.company}, applied ${ago(known.date_applied ?? known.saved_at)}, on ${known.sheet}.`
+        : `${known.role} at ${known.company}, saved ${ago(known.saved_at)} as ${known.status}, on ${known.sheet}.`;
+      $('known-apply').hidden = applied;
+      $('known-apply').onclick = () => markApplied(known.id, $('known-err'), (saved) => {
+        $('known-what').textContent = `${saved.role} at ${saved.company} is now Applied.`;
+        $('known-apply').hidden = true;
+      });
+      $('known-open').href = new URL(api).origin;
+      show('known');
+      return;
+    }
+
+    fillSheets(answer.sheets);
     // Only when the page's own wording defeated the matcher. The deterministic
     // answer is preferred whenever there is one: it is free, instant, and it
     // was read off the page rather than judged.
@@ -305,6 +396,7 @@ $('pair').addEventListener('click', async () => {
 
 $('save').addEventListener('click', save);
 $('refused-close').addEventListener('click', () => window.close());
+$('known-close').addEventListener('click', () => window.close());
 $('unpair').addEventListener('click', async () => {
   await store.clear();
   api = '';

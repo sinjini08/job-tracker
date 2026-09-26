@@ -127,3 +127,10 @@ button, .as-button {
    this row lands. */
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .two .field { margin-top: 12px; }
+
+/* The two states that exist to save somebody a trip to the tracker. One
+   button each, full width, because there is one thing worth doing. */
+#applied button, #known button, #known .as-button { width: 100%; margin-top: 10px; }
+#applied .ghost, #known .link { margin-top: 8px; }
+#known .link { width: auto; display: block; margin: 12px auto 0; }
+.known-row { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
