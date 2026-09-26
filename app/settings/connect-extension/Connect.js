@@ -77,13 +77,17 @@ export default function Connect({ ids, email, initial = 'ready' }) {
             <h1>Connect the extension</h1>
             <p className="cx-who">{email}</p>
 
-            {/* What it does, and nothing it does not. A list of things a
-                tool cannot do reads as a warning even when it is meant as a
-                reassurance, and the useful version of that point is that
-                whatever lands in the sheet is still yours to change. */}
+            {/* What it does, in the order somebody meets it: save a posting,
+                say what the row is, update it when they apply, and be told
+                when they already have it. The last line is the point of all
+                four. Nothing here about what it cannot do: a list of those
+                reads as a warning even when it is meant as a reassurance. */}
             <ul className="cx-can">
-              <li><span className="yes">✓</span> Add job postings to your tracker</li>
-              <li><span className="yes">✓</span> Ask which sheet to save them to</li>
+              <li><span className="yes">✓</span> Save any job posting straight from your browser</li>
+              <li><span className="yes">✓</span> As a wishlist job, or one you have already applied to</li>
+              <li><span className="yes">✓</span> Mark it applied the moment you send it</li>
+              <li><span className="yes">✓</span> Tells you when a job is already in your tracker</li>
+              <li><span className="yes">✓</span> Keeps track on the go, with no retyping</li>
             </ul>
 
             <p className="cx-note">
