@@ -6,27 +6,46 @@ import { useRef } from 'react';
 // The opening: a job search as it actually looks, spread across places that
 // have nothing to do with each other.
 //
-// These are written here rather than screenshotted from the real boards. A
-// screenshot would put someone else's design and someone else's customers'
-// postings on our marketing page, and the names alone say it just as well.
+// Each card is a miniature of a posting page rather than a text box: browser
+// chrome, the address, the title, the chips, a few lines of the description
+// and the Apply button. Small enough to read as "a job posting somewhere" in
+// half a second, which is all this section asks of it.
+//
+// Written here rather than screenshotted. A screenshot would put another
+// company's design, and their customers' postings, on our marketing page. The
+// address bar carries the board's name as plain text, which says it just as
+// well as their logo would.
 const CARDS = [
-  { role: 'Software Engineer Intern', firm: 'Northwind', where: 'Seattle, WA', on: 'LinkedIn', depth: 1.0 },
-  { role: 'Data Science Intern', firm: 'Meridian Labs', where: 'Remote', on: 'Indeed', depth: 0.55 },
-  { role: 'Product Analyst, Summer', firm: 'Cobalt', where: 'New York, NY', on: 'Company site', depth: 1.35 },
-  { role: 'Backend Intern', firm: 'Ravenna', where: 'Austin, TX', on: 'Handshake', depth: 0.75 },
-  { role: 'ML Engineer Intern', firm: 'Halcyon', where: 'Boston, MA', on: 'Careers page', depth: 1.15 },
-  { role: 'Frontend Intern', firm: 'Lumen', where: 'Remote', on: 'LinkedIn', depth: 0.45 },
+  {
+    role: 'Software Engineer Intern', firm: 'Northwind', where: 'Seattle, WA',
+    url: 'linkedin.com/jobs/view', chips: ['Internship', 'Hybrid'], lines: [92, 74, 58], depth: 1.0,
+  },
+  {
+    role: 'Data Science Intern', firm: 'Meridian Labs', where: 'Remote',
+    url: 'indeed.com/viewjob', chips: ['Summer 2027', '$32/hr'], lines: [86, 66, 44], depth: 0.55,
+  },
+  {
+    role: 'Product Analyst', firm: 'Cobalt', where: 'New York, NY',
+    url: 'cobalt.com/careers', chips: ['Internship', 'On-site'], lines: [90, 70, 52], depth: 1.35,
+  },
+  {
+    role: 'Backend Intern', firm: 'Ravenna', where: 'Austin, TX',
+    url: 'joinhandshake.com/jobs', chips: ['Part-time'], lines: [78, 60], depth: 0.75,
+  },
+  {
+    role: 'ML Engineer Intern', firm: 'Halcyon', where: 'Boston, MA',
+    url: 'halcyon.ai/careers', chips: ['Internship', 'Remote'], lines: [88, 68, 48], depth: 1.15,
+  },
 ];
 
 // Hand-placed rather than random: random scatter clumps, and a reload that
 // rearranges the opening looks like a bug.
 const SPOTS = [
-  'tw:left-[2%] tw:top-[6%]',
-  'tw:right-[4%] tw:top-[0%]',
-  'tw:left-[14%] tw:bottom-[8%]',
-  'tw:right-[16%] tw:bottom-[4%]',
-  'tw:left-[38%] tw:top-[16%]',
-  'tw:right-[34%] tw:bottom-[22%]',
+  'tw:left-[0%] tw:top-[4%]',
+  'tw:right-[1%] tw:top-[0%]',
+  'tw:left-[8%] tw:bottom-[2%]',
+  'tw:right-[10%] tw:bottom-[0%]',
+  'tw:left-[36%] tw:top-[26%]',
 ];
 
 export default function Postings() {
@@ -39,7 +58,7 @@ export default function Postings() {
   });
 
   return (
-    <div ref={wrap} className="tw:relative tw:mx-auto tw:h-[clamp(320px,46vh,460px)] tw:w-full">
+    <div ref={wrap} className="tw:relative tw:mx-auto tw:h-[clamp(380px,52vh,520px)] tw:w-full">
       {CARDS.map((card, i) => (
         <Card key={card.firm} card={card} spot={SPOTS[i]} progress={scrollYProgress} />
       ))}
@@ -51,21 +70,55 @@ function Card({ card, spot, progress }) {
   // Nearer cards travel further, which is the whole of parallax. The range is
   // small on purpose: this is depth, not a carousel.
   const y = useTransform(progress, [0, 1], [70 * card.depth, -70 * card.depth]);
-  const scale = 0.88 + card.depth * 0.09;
-  const fade = 0.55 + card.depth * 0.33;
+  const scale = 0.84 + card.depth * 0.1;
+  const fade = 0.6 + card.depth * 0.3;
 
   return (
     <motion.article
       style={{ y, scale, opacity: fade }}
-      className={`tw:absolute ${spot} tw:w-[min(15rem,42vw)] tw:rounded-xl tw:border tw:border-line tw:bg-white tw:p-3.5 tw:shadow-lg tw:shadow-ink/5`}
+      className={`tw:absolute ${spot} tw:w-[min(17rem,52vw)] tw:overflow-hidden tw:rounded-xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5`}
     >
-      <p className="tw:m-0 tw:text-[13px] tw:font-semibold tw:leading-snug tw:text-ink">{card.role}</p>
-      <p className="tw:mt-0.5 tw:mb-0 tw:text-[12px] tw:text-muted">
-        {card.firm} · {card.where}
-      </p>
-      <p className="tw:mt-2.5 tw:mb-0 tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-[0.08em] tw:text-brand-mid">
-        {card.on}
-      </p>
+      {/* Browser chrome. Three dots and an address is all it takes for
+          something to read as a page rather than a card. */}
+      <div className="tw:flex tw:items-center tw:gap-2 tw:border-b tw:border-line tw:bg-paper tw:px-2.5 tw:py-2">
+        <span className="tw:flex tw:gap-1" aria-hidden>
+          <i className="tw:block tw:h-1.5 tw:w-1.5 tw:rounded-full tw:bg-line" />
+          <i className="tw:block tw:h-1.5 tw:w-1.5 tw:rounded-full tw:bg-line" />
+          <i className="tw:block tw:h-1.5 tw:w-1.5 tw:rounded-full tw:bg-line" />
+        </span>
+        <span className="tw:truncate tw:rounded tw:bg-white tw:px-2 tw:py-0.5 tw:text-[9px] tw:text-muted">
+          {card.url}
+        </span>
+      </div>
+
+      <div className="tw:p-3">
+        <p className="tw:m-0 tw:text-[13px] tw:font-semibold tw:leading-snug tw:text-ink">{card.role}</p>
+        <p className="tw:mt-0.5 tw:mb-0 tw:text-[11px] tw:text-muted">{card.firm} · {card.where}</p>
+
+        <div className="tw:mt-2 tw:flex tw:flex-wrap tw:gap-1">
+          {card.chips.map((c) => (
+            <span key={c} className="tw:rounded-full tw:bg-tint tw:px-1.5 tw:py-0.5 tw:text-[9px] tw:font-semibold tw:text-brand">
+              {c}
+            </span>
+          ))}
+        </div>
+
+        {/* The description, as the shape of text rather than text. Real
+            sentences at this size are unreadable and pull the eye into
+            trying anyway. */}
+        <div className="tw:mt-2.5 tw:flex tw:flex-col tw:gap-1.5" aria-hidden>
+          {card.lines.map((w, i) => (
+            <i key={i} className="tw:block tw:h-1 tw:rounded-full tw:bg-line" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+
+        <div className="tw:mt-3 tw:flex tw:items-center tw:gap-2">
+          <span className="tw:rounded-md tw:bg-brand tw:px-2 tw:py-1 tw:text-[9px] tw:font-semibold tw:text-white">
+            Apply
+          </span>
+          <i className="tw:block tw:h-1 tw:w-10 tw:rounded-full tw:bg-line" aria-hidden />
+        </div>
+      </div>
     </motion.article>
   );
 }
