@@ -12,6 +12,7 @@
 
 import { buildInsights, LIMITS } from '../lib/insights.js';
 import { computeStats } from '../lib/stats.js';
+import { linkParts } from '../lib/job-link.js';
 import {
   normalizeSheetPrefs, enabledSheets, sheetLabel, newSheetKey, isCustomSheet,
   BUILTIN_SHEETS, CUSTOM_SHEET_RE, WRITABLE,
@@ -210,6 +211,35 @@ eq(normalizeSheetPrefs(['On-Campus'], { 'Off-Campus': 'Sneaky' }).names, {},
 eq(normalizeSheetPrefs(Array.from({ length: 30 }, (_, i) => `s_abcdef${String(i).padStart(2, '0')}`),
   Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`s_abcdef${String(i).padStart(2, '0')}`, `S${i}`]))).enabled.length,
   8, 'the number of sheets is capped');
+
+
+// ---------------------------------------------------------------- job links
+//
+// The bug these exist for: every LinkedIn posting opened from search results
+// shares one path, so a check that ignored the query said "already in your
+// tracker" for a job you had never seen, naming a completely different one.
+
+const parts = (u) => linkParts(u);
+const LI_A = 'https://www.linkedin.com/jobs/search-results/?currentJobId=4472473316&refId=abc&trk=x';
+const LI_B = 'https://www.linkedin.com/jobs/search-results/?currentJobId=9999999999&refId=zzz';
+
+ok(parts(LI_A).base === parts(LI_B).base, 'two LinkedIn search-results links share a path');
+ok(parts(LI_A).id.value !== parts(LI_B).id.value, 'and are told apart by currentJobId');
+eq(parts(LI_A).id, { key: 'currentJobId', value: '4472473316' }, 'the LinkedIn id is read from the query');
+eq(parts('https://www.indeed.com/viewjob?jk=deadbeef1234&from=serp').id,
+  { key: 'jk', value: 'deadbeef1234' }, 'the Indeed id is jk');
+ok(parts('https://boards.greenhouse.io/stripe/jobs/5512345').id === null,
+  'a posting identified by its path has no id parameter');
+ok(parts('https://www.linkedin.com/jobs/view/4472473316/?trk=x').id === null,
+  'the canonical LinkedIn link is path-identified too');
+ok(parts('not a url') === null, 'junk is refused');
+ok(parts('https://x.co/') === null, 'a bare domain is not a posting');
+ok(parts('https://www.linkedin.com') === null, 'nor is a bare domain without the slash');
+ok(parts('https://www.indeed.com/viewjob?jk=   ').id === null, 'a blank id is not an id');
+ok(parts(`https://www.indeed.com/viewjob?jk=${'a'.repeat(200)}`).id === null,
+  'an absurdly long id is not an id');
+ok(parts(LI_A).base === 'https://www.linkedin.com/jobs/search-results',
+  'the trailing slash is dropped so both forms of the same path agree');
 
 console.log(failed ? `\n\x1b[31m${failed} failed\x1b[0m\n` : '\n\x1b[32mall passed\x1b[0m\n');
 process.exit(failed ? 1 : 0);
