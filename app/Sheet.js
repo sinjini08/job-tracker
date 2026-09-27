@@ -26,6 +26,25 @@ const LEAGUE = 'League';
 const MIN_GRID_ROWS = 40;
 const MIN_COL_W = 48, MAX_COL_W = 640;
 const MIN_ROW_H = 18, MAX_ROW_H = 120, DEFAULT_ROW_H = 28;
+
+// Whether this is the first load of a browser session, which is how the tab
+// restore below tells arriving from refreshing.
+//
+// Read once here rather than inside the effect. React runs an effect twice in
+// development, and the first run would consume the flag and leave the second
+// looking at a session that had already been visited.
+const ARRIVED = 'jt_arrived';
+const FIRST_LOAD = (() => {
+  try {
+    const seen = sessionStorage.getItem(ARRIVED);
+    sessionStorage.setItem(ARRIVED, '1');
+    return !seen;
+  } catch {
+    // No session storage, on the server or in a locked-down window. Treat it
+    // as a refresh, which is the one that changes nothing.
+    return false;
+  }
+})();
 const DEADLINE_WARN_DAYS = 3;
 const POLL_MS = 20000;
 const REQUIRED = new Set(['status']); // NOT NULL in the schema: never offer a blank
@@ -252,7 +271,16 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
         setTab(sheets.includes(saved) ? saved : sheets[0]);
         window.history.replaceState(null, '', window.location.pathname);
       } else if (TABS.includes(saved)) {
-        setTab(saved);
+        // Arriving fresh lands on a sheet, even when the last tab was
+        // Insights or the League. Those are places you go and come back
+        // from; the sheet is the thing itself, and opening the tracker on a
+        // league board reading "10 to go" is a strange front door.
+        //
+        // Only on the session's first load, so a refresh while you are
+        // actually reading the League keeps your place. FIRST_LOAD is read at
+        // module scope rather than the splash's own flag, which is written
+        // when the animation finishes and would race with this.
+        setTab(FIRST_LOAD && !sheets.includes(saved) ? sheets[0] : saved);
       }
       const h = Number(localStorage.getItem('jt_rowh'));
       if (h >= MIN_ROW_H && h <= MAX_ROW_H) setRowHeight(h);
