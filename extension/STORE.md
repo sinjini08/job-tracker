@@ -70,9 +70,11 @@ with names close to it, so it will not stand out in search and it does not
 say whose tracker it is. `My Job Tracker` matches the site. Changing it means
 changing `name` in the manifest.
 
-**Summary** (132 characters):
+**Summary** (132 characters, and the cap is the reason this is one line). It
+comes from `description` in the manifest, so changing it needs a new version
+and another review. The dashboard shows it as "Summary from package".
 
-    Save any job posting from your browser into your tracker, and mark it applied when you send it. No retyping.
+    See a job. Save it. Track it. One click captures the posting, so you spend less time tracking and more time applying.
 
 **Description**:
 
@@ -90,7 +92,9 @@ below, where they are the substance of the argument rather than metadata: a
 plain fetch really does return an empty shell on those sites, and a reviewer
 needs somewhere concrete to test.
 
-    Save a job posting to your tracker without retyping it.
+    See a job. Save it. Track it. One click captures the posting and its key
+    details for you. Save it to your wishlist or mark it as applied when
+    you're ready, so you can spend less time tracking and more time applying.
 
     Open a job, click the icon, and it reads what the page says: the role, the
     employer, the location, the pay, the work arrangement, the deadline, the
