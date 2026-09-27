@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { rememberTheme } from '@/lib/theme';
 
 // Light or dark, and the switch for it.
 //
@@ -10,11 +11,9 @@ import { useEffect, useState } from 'react';
 // the button. That last part matters: the default is the system setting, and
 // pressing the switch is what turns a preference into a decision.
 //
-// The flash is handled in layout.js, by a script that runs before the first
-// paint. Without it a dark-mode reader gets one white frame on every load,
-// which is worse than not having the feature.
-
-const KEY = 'jt_theme';
+// The flash is handled in layout.js, which reads the choice from a cookie on
+// the server and writes the attribute into the HTML. Nothing runs in the
+// browser to apply it, so there is no frame in which the theme is wrong.
 
 // What the page is actually showing, which is not the same as what was
 // chosen: choosing nothing means following the system.
@@ -46,8 +45,10 @@ export default function ThemeToggle() {
 
   const flip = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
+    // The attribute is for this page, which is already drawn; the cookie is
+    // what every page after this one will be built from.
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem(KEY, next); } catch { /* private window */ }
+    rememberTheme(next);
     setTheme(next);
   };
 

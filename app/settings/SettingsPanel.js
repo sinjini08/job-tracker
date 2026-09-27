@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import Logo from '../Logo';
+import ThemeToggle from '../Theme';
 import { BUILTIN_SHEETS, SHEET_DEFAULTS, enabledSheets, isCustomSheet, newSheetKey } from '@/lib/fields';
 import { RISE, tryPlayMark } from '@/lib/mark-sound';
 import { setSoundOn, soundOn } from '@/lib/sound-pref';
@@ -264,6 +265,7 @@ export default function SettingsPanel({ email, sheets, shareToken, connectorOn: 
         <a className="brand" href="/"><Logo size={24} />Job Application Tracker</a>
         <div className="toolbar-mid" />
         <div className="toolbar-right">
+          <ThemeToggle />
           <a className="btn ghost" href="/?sheet=1">Back to my sheet</a>
         </div>
       </header>
