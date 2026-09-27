@@ -2,8 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { SECTIONS, byId } from './copy';
+import { byId } from './copy';
 import Doors from './Doors';
+import ChatDemo from './ChatDemo';
+import GridFloor from './GridFloor';
+import InsightsFrame from './InsightsFrame';
+import LeagueFrame from './LeagueFrame';
+import PopupDemo from './PopupDemo';
 import Header from './Header';
 import Postings from './Postings';
 import Reveal from './Reveal';
@@ -25,13 +30,25 @@ export default function Body() {
           <Postings />
         </Section>
 
-        {/* The remaining visuals land next: the grid, the two animated
-            recreations, the insights frame and the league board. */}
-        {SECTIONS.slice(1, 6).map((s) => (
-          <Section key={s.id} id={s.id} {...s}>
-            <Placeholder id={s.id} />
-          </Section>
-        ))}
+        <Section id="pileup" {...byId('pileup')} wide>
+          <GridFloor />
+        </Section>
+
+        <Section id="assistant" {...byId('assistant')} wide>
+          <ChatDemo />
+        </Section>
+
+        <Section id="extension" {...byId('extension')}>
+          <PopupDemo />
+        </Section>
+
+        <Section id="insights" {...byId('insights')} wide>
+          <InsightsFrame />
+        </Section>
+
+        <Section id="league" {...byId('league')}>
+          <LeagueFrame />
+        </Section>
 
         <Section id="close" {...byId('close')}>
           <Reveal delay={0.1}>
@@ -59,17 +76,5 @@ export default function Body() {
 
       <Doors open={door} onClose={() => setDoor(null)} />
     </>
-  );
-}
-
-// Stands in for a visual that is not built yet, and says which one, so an
-// unfinished page reads as unfinished rather than as broken.
-function Placeholder({ id }) {
-  return (
-    <Reveal delay={0.1}>
-      <div className="tw:flex tw:h-[clamp(240px,38vh,380px)] tw:items-center tw:justify-center tw:rounded-2xl tw:border tw:border-dashed tw:border-line tw:bg-white/60">
-        <p className="tw:m-0 tw:text-sm tw:text-muted">{id} visual</p>
-      </div>
-    </Reveal>
   );
 }

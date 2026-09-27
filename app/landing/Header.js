@@ -42,7 +42,8 @@ export default function Header({ onOpen }) {
         </Link>
         <button type="button" onClick={() => onOpen('waitlist')}
           className="tw:cursor-pointer tw:rounded-full tw:border tw:border-line tw:bg-white tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-ink">
-          Join the waitlist
+          <span className="tw:sm:hidden">Waitlist</span>
+          <span className="tw:hidden tw:sm:inline">Join the waitlist</span>
         </button>
         <button type="button" onClick={() => onOpen('code')}
           className="tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-brand tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-white">

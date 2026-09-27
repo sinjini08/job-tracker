@@ -40,12 +40,16 @@ const CARDS = [
 
 // Hand-placed rather than random: random scatter clumps, and a reload that
 // rearranges the opening looks like a bug.
+//
+// Only from md up. A scatter needs room, and at 375px five overlapping cards
+// are a pile with nothing readable in it, so below that they become a plain
+// two-column grid and the fifth is dropped.
 const SPOTS = [
-  'tw:left-[0%] tw:top-[4%]',
-  'tw:right-[1%] tw:top-[0%]',
-  'tw:left-[8%] tw:bottom-[2%]',
-  'tw:right-[10%] tw:bottom-[0%]',
-  'tw:left-[36%] tw:top-[26%]',
+  'tw:md:left-[0%] tw:md:top-[4%]',
+  'tw:md:right-[1%] tw:md:top-[0%]',
+  'tw:md:left-[8%] tw:md:bottom-[2%]',
+  'tw:md:right-[10%] tw:md:bottom-[0%]',
+  'tw:hidden tw:md:block tw:md:left-[36%] tw:md:top-[26%]',
 ];
 
 export default function Postings() {
@@ -58,7 +62,10 @@ export default function Postings() {
   });
 
   return (
-    <div ref={wrap} className="tw:relative tw:mx-auto tw:h-[clamp(380px,52vh,520px)] tw:w-full">
+    <div
+      ref={wrap}
+      className="tw:mx-auto tw:grid tw:w-full tw:grid-cols-2 tw:gap-3 tw:md:relative tw:md:block tw:md:h-[clamp(380px,52vh,520px)]"
+    >
       {CARDS.map((card, i) => (
         <Card key={card.firm} card={card} spot={SPOTS[i]} progress={scrollYProgress} />
       ))}
@@ -76,7 +83,7 @@ function Card({ card, spot, progress }) {
   return (
     <motion.article
       style={{ y, scale, opacity: fade }}
-      className={`tw:absolute ${spot} tw:w-[min(17rem,52vw)] tw:overflow-hidden tw:rounded-xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5`}
+      className={`tw:w-full tw:overflow-hidden tw:rounded-xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5 tw:md:absolute tw:md:w-[17rem] ${spot}`}
     >
       {/* Browser chrome. Three dots and an address is all it takes for
           something to read as a page rather than a card. */}
