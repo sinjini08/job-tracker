@@ -191,6 +191,46 @@ Three worth taking, in this order:
 The popup is 340px wide, so a raw screenshot of it is far smaller than the
 required canvas. Centre it on a 1280x800 background rather than scaling it up.
 
+## Safari, when there is $99 for it
+
+Wanted, because half the people using this are on Safari. Deferred only on
+cost: shipping a Safari extension needs an Apple Developer membership at $99 a
+year. There is no free route for daily use, because an unsigned extension has
+to be re-enabled from Safari's Develop menu on every launch, and the
+notarised-outside-the-App-Store route still needs the same membership.
+
+What ports unchanged: the extractor, the popup and its fields, `storage`,
+`tabs.query`, `scripting.executeScript` and `storage.onChanged`. Safari 16.4
+and later support MV3 and accept the `chrome.*` namespace, so none of that
+code needs renaming.
+
+Two things do not port.
+
+**The one-click connect.** It depends on `externally_connectable` plus
+`chrome.runtime.onMessageExternal`, and Safari implements neither. The
+fallback already exists on both sides: `#token` in popup.html and "Create a
+link to paste instead" in Settings. On Safari that becomes the only route, so
+the popup needs to offer it rather than the Connect button when the API is
+absent.
+
+**The origin allowlist.** `allowedOrigin()` accepts `chrome-extension://` plus
+a 32-character id from `EXTENSION_IDS`. A Safari extension runs on
+`safari-web-extension://<uuid>` and that uuid is generated per installation,
+so there is nothing stable to allowlist and no two installs share one. Safari
+therefore has to accept any origin on that scheme, with the bearer token as
+the only gate. That is defensible rather than ideal: CORS never was the
+control, a token is only minted behind a sign-in and on Safari has to be
+pasted by hand, and this endpoint can add rows and move one to Applied but
+cannot read the existing ones or delete anything. Chrome's allowlist stays
+exactly as strict as it is now.
+
+The free first step, whenever it happens: install Xcode, run
+`xcrun safari-web-extension-converter extension/`, build it, and load it with
+"Allow Unsigned Extensions" under Safari's Develop menu. That needs no
+membership and shows what actually breaks before any money is spent. This
+machine has only the Command Line Tools today, so the converter is not
+installed.
+
 ## After it is published
 
 The store assigned `bnmemnhbjchapcpjkdlncfghhmgnpmdo`, different from the
