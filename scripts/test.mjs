@@ -218,28 +218,48 @@ eq(normalizeSheetPrefs(Array.from({ length: 30 }, (_, i) => `s_abcdef${String(i)
 // The bug these exist for: every LinkedIn posting opened from search results
 // shares one path, so a check that ignored the query said "already in your
 // tracker" for a job you had never seen, naming a completely different one.
+//
+// The rule errs towards NOT matching, because the two failures are not
+// equally bad: a duplicate row is visible and deletable, a false "already
+// saved" blocks the save and shows somebody else's job.
 
 const parts = (u) => linkParts(u);
 const LI_A = 'https://www.linkedin.com/jobs/search-results/?currentJobId=4472473316&refId=abc&trk=x';
 const LI_B = 'https://www.linkedin.com/jobs/search-results/?currentJobId=9999999999&refId=zzz';
 
 ok(parts(LI_A).base === parts(LI_B).base, 'two LinkedIn search-results links share a path');
-ok(parts(LI_A).id.value !== parts(LI_B).id.value, 'and are told apart by currentJobId');
-eq(parts(LI_A).id, { key: 'currentJobId', value: '4472473316' }, 'the LinkedIn id is read from the query');
-eq(parts('https://www.indeed.com/viewjob?jk=deadbeef1234&from=serp').id,
-  { key: 'jk', value: 'deadbeef1234' }, 'the Indeed id is jk');
-ok(parts('https://boards.greenhouse.io/stripe/jobs/5512345').id === null,
-  'a posting identified by its path has no id parameter');
-ok(parts('https://www.linkedin.com/jobs/view/4472473316/?trk=x').id === null,
-  'the canonical LinkedIn link is path-identified too');
+eq(parts(LI_A).marks, ['currentJobId=4472473316'], 'so the currentJobId is what tells them apart');
+eq(parts(LI_B).marks, ['currentJobId=9999999999'], 'and the other one carries its own');
+eq(parts('https://www.indeed.com/viewjob?jk=deadbeef1234&from=serp&tk=zzz').marks,
+  ['jk=deadbeef1234'], 'Indeed keeps jk and drops the tracking');
+
+// Two roles at the same employer, which is the case this has to get right.
+const CO = 'https://careers.acme.com/openings';
+ok(parts(`${CO}?job=1188`).marks[0] !== parts(`${CO}?job=1274`).marks[0],
+  'two roles on one careers page are told apart by an id nobody has heard of');
+ok(parts('https://boards.greenhouse.io/acme/jobs/5512345').base
+  !== parts('https://boards.greenhouse.io/acme/jobs/5512399').base,
+  'two roles at one employer differ by path on a board that uses paths');
+
+// Tracking has to be dropped or the same posting never matches itself.
+eq(parts('https://x.com/jobs/view/9?utm_source=a&utm_campaign=b&gclid=c').marks, [],
+  'utm and click ids are all tracking');
+eq(parts(`${CO}?job=1188&utm_source=newsletter`).marks, ['job=1188'],
+  'the id survives, the campaign does not');
+ok(parts('https://www.linkedin.com/jobs/search-results/?currentJobId=1&keywords=intern').marks
+  .join() === 'currentJobId=1', 'the search terms are the visit, not the posting');
+
+eq(parts('https://boards.greenhouse.io/acme/jobs/5512345').marks, [],
+  'a posting identified by its path needs no marks');
 ok(parts('not a url') === null, 'junk is refused');
 ok(parts('https://x.co/') === null, 'a bare domain is not a posting');
 ok(parts('https://www.linkedin.com') === null, 'nor is a bare domain without the slash');
-ok(parts('https://www.indeed.com/viewjob?jk=   ').id === null, 'a blank id is not an id');
-ok(parts(`https://www.indeed.com/viewjob?jk=${'a'.repeat(200)}`).id === null,
-  'an absurdly long id is not an id');
+eq(parts('https://www.indeed.com/viewjob?jk=').marks, [], 'a blank id is not an id');
+eq(parts(`https://www.indeed.com/viewjob?jk=${'a'.repeat(200)}`).marks, [],
+  'an absurdly long value is a payload, not an id');
 ok(parts(LI_A).base === 'https://www.linkedin.com/jobs/search-results',
   'the trailing slash is dropped so both forms of the same path agree');
+ok(parts(`${CO}?a=1&b=2&c=3&d=4&e=5`).marks.length === 3, 'the number of marks is capped');
 
 console.log(failed ? `\n\x1b[31m${failed} failed\x1b[0m\n` : '\n\x1b[32mall passed\x1b[0m\n');
 process.exit(failed ? 1 : 0);
