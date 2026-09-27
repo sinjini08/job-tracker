@@ -1,0 +1,67 @@
+/* Tailwind for the landing page, and nothing else.
+ *
+ * Two deliberate departures from the standard setup, both forced by the same
+ * fact: the landing page and the app share the / route, so whatever CSS this
+ * file pulls in is loaded for a signed-in user looking at their sheet.
+ *
+ * 1. No preflight. Tailwind's reset would re-style every element in the app.
+ *    The two imports below bring in the theme and the utilities and leave the
+ *    reset out.
+ *
+ * 2. Every utility is prefixed `tw:`. Without it, Tailwind defines .grid,
+ *    .truncate and .sr-only, and the app already has all three. .grid is the
+ *    spreadsheet: display:grid on that table would destroy the sheet.
+ *
+ *    So classes read `tw:flex tw:items-center` here. Verbose, and the price of
+ *    not having to think about collisions again.
+ *
+ * 3. Not in @layer. This one is counter-intuitive and cost an hour: an
+ *    unlayered rule beats a layered one outright, whatever the specificity.
+ *    globals.css is entirely unlayered and line 248 of it is
+ *    `button, input, select, textarea { font: inherit; color: inherit }`, so
+ *    with the utilities in @layer utilities every colour and font class on a
+ *    button here lost to it silently. Unlayered, ordinary specificity decides
+ *    and a class beats an element.
+ */
+@import "tailwindcss/theme.css" prefix(tw);
+@import "tailwindcss/utilities.css" prefix(tw);
+
+/* The landing page's own palette, fixed light.
+ *
+ * Deliberately NOT the app's --paper and --green, which flip with the theme
+ * cookie. This page stays light whichever theme someone has chosen, so it
+ * carries its own copies of the light values rather than reading tokens that
+ * could be dark underneath it. Same greens, so the two still match when
+ * somebody crosses from here into the app.
+ */
+@theme {
+  --color-paper: #f5f5f0;
+  --color-sand: #e8e8dc;
+  --color-line: #e4e4db;
+  --color-ink: #1d231f;
+  --color-ink-2: #4a4a42;
+  --color-muted: #6b6b60;
+  --color-brand: #1d5c36;
+  --color-brand-mid: #2e7d46;
+  --color-brand-light: #69b57f;
+  --color-tint: #dcece1;
+}
+
+/* The headline face is NOT a theme variable, deliberately.
+ *
+ * A var() inside a custom property is substituted where that property is
+ * declared, not where it is used. A theme variable lands on :root, and
+ * --landing-display is set further down the tree by next/font, so
+ * `--font-display: var(--landing-display)` resolved against nothing at :root
+ * and every headline silently fell back to system-ui.
+ *
+ * Headlines therefore write `tw:font-[family-name:var(--landing-display)]`,
+ * with the type hint because `font-[...]` on its own is ambiguous in Tailwind
+ * and gets read as a font-weight. That puts
+ * the substitution on the element itself, where the variable is in scope.
+ * The fallback chain lives in the variable's own value in Landing.js. */
+
+/* Only this folder uses these classes, so this is all Tailwind needs to scan.
+ * Left to itself it walks the whole project. */
+@source "./";
+

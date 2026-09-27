@@ -6,12 +6,12 @@ import Splash from './Splash';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
+export default async function Home({ searchParams }) {
   const user = await currentUserWithEmail();
   // Signed out, this is the front door rather than a bounce to /sign-in: most
   // people arriving here have never heard of the thing and need telling what
   // it is before being asked for an email.
-  if (!user) return <Landing />;
+  if (!user) return <Landing searchParams={searchParams} />;
   await ensureProfile(user.id, user.email);
 
   let rows = [];
