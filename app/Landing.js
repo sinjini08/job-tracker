@@ -26,7 +26,9 @@ export default async function Landing({ searchParams }) {
 
   return (
     <div
-      className={`${geist.variable} ${instrument.variable}`}
+      // `landing` is not decoration: globals.css keys the body's overflow off
+      // it, because the body is overflow:hidden for the sheet.
+      className={`landing ${geist.variable} ${instrument.variable}`}
       style={{ '--landing-display': face }}
     >
       <Body />

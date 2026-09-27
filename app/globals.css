@@ -2408,6 +2408,10 @@ body:has(.legal) { overflow: auto; }
     radial-gradient(105% 80% at 50% 38%, var(--green-mid), var(--xl-green) 52%, var(--xl-green-dark) 100%);
 }
 body:has(.land) { overflow: auto; }
+/* The rewritten landing page. Same opt-in as every other scrolling page: it
+   is seven screens tall and the body is overflow:hidden for the sheet, so
+   without this the page renders in full and cannot be scrolled at all. */
+body:has(.landing) { overflow: auto; }
 .land-inner { width: min(560px, 100%); text-align: center; color: #fff; }
 .land-mark { display: flex; justify-content: center; line-height: 0; }
 .land h1 {
