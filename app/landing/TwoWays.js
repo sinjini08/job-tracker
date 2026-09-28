@@ -21,25 +21,29 @@ import useSceneProgress from './useSceneProgress';
 // words leave to the left, the extension's arrive from the right, and the
 // chat is replaced by the popup that does the same thing in one click.
 
-// One window of scroll for the swap, plus a little either side: enough that
-// the change of copy is something you did rather than something that
-// happened at you, and short enough that nobody scrolls twice wondering
-// whether the page is stuck.
-const STAGE_VH = 215;
+// How much scroll the swap is given. The screen is pinned for all of it, so
+// this is not page travel, it is how long the change-over takes: near two
+// screens' worth of wheel for one pair of lines to leave and the next to
+// arrive. Slow on purpose. The swap is the one thing this section does, and
+// at a shorter length it was over before it registered as a transition.
+const STAGE_VH = 280;
 
-// The swap, as fractions of that scroll. The first pair leaves before the
-// second arrives, with just enough overlap that the stage is never empty.
-const A_OUT = [0.26, 0.48];
-const B_IN = [0.44, 0.70];
+// The swap, as fractions of that scroll. It starts almost at once and runs
+// almost to the end, so every turn of the wheel while the screen is pinned
+// moves it and none of them do nothing. The last stretch is deliberately
+// left over: the popup has just finished filling itself in and deserves a
+// beat before the page moves on.
+const A_OUT = [0.06, 0.46];
+const B_IN = [0.40, 0.86];
 // The visuals follow the words rather than lead them: you read the new
 // headline, then see what it is talking about.
-const A_OUT_ART = [0.30, 0.54];
-const B_IN_ART = [0.50, 0.78];
+const A_OUT_ART = [0.10, 0.50];
+const B_IN_ART = [0.46, 0.92];
 
 // Where the popup's own fill-in sequence is allowed to start. Held until the
-// swap is half done, because it is in the layout from the top of the section
-// and a demo that finished before you saw it has shown you nothing.
-const ARM_AT = 0.42;
+// swap is well under way, because it is in the layout from the top of the
+// section and a demo that finished before you saw it has shown you nothing.
+const ARM_AT = 0.40;
 
 function Words({ head, sub, opacity, subOpacity, x, y, subY }) {
   return (
@@ -74,8 +78,11 @@ export default function TwoWays() {
   // headline in the same way every other section's does. `swap` is the
   // scroll spent standing still on the stage, and drives the change-over.
   const enter = useEnterProgress(stage$, { settle: 0.55 });
+  // Softer than the opening camera's spring. That one had to stay under a
+  // finger pushing into a screen; this one is a dissolve, and a dissolve
+  // that snaps is a cut.
   const swap = useSpring(useSceneProgress(wrap$), {
-    stiffness: 210, damping: 38, mass: 0.35, restDelta: 0.0005,
+    stiffness: 150, damping: 34, mass: 0.4, restDelta: 0.0005,
   });
 
   const [armed, setArmed] = useState(false);
@@ -94,17 +101,17 @@ export default function TwoWays() {
   const aGone = useTransform(swap, A_OUT, [1, 0]);
   const aOpacity = useTransform([aIn, aGone], ([i, g]) => i * g);
   const aSubOpacity = useTransform([aSubIn, aGone], ([i, g]) => i * g);
-  const aX = useTransform(swap, A_OUT, ['0%', '-26%']);
+  const aX = useTransform(swap, A_OUT, ['0%', '-20%']);
 
   // Replacing.
   const bOpacity = useTransform(swap, B_IN, [0, 1]);
-  const bX = useTransform(swap, B_IN, ['30%', '0%']);
-  const bSubOpacity = useTransform(swap, [B_IN[0] + 0.08, B_IN[1] + 0.06], [0, 1]);
+  const bX = useTransform(swap, B_IN, ['24%', '0%']);
+  const bSubOpacity = useTransform(swap, [B_IN[0] + 0.10, B_IN[1] + 0.04], [0, 1]);
 
   const artAOpacity = useTransform(swap, A_OUT_ART, [1, 0]);
-  const artAX = useTransform(swap, A_OUT_ART, ['0%', '-16%']);
+  const artAX = useTransform(swap, A_OUT_ART, ['0%', '-12%']);
   const artBOpacity = useTransform(swap, B_IN_ART, [0, 1]);
-  const artBX = useTransform(swap, B_IN_ART, ['20%', '0%']);
+  const artBX = useTransform(swap, B_IN_ART, ['16%', '0%']);
 
   // Anyone who has asked for less motion gets the two stops back, in order,
   // with no stage and no scroll spent on a change-over they did not ask to
