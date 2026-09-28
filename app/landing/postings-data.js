@@ -19,7 +19,7 @@
 export const POSTINGS = [
   {
     role: 'Software Engineer Intern', firm: 'Northwind', where: 'Seattle, WA',
-    url: 'linkedin.com/jobs/view', chips: ['Internship', 'Hybrid'], lines: [92, 74, 58],
+    url: 'linkedin.com/jobs/view', chips: ['Internship', 'Full-time', 'Hybrid'], lines: [92, 74, 58],
     logo: { bg: '#1f4b8f', glyph: 'chevron' }, pay: '$45/hr',
     posted: '2 days ago', applicants: 'Over 100 applicants', verified: true, apply: 'Easy Apply',
   },
@@ -59,9 +59,9 @@ export const POSTINGS = [
     verified: true, apply: 'Apply',
   },
   {
-    role: 'Site Reliability Intern', firm: 'Calder', where: 'Remote',
-    url: 'calder.dev/careers', chips: ['Internship'], lines: [80, 64],
-    logo: { bg: '#1c5a6b', glyph: 'square' },
+    role: 'Software Engineer, New Grad', firm: 'Calder', where: 'Remote',
+    url: 'calder.dev/careers', chips: ['Full-time'], lines: [80, 64],
+    logo: { bg: '#1c5a6b', glyph: 'square' }, pay: '$118k – $140k',
     posted: 'Yesterday', apply: 'Apply',
   },
   {
