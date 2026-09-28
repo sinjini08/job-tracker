@@ -5,7 +5,7 @@ import { byId } from './copy';
 import Doors from './Doors';
 import CloseHero from './CloseHero';
 import DeskScene from './DeskScene';
-import InsightsFrame from './InsightsFrame';
+import InsightsWheel from './InsightsWheel';
 import LeagueFrame from './LeagueFrame';
 import Header from './Header';
 import Section from './Section';
@@ -35,9 +35,9 @@ export default function Body() {
             chat leave, the extension's arrive in their place. */}
         <TwoWays />
 
-        <Section id="insights" {...byId('insights')} wide>
-          <InsightsFrame />
-        </Section>
+        {/* Insights is split rather than stacked: the claim holds still on
+            the right while the four charts take turns on the left. */}
+        <InsightsWheel />
 
         <Section id="league" {...byId('league')}>
           <LeagueFrame />
