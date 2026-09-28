@@ -93,20 +93,18 @@ export default function DeskScene() {
   // were already due.
   const scale = useTransform(scrollYProgress, [0.08, 0.44], [1, MAX]);
 
-  // The hole, tracking that same scale exactly. A point p moves to
-  // origin + (p - origin) * scale, so each edge is one line of arithmetic and
-  // the hole cannot drift away from the drawn bezel.
+  // The hole is a box that grows, not a clip-path that is recomputed.
   //
-  // Written out rather than looped: four edges, each measured from its own
-  // side of the box, and a helper would have to be a hook to read `scale`.
-  const insetTop = useTransform(scale, (s) => Math.max(0, ORIGIN.y - (ORIGIN.y - SCREEN.top) * s));
-  const insetRight = useTransform(scale, (s) => Math.max(0, (100 - ORIGIN.x) - (SCREEN.right - ORIGIN.x) * s));
-  const insetBottom = useTransform(scale, (s) => Math.max(0, (100 - ORIGIN.y) - (SCREEN.bottom - ORIGIN.y) * s));
-  const insetLeft = useTransform(scale, (s) => Math.max(0, ORIGIN.x - (ORIGIN.x - SCREEN.left) * s));
-  const clipPath = useTransform(
-    [insetTop, insetRight, insetBottom, insetLeft],
-    ([t, r, b, l]) => `inset(${t}% ${r}% ${b}% ${l}%)`,
-  );
+  // clip-path with animated insets repaints a full-screen layer on every
+  // frame, which is most of what made the push stutter. A transform does not:
+  // it composites. So the window onto the wall is an element sitting exactly
+  // on the drawn bezel, scaled by the same factor as the film, with the wall
+  // inside scaled by the inverse so it never moves or grows.
+  //
+  // The window's own centre is the screen's centre, which is the point the
+  // film is scaled about, so the two grow in lockstep and there is no
+  // arithmetic left: transform-origin is the default centre on both.
+  const counter = useTransform(scale, (v) => 1 / v);
 
   // The room leaves earlier than it used to, and for a reason beyond taste:
   // the clip is 720p, so past about 2.5x it is visibly soft, and the fade and
@@ -140,9 +138,45 @@ export default function DeskScene() {
           }}
         >
           {/* The wall, full size and perfectly still, seen through the hole. */}
-          <motion.div className="tw:absolute tw:inset-0" style={{ clipPath }}>
-            <div className="tw:absolute tw:inset-0 tw:bg-paper" />
-            <BoardWall fill />
+          <motion.div
+            className="tw:absolute tw:overflow-hidden"
+            style={{
+              left: `${SCREEN.left}%`,
+              top: `${SCREEN.top}%`,
+              width: `${SCREEN.right - SCREEN.left}%`,
+              height: `${SCREEN.bottom - SCREEN.top}%`,
+              scale,
+              willChange: 'transform',
+            }}
+          >
+            {/* Counter-scaled, and laid out large enough that at 1/scale it
+                still covers the stage. Its layout size never changes, so the
+                wall's rendered size never changes either. */}
+            <motion.div
+              className="tw:absolute tw:left-1/2 tw:top-1/2"
+              style={{
+                width: `${(100 / (SCREEN.right - SCREEN.left)) * 100}%`,
+                height: `${(100 / (SCREEN.bottom - SCREEN.top)) * 100}%`,
+                // Not -50%. Centring this on the window would centre the
+                // wall on the screen, and the screen is not the middle of the
+                // picture: it sits at ORIGIN, right of and below centre. This
+                // shift is exactly that offset.
+                x: `-${ORIGIN.x}%`,
+                y: `-${ORIGIN.y}%`,
+                scale: counter,
+                // And the counter-scale has to turn about the same point the
+                // window turns about, or it undoes the size but not the
+                // position: a scale moves its children as well as resizing
+                // them, so the wall crept left as the window grew. Expressed
+                // in this element's own box, the window's centre is ORIGIN,
+                // because this element is exactly the size of the artwork.
+                transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%`,
+                willChange: 'transform',
+              }}
+            >
+              <div className="tw:absolute tw:inset-0 tw:bg-paper" />
+              <BoardWall fill />
+            </motion.div>
           </motion.div>
 
           {/* The room, on top, growing and leaving. */}
