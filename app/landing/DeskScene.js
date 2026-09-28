@@ -187,11 +187,21 @@ export default function DeskScene() {
 
         {/* The first headline is centred over the room. The second sits in
             the paper half, beside the wall rather than on top of it. */}
+        {/* Two layers, because two different things move it. The outer one
+            is the scroll taking it away; the inner one is its arrival, which
+            is on a timer rather than on the scroll so the room has a second
+            of screen to itself before any words land on it. */}
         <motion.header
           style={{ opacity: headOne, y: headOneY }}
           className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[12svh] tw:px-6 tw:text-center"
         >
-          <Head head={one.head} big />
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Head head={one.head} big />
+          </motion.div>
         </motion.header>
 
         <motion.header
@@ -207,6 +217,10 @@ export default function DeskScene() {
 
 // Three shapes of headline on this page.
 //
+// The opening one is set in #3f342f, which is his hair: sampled off the
+// frozen frame rather than chosen, so it belongs to the picture it sits on.
+// It reads at 10.4:1 against the room's wall, well past what it needs.
+//
 // `big` is the opening one: it carries the screen on its own, so it sets as
 // large as it can while staying on one line. The nowrap is md and up only.
 // Below that, 5.6vw of a phone is not enough for thirty characters and it has
@@ -217,17 +231,21 @@ export default function DeskScene() {
 // badly; in a half-width column they would strand a short line.
 function Head({ head, sub, split = false, big = false }) {
   const lines = Array.isArray(head) ? head : [head];
+  // Colour belongs in here rather than on the base class. Two Tailwind colour
+  // utilities on one element are both a single class, so which wins is decided
+  // by the order Tailwind emits them, not the order they are written: a
+  // text-ink on the base quietly beat the hair colour set here.
   const size = big
-    ? 'tw:text-[clamp(1.9rem,5.6vw,5rem)] tw:font-extrabold tw:md:whitespace-nowrap'
+    ? 'tw:text-[clamp(1.75rem,5vw,4.4rem)] tw:font-extrabold tw:text-[#3f342f] tw:md:whitespace-nowrap'
     : split
-      ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-balance'
+      ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-ink tw:text-balance'
       : lines.length > 1
-        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold'
-        : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:text-balance';
+        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold tw:text-ink'
+        : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:text-ink tw:text-balance';
 
   return (
     <>
-      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:leading-[1.06] tw:tracking-[-0.035em] tw:text-ink ${size}`}>
+      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:leading-[1.06] tw:tracking-[-0.035em] ${size}`}>
         {split || big
           ? lines.join(' ')
           : lines.map((l) => <span key={l} className="tw:block">{l}</span>)}
