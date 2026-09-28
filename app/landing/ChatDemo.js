@@ -14,7 +14,39 @@ import useSteps from './useSteps';
 // It shows only what the product does: you paste a posting into a chat you
 // were having anyway, say you applied, and the row appears in your sheet.
 
-const ROW = { role: 'Software Engineer Intern', firm: 'Northwind', when: '27 Sep', status: 'Applied' };
+// The row the chat files, and the ones that were already there. Same
+// employers as the wall in the section above, so the page reads as one
+// person's search rather than two sets of made-up companies.
+const ROW = { role: 'Software Engineer Intern', firm: 'Northwind', when: 'Today', status: 'Applied' };
+
+const EXISTING = [
+  { role: 'Data Science Intern', firm: 'Meridian Labs', when: '24 Sep', status: 'Screening' },
+  { role: 'Product Analyst', firm: 'Cobalt', when: '19 Sep', status: 'Applied' },
+  { role: 'ML Engineer Intern', firm: 'Halcyon', when: '15 Sep', status: 'Interviewing' },
+  { role: 'Backend Intern', firm: 'Ravenna', when: '11 Sep', status: 'Wishlist' },
+];
+
+// The app's own status colours, carried across so the two look like the same
+// product rather than a drawing of it.
+const CHIP = {
+  Applied: 'tw:bg-tint tw:text-brand',
+  Screening: 'tw:bg-[#e6f0f4] tw:text-[#1c5a6b]',
+  Interviewing: 'tw:bg-[#fbf0d9] tw:text-[#7a5a12]',
+  Wishlist: 'tw:bg-sand tw:text-muted',
+};
+
+function Row({ row, fresh = false }) {
+  return (
+    <div className={`tw:grid tw:grid-cols-[1.5fr_1fr_auto_auto] tw:items-center tw:gap-2 tw:border-b tw:border-line tw:px-3 tw:py-2 ${fresh ? '' : ''}`}>
+      <span className="tw:truncate tw:text-[11px] tw:font-semibold tw:text-ink">{row.role}</span>
+      <span className="tw:truncate tw:text-[11px] tw:text-ink-2">{row.firm}</span>
+      <span className="tw:text-[10px] tw:text-muted">{row.when}</span>
+      <span className={`tw:rounded-full tw:px-2 tw:py-0.5 tw:text-[9px] tw:font-semibold ${CHIP[row.status]}`}>
+        {row.status}
+      </span>
+    </div>
+  );
+}
 
 // user message, thinking, reply, row lands
 const GAPS = [700, 900, 1100, 700];
@@ -87,34 +119,25 @@ export default function ChatDemo() {
 
       <Frame label="myjobtracker.co">
         <div className="tw:h-[clamp(230px,32vh,290px)] tw:overflow-hidden">
-          <div className="tw:grid tw:grid-cols-[1.6fr_1fr_auto] tw:gap-2 tw:border-b tw:border-line tw:bg-paper tw:px-3 tw:py-2 tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-[0.06em] tw:text-muted">
-            <span>Role</span><span>Company</span><span>Status</span>
+          <div className="tw:grid tw:grid-cols-[1.5fr_1fr_auto_auto] tw:gap-2 tw:border-b tw:border-line tw:bg-paper tw:px-3 tw:py-2 tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-[0.06em] tw:text-muted">
+            <span>Role</span><span>Company</span><span>Applied</span><span>Status</span>
           </div>
 
-          {/* Rows already there, as shape. The new one is the only one that
-              has to be legible. */}
-          {[0, 1].map((i) => (
-            <div key={i} className="tw:grid tw:grid-cols-[1.6fr_1fr_auto] tw:items-center tw:gap-2 tw:border-b tw:border-line tw:px-3 tw:py-2.5" aria-hidden>
-              <i className="tw:block tw:h-1.5 tw:w-[76%] tw:rounded-full tw:bg-line" />
-              <i className="tw:block tw:h-1.5 tw:w-[58%] tw:rounded-full tw:bg-line" />
-              <i className="tw:block tw:h-3 tw:w-12 tw:rounded-full tw:bg-line" />
-            </div>
+          {/* The rows already in the sheet. Real postings from the wall
+              upstairs rather than grey bars: the section claims the row is
+              filed, and a sheet of placeholders does not show that. */}
+          {EXISTING.map((r) => (
+            <Row key={r.role + r.firm} row={r} />
           ))}
 
           <AnimatePresence>
             {step >= 4 && (
               <motion.div
-                key="new"
                 initial={{ opacity: 0, y: -12, backgroundColor: '#dcece1' }}
                 animate={{ opacity: 1, y: 0, backgroundColor: 'rgba(220,236,225,0)' }}
-                transition={{ duration: 0.5, backgroundColor: { duration: 1.6, delay: 0.5 } }}
-                className="tw:grid tw:grid-cols-[1.6fr_1fr_auto] tw:items-center tw:gap-2 tw:border-b tw:border-line tw:px-3 tw:py-2.5"
+                transition={{ duration: 0.5, backgroundColor: { duration: 1.8, delay: 0.6 } }}
               >
-                <span className="tw:truncate tw:text-[11.5px] tw:font-semibold tw:text-ink">{ROW.role}</span>
-                <span className="tw:truncate tw:text-[11.5px] tw:text-ink-2">{ROW.firm}</span>
-                <span className="tw:rounded-full tw:bg-tint tw:px-2 tw:py-0.5 tw:text-[9px] tw:font-semibold tw:text-brand">
-                  {ROW.status}
-                </span>
+                <Row row={ROW} fresh />
               </motion.div>
             )}
           </AnimatePresence>
