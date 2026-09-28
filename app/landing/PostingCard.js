@@ -15,7 +15,7 @@
 
 // Two shapes each, drawn rather than copied, because the employers are
 // invented and a real mark would imply a real customer.
-function Logo({ logo, firm }) {
+export function Logo({ logo, firm }) {
   if (!logo) {
     // Plenty of postings have no mark at all, just the monogram a board draws
     // for them.
