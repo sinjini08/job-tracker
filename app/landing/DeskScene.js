@@ -156,21 +156,21 @@ export default function DeskScene() {
         </div>
 
         {/* Ground for the second headline.
-            Not a panel and not a band: a soft oval of paper exactly where the
-            words are, fading to nothing before it reaches any edge. The wall
-            carries on scrolling all around it, and faintly through it at the
-            oval's edges, so the text is read out of the middle of the thing
-            it describes rather than from a box beside it. */}
+            A band rather than a panel or an oval: full width, solid paper
+            through the middle, fading out above and below. The wall keeps
+            scrolling past it top and bottom, so the words are read out of the
+            middle of the thing they describe instead of from a box beside
+            it. */}
         <motion.div
           aria-hidden
           style={{ opacity: headTwo }}
-          className="tw:pointer-events-none tw:absolute tw:inset-0"
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-1/2 tw:h-[46svh] tw:-translate-y-1/2"
         >
           <div
             className="tw:h-full tw:w-full"
             style={{
               background:
-                'radial-gradient(ellipse 66% 30% at 50% 50%, #f5f5f0 0%, #f5f5f0 58%, rgba(245,245,240,0.88) 78%, rgba(245,245,240,0) 100%)',
+                'linear-gradient(to bottom, rgba(245,245,240,0) 0%, rgba(245,245,240,0.96) 20%, #f5f5f0 34%, #f5f5f0 66%, rgba(245,245,240,0.96) 80%, rgba(245,245,240,0) 100%)',
             }}
           />
         </motion.div>
@@ -196,9 +196,9 @@ export default function DeskScene() {
 
         <motion.header
           style={{ opacity: headTwo, y: headTwoY }}
-          className="tw:pointer-events-none tw:absolute tw:inset-0 tw:mx-auto tw:flex tw:max-w-2xl tw:flex-col tw:justify-center tw:px-6 tw:text-center"
+          className="tw:pointer-events-none tw:absolute tw:inset-0 tw:mx-auto tw:flex tw:max-w-5xl tw:flex-col tw:justify-center tw:px-6 tw:text-center"
         >
-          <Head head={two.head} sub={two.sub} />
+          <Head head={two.head} />
         </motion.header>
       </div>
     </div>
@@ -230,7 +230,7 @@ function Head({ head, sub, split = false, big = false }) {
     : split
       ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-ink tw:text-balance'
       : lines.length > 1
-        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold tw:text-ink tw:text-balance'
+        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold tw:text-ink tw:md:whitespace-nowrap'
         : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:text-ink tw:text-balance';
 
   return (
