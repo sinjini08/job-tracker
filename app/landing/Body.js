@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { byId } from './copy';
 import Doors from './Doors';
 import CloseHero from './CloseHero';
 import DeskScene from './DeskScene';
 import InsightsWheel from './InsightsWheel';
-import LeagueFrame from './LeagueFrame';
+import Podium from './Podium';
 import Header from './Header';
-import Section from './Section';
 import TwoWays from './TwoWays';
 
 // The page itself: seven stops, read in order, on six screens. Three and
@@ -39,9 +37,9 @@ export default function Body() {
             the right while the four charts take turns on the left. */}
         <InsightsWheel />
 
-        <Section id="league" {...byId('league')}>
-          <LeagueFrame />
-        </Section>
+        {/* The league builds its podium as you scroll: third place, then
+            second, then first, with the points climbing behind them. */}
+        <Podium />
 
         <CloseHero onOpen={setDoor} onInView={setAtClose} />
       </main>
