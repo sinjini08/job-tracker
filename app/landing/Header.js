@@ -28,10 +28,19 @@ export default function Header({ onOpen, hidden = false }) {
         moved ? 'tw:bg-paper/80 tw:backdrop-blur-md tw:border-b tw:border-line' : 'tw:border-b tw:border-transparent'
       } ${hidden ? 'tw:pointer-events-none tw:-translate-y-full tw:opacity-0' : ''}`}
     >
-      <div className="tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:gap-3 tw:px-5 tw:py-3.5">
+      {/* Full width rather than a centred column. On a wide screen a 6xl
+          container left the name floating in from the edge with nothing to
+          its left; the brand belongs in the corner. */}
+      <div className="tw:flex tw:items-center tw:gap-3 tw:px-6 tw:py-3.5 tw:lg:px-10 tw:xl:px-14">
         <span className="tw:flex tw:items-center tw:gap-2.5 tw:text-ink">
-          <Logo size={26} />
-          <span className="tw:hidden tw:font-[family-name:var(--landing-display)] tw:text-[15px] tw:font-semibold tw:tracking-[-0.01em] tw:sm:inline">
+          {/* tone="dark" is the green mark. The default is the white one,
+              which on paper is an invisible 26px of nothing, which is why
+              the header looked like it had no logo at all. */}
+          <Logo size={26} tone="dark" />
+          {/* Set in the interface font, like the buttons beside it, not in
+              the display face. The display face is for the headlines; a
+              wordmark in it competes with them. */}
+          <span className="tw:hidden tw:text-[15px] tw:font-semibold tw:tracking-[-0.01em] tw:sm:inline">
             Job Application Tracker
           </span>
         </span>
