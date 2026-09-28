@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion, useTransform } from 'motion/react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import BoardWall from './BoardWall';
 import { byId } from './copy';
 import useSceneProgress from './useSceneProgress';
@@ -23,14 +23,21 @@ import useSceneProgress from './useSceneProgress';
 // Everything below is in percentages of the artwork rather than pixels, so
 // the maths holds at any window size.
 
-// Measured off public/brand/desk.webp, which is 1881 x 836.
-const ART = { w: 1881, h: 836 };
-const SCREEN = { left: 43.81, top: 40.67, right: 70.23, bottom: 73.09 };
-const ORIGIN = { x: 57.02, y: 56.88 };
+// The room is a short piece of film rather than a still: it plays for its
+// first few seconds while the opening line is up, then freezes and the push
+// begins. Freezing matters. The clip drifts in on its own, and a camera of
+// its own moving while ours does would be two shots fighting.
+const ART = { w: 1280, h: 720 };
+const FREEZE_AT = 3.5;
 
-// Far enough that the hole clears the corners of the window: the top edge
-// reaches zero at 3.51 and the left at 4.32.
-const MAX = 4.6;
+// Measured off the frame at FREEZE_AT, not off the first frame: the drift
+// moves the screen, so the hole has to be told where it ends up.
+const SCREEN = { left: 44.14, top: 38.75, right: 77.5, bottom: 70 };
+const ORIGIN = { x: 60.82, y: 54.37 };
+
+// Far enough that the hole clears every corner. The left edge reaches zero at
+// 3.65 and the top at 3.48, which are the two that hold out longest.
+const MAX = 3.7;
 
 // Long enough to read as a move rather than a jump, short enough that nobody
 // wonders whether the page has stopped working.
@@ -43,6 +50,35 @@ export default function DeskScene() {
   const two = byId('pileup');
 
   const scrollYProgress = useSceneProgress(wrap);
+  const film = useRef(null);
+
+  // Play the first few seconds, then hold on the frame the measurements were
+  // taken from. Muted, because a landing page that makes a noise is a landing
+  // page people close, and because nothing else would be allowed to autoplay.
+  useEffect(() => {
+    const v = film.current;
+    if (!v) return undefined;
+
+    const stop = () => {
+      if (v.currentTime >= FREEZE_AT) {
+        v.pause();
+        v.currentTime = FREEZE_AT;
+      }
+    };
+    v.addEventListener('timeupdate', stop);
+
+    if (reduced) {
+      // No film either: the frame the push is measured from, and nothing else.
+      const hold = () => { v.currentTime = FREEZE_AT; v.pause(); };
+      v.readyState >= 1 ? hold() : v.addEventListener('loadedmetadata', hold, { once: true });
+    } else {
+      v.play().catch(() => {
+        // Autoplay refused. The frame is still what matters, so hold it.
+        v.currentTime = FREEZE_AT;
+      });
+    }
+    return () => v.removeEventListener('timeupdate', stop);
+  }, [reduced]);
 
   // The push. Still at first, so the room and its headline can be read, then
   // accelerating in.
@@ -63,10 +99,12 @@ export default function DeskScene() {
     ([t, r, b, l]) => `inset(${t}% ${r}% ${b}% ${l}%)`,
   );
 
-  // The room leaves in the second half of the push, softening as it goes,
-  // which is what a camera does and a scale on its own does not.
-  const roomFade = useTransform(scrollYProgress, [0.42, 0.7], [1, 0]);
-  const roomBlur = useTransform(scrollYProgress, [0.42, 0.7], ['blur(0px)', 'blur(10px)']);
+  // The room leaves earlier than it used to, and for a reason beyond taste:
+  // the clip is 720p, so past about 2.5x it is visibly soft, and the fade and
+  // the blur are what carry it out before that shows. It also softens as it
+  // goes, which is what a camera does and a scale on its own does not.
+  const roomFade = useTransform(scrollYProgress, [0.26, 0.54], [1, 0]);
+  const roomBlur = useTransform(scrollYProgress, [0.26, 0.54], ['blur(0px)', 'blur(12px)']);
 
   const headOne = useTransform(scrollYProgress, [0, 0.1, 0.24], [1, 1, 0]);
   const headOneY = useTransform(scrollYProgress, [0.1, 0.24], [0, -28]);
@@ -97,11 +135,14 @@ export default function DeskScene() {
           </motion.div>
 
           {/* The room, on top, growing and leaving. */}
-          <motion.img
-            src="/brand/desk.webp"
-            alt="A student at a desk, working at a computer"
-            draggable={false}
-            className="tw:absolute tw:inset-0 tw:h-full tw:w-full tw:select-none"
+          <motion.video
+            ref={film}
+            src="/brand/desk.mp4"
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden
+            className="tw:absolute tw:inset-0 tw:h-full tw:w-full tw:object-cover tw:select-none"
             style={{
               scale,
               opacity: roomFade,
@@ -206,7 +247,7 @@ function Still({ one, two }) {
     <>
       <section id="everywhere" className="tw:flex tw:min-h-[100svh] tw:flex-col tw:items-center tw:justify-center tw:gap-10 tw:px-6 tw:py-24">
         <header className="tw:max-w-3xl tw:text-center"><Head head={one.head} sub={one.sub} /></header>
-        <img src="/brand/desk.webp" alt="A student at a desk, working at a computer"
+        <video src="/brand/desk.mp4" muted playsInline aria-hidden
           className="tw:w-full tw:max-w-4xl" />
       </section>
       <section id="pileup" className="tw:flex tw:min-h-[100svh] tw:flex-col tw:items-center tw:justify-center tw:gap-10 tw:overflow-hidden tw:px-6 tw:py-24">
