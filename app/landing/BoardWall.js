@@ -25,10 +25,13 @@ const COLUMNS = [
 // list four times.
 const rotate = (arr, n) => [...arr.slice(n), ...arr.slice(0, n)];
 
-export default function BoardWall() {
+// `fill` is for the camera scene, where the wall is revealed through a hole
+// that grows to the whole window: at its own height it would open onto a band
+// of cards with paper above and below.
+export default function BoardWall({ fill = false }) {
   return (
     <div
-      className="tw:relative tw:h-[clamp(360px,54vh,520px)] tw:w-full tw:overflow-hidden"
+      className={`tw:relative tw:w-full tw:overflow-hidden ${fill ? 'tw:absolute tw:inset-0 tw:h-full' : 'tw:h-[clamp(360px,54vh,520px)]'}`}
       style={{ perspective: '900px' }}
       aria-hidden
     >

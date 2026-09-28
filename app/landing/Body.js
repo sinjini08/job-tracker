@@ -5,12 +5,11 @@ import { byId } from './copy';
 import Doors from './Doors';
 import ChatDemo from './ChatDemo';
 import CloseHero from './CloseHero';
-import BoardWall from './BoardWall';
+import DeskScene from './DeskScene';
 import InsightsFrame from './InsightsFrame';
 import LeagueFrame from './LeagueFrame';
 import PopupDemo from './PopupDemo';
 import Header from './Header';
-import Postings from './Postings';
 import Section from './Section';
 
 // The page itself: seven stops, read in order.
@@ -28,13 +27,9 @@ export default function Body() {
       <Header onOpen={setDoor} hidden={atClose} />
 
       <main className="tw:bg-paper tw:text-ink">
-        <Section id="everywhere" {...byId('everywhere')} wide>
-          <Postings />
-        </Section>
-
-        <Section id="pileup" {...byId('pileup')} wide>
-          <BoardWall />
-        </Section>
+        {/* Sections one and two are one camera move: a drawn room, then the
+            push into its screen, which turns out to be the wall. */}
+        <DeskScene />
 
         <Section id="assistant" {...byId('assistant')} wide>
           <ChatDemo />
