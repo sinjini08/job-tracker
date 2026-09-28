@@ -147,7 +147,7 @@ export default function ChatDemo() {
           <AnimatePresence>
             {step >= 3 && (
               <Bubble key="advice">
-                The post asks twice for distributed systems. Move your message-queue bullet to the top of your r&eacute;sum&eacute;.
+                They ask for Python twice. Move it to the top of your r&eacute;sum&eacute;.
               </Bubble>
             )}
           </AnimatePresence>
