@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useReducedMotion, useTransform } from 'motion/react';
+import { motion, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import BoardWall from './BoardWall';
 import { byId } from './copy';
@@ -49,7 +49,13 @@ export default function DeskScene() {
   const one = byId('everywhere');
   const two = byId('pileup');
 
-  const scrollYProgress = useSceneProgress(wrap);
+  const raw = useSceneProgress(wrap);
+
+  // Wheels and trackpads deliver scroll in lumps, and a transform driven
+  // straight off them steps rather than moves. The spring rides over the
+  // lumps without feeling detached: stiff enough to stay with the finger,
+  // damped past one so it never overshoots and rubber-bands the zoom.
+  const scrollYProgress = useSpring(raw, { stiffness: 220, damping: 40, mass: 0.35, restDelta: 0.0005 });
   const film = useRef(null);
 
   // Play the first few seconds, then hold on the frame the measurements were
@@ -83,15 +89,16 @@ export default function DeskScene() {
   // Four beats, a quarter of the scene each, so each one is its own scroll
   // rather than everything sliding at once:
   //
-  //   0.00 - 0.25  the room, then the push begins
-  //   0.25 - 0.50  the push finishes and the wall is revealed
-  //   0.50 - 0.72  the wall on its own, saying nothing
-  //   0.72 - 1.00  the words arrive, and the scene lets go
+  //   0.00 - 0.40  the room, then the push
+  //   0.40 - 0.60  the wall on its own, saying nothing
+  //   0.60 - 0.72  the words fade in
+  //   0.72 - 1.00  nothing moves at all
   //
-  // The push is done by 0.44 rather than 0.72, which is what makes the third
-  // beat exist at all: before, the zoom was still creeping when the words
-  // were already due.
-  const scale = useTransform(scrollYProgress, [0.08, 0.44], [1, MAX]);
+  // That last quarter is the point of the arrangement. Nothing on screen
+  // changes through it, so the words are read standing still and the next
+  // scroll is what carries the page on, rather than something that happens
+  // while they are still being read.
+  const scale = useTransform(scrollYProgress, [0.08, 0.4], [1, MAX]);
 
   // The hole is a box that grows, not a clip-path that is recomputed.
   //
@@ -110,15 +117,17 @@ export default function DeskScene() {
   // the clip is 720p, so past about 2.5x it is visibly soft, and the fade and
   // the blur are what carry it out before that shows. It also softens as it
   // goes, which is what a camera does and a scale on its own does not.
-  const roomFade = useTransform(scrollYProgress, [0.18, 0.4], [1, 0]);
-  const roomBlur = useTransform(scrollYProgress, [0.18, 0.4], ['blur(0px)', 'blur(12px)']);
+  const roomFade = useTransform(scrollYProgress, [0.16, 0.36], [1, 0]);
+  const roomBlur = useTransform(scrollYProgress, [0.16, 0.36], ['blur(0px)', 'blur(7px)']);
 
-  const headOne = useTransform(scrollYProgress, [0, 0.05, 0.17], [1, 1, 0]);
-  const headOneY = useTransform(scrollYProgress, [0.05, 0.17], [0, -28]);
+  const headOne = useTransform(raw, [0, 0.05, 0.17], [1, 1, 0]);
+  const headOneY = useTransform(raw, [0.05, 0.17], [0, -28]);
   // The wall gets a beat to itself before this. That beat is the volume;
   // words over it straight away would explain it before it has been felt.
-  const headTwo = useTransform(scrollYProgress, [0.72, 0.84], [0, 1]);
-  const headTwoY = useTransform(scrollYProgress, [0.72, 0.84], [22, 0]);
+  // Fades, and does not move. Type sliding up while the page is being
+  // scrolled up reads as the page shifting under you rather than as words
+  // arriving, which is exactly what it should not do here.
+  const headTwo = useTransform(raw, [0.6, 0.72], [0, 1]);
 
   // No camera for anyone who asked for less motion: the room, then the wall
   // with its headline, as two plain sections.
@@ -237,7 +246,7 @@ export default function DeskScene() {
         </motion.header>
 
         <motion.header
-          style={{ opacity: headTwo, y: headTwoY }}
+          style={{ opacity: headTwo }}
           className="tw:pointer-events-none tw:absolute tw:inset-0 tw:mx-auto tw:flex tw:max-w-5xl tw:flex-col tw:justify-center tw:px-6 tw:text-center"
         >
           <Head head={two.head} />
