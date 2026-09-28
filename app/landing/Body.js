@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import { byId } from './copy';
 import Doors from './Doors';
-import ChatDemo from './ChatDemo';
 import CloseHero from './CloseHero';
 import DeskScene from './DeskScene';
 import InsightsFrame from './InsightsFrame';
 import LeagueFrame from './LeagueFrame';
-import PopupDemo from './PopupDemo';
 import Header from './Header';
 import Section from './Section';
+import TwoWays from './TwoWays';
 
-// The page itself: seven stops, read in order.
+// The page itself: seven stops, read in order, on six screens. Three and
+// four share one.
 //
 // Every section carries an explanatory headline, because a visitor who has to
 // guess what they are looking at stops scrolling. The copy lives in copy.js.
@@ -31,13 +31,9 @@ export default function Body() {
             push into its screen, which turns out to be the wall. */}
         <DeskScene />
 
-        <Section id="assistant" {...byId('assistant')} wide>
-          <ChatDemo />
-        </Section>
-
-        <Section id="extension" {...byId('extension')}>
-          <PopupDemo />
-        </Section>
+        {/* Sections three and four are one stage: the assistant's words and
+            chat leave, the extension's arrive in their place. */}
+        <TwoWays />
 
         <Section id="insights" {...byId('insights')} wide>
           <InsightsFrame />

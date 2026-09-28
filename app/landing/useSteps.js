@@ -17,17 +17,22 @@ import { useEffect, useRef, useState } from 'react';
  * they get the finished state, which is the informative part, without the
  * theatre.
  *
+ * `armed` is for a demo that is on screen before it is on show: the second
+ * half of a sticky swap is in the layout the whole time, so being in view is
+ * not enough to say anyone has looked at it yet.
+ *
  * @param gaps milliseconds between steps, one per step after the first
+ * @param armed hold the sequence at zero until this goes true
  * @returns { ref, step } ref goes on the element to watch
  */
-export default function useSteps(gaps) {
+export default function useSteps(gaps, { armed = true } = {}) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.45 });
   const reduced = useReducedMotion();
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (!inView) return undefined;
+    if (!inView || !armed) return undefined;
     if (reduced) { setStep(gaps.length); return undefined; }
 
     const timers = [];
@@ -40,7 +45,7 @@ export default function useSteps(gaps) {
     // gaps is a literal at the call site; depending on its identity would
     // restart the sequence on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, reduced]);
+  }, [inView, reduced, armed]);
 
   return { ref, step };
 }

@@ -22,8 +22,8 @@ const FIELDS = [
 // One per field, then the save.
 const GAPS = [520, 260, 260, 260, 260, 700];
 
-export default function PopupDemo() {
-  const { ref, step } = useSteps(GAPS);
+export default function PopupDemo({ armed = true }) {
+  const { ref, step } = useSteps(GAPS, { armed });
   const saved = step >= FIELDS.length + 1;
 
   return (
