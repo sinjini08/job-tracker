@@ -80,9 +80,18 @@ export default function DeskScene() {
     return () => v.removeEventListener('timeupdate', stop);
   }, [reduced]);
 
-  // The push. Still at first, so the room and its headline can be read, then
-  // accelerating in.
-  const scale = useTransform(scrollYProgress, [0.12, 0.72], [1, MAX]);
+  // Four beats, a quarter of the scene each, so each one is its own scroll
+  // rather than everything sliding at once:
+  //
+  //   0.00 - 0.25  the room, then the push begins
+  //   0.25 - 0.50  the push finishes and the wall is revealed
+  //   0.50 - 0.72  the wall on its own, saying nothing
+  //   0.72 - 1.00  the words arrive, and the scene lets go
+  //
+  // The push is done by 0.44 rather than 0.72, which is what makes the third
+  // beat exist at all: before, the zoom was still creeping when the words
+  // were already due.
+  const scale = useTransform(scrollYProgress, [0.08, 0.44], [1, MAX]);
 
   // The hole, tracking that same scale exactly. A point p moves to
   // origin + (p - origin) * scale, so each edge is one line of arithmetic and
@@ -103,16 +112,15 @@ export default function DeskScene() {
   // the clip is 720p, so past about 2.5x it is visibly soft, and the fade and
   // the blur are what carry it out before that shows. It also softens as it
   // goes, which is what a camera does and a scale on its own does not.
-  const roomFade = useTransform(scrollYProgress, [0.26, 0.54], [1, 0]);
-  const roomBlur = useTransform(scrollYProgress, [0.26, 0.54], ['blur(0px)', 'blur(12px)']);
+  const roomFade = useTransform(scrollYProgress, [0.18, 0.4], [1, 0]);
+  const roomBlur = useTransform(scrollYProgress, [0.18, 0.4], ['blur(0px)', 'blur(12px)']);
 
-  const headOne = useTransform(scrollYProgress, [0, 0.1, 0.24], [1, 1, 0]);
-  const headOneY = useTransform(scrollYProgress, [0.1, 0.24], [0, -28]);
-  // Later than it was, so there is a stretch with nothing on screen but the
-  // wall. That beat is the volume; words over it straight away would explain
-  // it before it has been felt.
-  const headTwo = useTransform(scrollYProgress, [0.8, 0.92], [0, 1]);
-  const headTwoY = useTransform(scrollYProgress, [0.8, 0.92], [22, 0]);
+  const headOne = useTransform(scrollYProgress, [0, 0.05, 0.17], [1, 1, 0]);
+  const headOneY = useTransform(scrollYProgress, [0.05, 0.17], [0, -28]);
+  // The wall gets a beat to itself before this. That beat is the volume;
+  // words over it straight away would explain it before it has been felt.
+  const headTwo = useTransform(scrollYProgress, [0.72, 0.84], [0, 1]);
+  const headTwoY = useTransform(scrollYProgress, [0.72, 0.84], [22, 0]);
 
   // No camera for anyone who asked for less motion: the room, then the wall
   // with its headline, as two plain sections.
