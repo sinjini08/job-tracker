@@ -19,11 +19,14 @@ export const SECTIONS = [
   {
     id: 'pileup',
     head: ['Applications pile up.', 'Details disappear. Follow-ups get forgotten.'],
-    sub: 'What if your tracker just kept up with you?',
+    // No sub. This section is the wall, and the wall says it. The line that
+    // used to sit here asked "what if your tracker just kept up with you?",
+    // which is now section three's headline where it belongs: as the answer's
+    // question rather than as a second thought under the problem.
   },
   {
     id: 'assistant',
-    head: 'Just apply. Your tracker handles the rest.',
+    head: 'What if your tracker kept up?',
     sub: 'Connect ChatGPT or Claude and your applications file themselves as you go.',
   },
   {
