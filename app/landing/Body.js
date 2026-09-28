@@ -5,7 +5,7 @@ import { byId } from './copy';
 import Doors from './Doors';
 import ChatDemo from './ChatDemo';
 import CloseHero from './CloseHero';
-import GridFloor from './GridFloor';
+import BoardWall from './BoardWall';
 import InsightsFrame from './InsightsFrame';
 import LeagueFrame from './LeagueFrame';
 import PopupDemo from './PopupDemo';
@@ -33,7 +33,7 @@ export default function Body() {
         </Section>
 
         <Section id="pileup" {...byId('pileup')} wide>
-          <GridFloor />
+          <BoardWall />
         </Section>
 
         <Section id="assistant" {...byId('assistant')} wide>

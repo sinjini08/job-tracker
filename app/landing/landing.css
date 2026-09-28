@@ -65,3 +65,32 @@
  * Left to itself it walks the whole project. */
 @source "./";
 
+
+/* The wall of postings in section two.
+ *
+ * Plain CSS rather than Tailwind's animate-* utilities: with the `tw:` prefix
+ * a theme-defined animation has to be referenced through a prefixed variable,
+ * and two keyframes and two classes are clearer than fighting that.
+ *
+ * Only transform is animated, so each column is one composited layer however
+ * many cards are on it.
+ */
+@keyframes l-marquee-up {
+  from { transform: translateY(0); }
+  to   { transform: translateY(calc(-50% - var(--l-gap) / 2)); }
+}
+
+.l-col {
+  --l-gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--l-gap);
+  animation: l-marquee-up var(--l-dur, 46s) linear infinite;
+}
+.l-col.rev { animation-direction: reverse; }
+
+/* A wall of moving cards is the worst thing on this page for anyone who has
+   asked for less motion, so it simply stops. The content is identical. */
+@media (prefers-reduced-motion: reduce) {
+  .l-col { animation: none; }
+}
