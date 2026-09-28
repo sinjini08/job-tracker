@@ -18,7 +18,7 @@ export const SECTIONS = [
   },
   {
     id: 'pileup',
-    head: ['Applications pile up.', 'Details disappear. Follow-ups get forgotten.'],
+    head: ['Applications pile up.', 'Follow-ups get forgotten. Details disappear.'],
     // No sub. This section is the wall, and the wall says it. The line that
     // used to sit here asked "what if your tracker just kept up with you?",
     // which is now section three's headline where it belongs: as the answer's
