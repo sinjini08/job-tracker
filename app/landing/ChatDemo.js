@@ -147,7 +147,7 @@ export default function ChatDemo() {
           <AnimatePresence>
             {step >= 3 && (
               <Bubble key="advice">
-                They ask for Python twice. Move it to the top of your r&eacute;sum&eacute;.
+                This job is heavy on frontend work. Lead with your React project instead of your backend one.
               </Bubble>
             )}
           </AnimatePresence>
