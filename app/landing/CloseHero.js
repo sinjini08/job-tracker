@@ -19,12 +19,21 @@ import { byId } from './copy';
 
 export default function CloseHero({ onOpen, onInView }) {
   const wrap = useRef(null);
-  const inView = useInView(wrap, { amount: 0.55 });
   const copy = byId('close');
 
-  // The header covers this section's top and competes with the mark, so it
-  // steps out of the way while this is on screen.
-  useEffect(() => { onInView?.(inView); }, [inView, onInView]);
+  // Two thresholds on the same section, because the two things it drives want
+  // different moments.
+  //
+  // The mark starts as soon as a fifth of the section is showing, which is
+  // partway through the scroll out of the league rather than once you have
+  // arrived: waiting until the section was mostly on screen meant the dart
+  // landed after you had already stopped.
+  const marking = useInView(wrap, { amount: 0.2 });
+
+  // The header waits until you are actually here, so it does not vanish while
+  // you are still reading the section above.
+  const here = useInView(wrap, { amount: 0.55 });
+  useEffect(() => { onInView?.(here); }, [here, onInView]);
 
   return (
     <section
@@ -44,8 +53,8 @@ export default function CloseHero({ onOpen, onInView }) {
         style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 62%)' }}
       />
 
-      {inView && (
-        <div key={`mark-${inView}`} className="splash-mark tw:relative tw:z-10">
+      {marking && (
+        <div key="mark" className="splash-mark tw:relative tw:z-10">
           <div className="sp-stack">
             <span className="sp-flash" />
             <span className="sp-ring" />
