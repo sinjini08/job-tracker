@@ -23,15 +23,16 @@ import useSceneProgress from './useSceneProgress';
 // Everything below is in percentages of the artwork rather than pixels, so
 // the maths holds at any window size.
 
-// The room is a short piece of film rather than a still: it plays for its
-// first few seconds while the opening line is up, then freezes and the push
+// The room is a short piece of film rather than a still: it plays for two and
+// a half seconds while the opening line is up, then freezes and the push
 // begins. Freezing matters. The clip drifts in on its own, and a camera of
 // its own moving while ours does would be two shots fighting.
 const ART = { w: 1280, h: 720 };
-const FREEZE_AT = 3.5;
+const FREEZE_AT = 2.5;
 
-// Measured off the frame at FREEZE_AT, not off the first frame: the drift
-// moves the screen, so the hole has to be told where it ends up.
+// Measured off the frame at FREEZE_AT. The clip drifts, but the monitor does
+// not move within it: the rect comes out identical at 2.5s and 3.5s, so
+// shortening the hold does not need a new measurement.
 const SCREEN = { left: 44.14, top: 38.75, right: 77.5, bottom: 70 };
 const ORIGIN = { x: 60.82, y: 54.37 };
 
