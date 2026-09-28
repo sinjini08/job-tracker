@@ -5,7 +5,7 @@ import { POSTINGS } from './postings-data';
 
 // Section two: the same postings as section one, but there is no end to them.
 //
-// Four columns running in alternating directions, upright, with the edges
+// Six columns running in alternating directions, upright, with the edges
 // faded out so the wall has no top, bottom or sides. That is the point
 // the section has to make: not that a job search is disorganised, but that it
 // does not stop, and that things go missing inside it rather than from it.
@@ -14,11 +14,16 @@ import { POSTINGS } from './postings-data';
 // its height, which is what makes the loop seamless: the second copy is
 // standing where the first one started.
 
+// Six of them, so the wall reaches the edges of a wide window instead of
+// leaving paper down both sides. Offsets are spread across the twenty
+// postings and no two speeds match, so the columns never line up into rows.
 const COLUMNS = [
   { from: 0, dur: '52s', rev: false },
   { from: 3, dur: '44s', rev: true },
-  { from: 6, dur: '58s', rev: false },
-  { from: 9, dur: '48s', rev: true },
+  { from: 7, dur: '58s', rev: false },
+  { from: 11, dur: '48s', rev: true },
+  { from: 14, dur: '55s', rev: false },
+  { from: 17, dur: '41s', rev: true },
 ];
 
 // Rotated from the list's own start so the four columns do not read as one

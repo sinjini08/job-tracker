@@ -108,8 +108,11 @@ export default function DeskScene() {
 
   const headOne = useTransform(scrollYProgress, [0, 0.1, 0.24], [1, 1, 0]);
   const headOneY = useTransform(scrollYProgress, [0.1, 0.24], [0, -28]);
-  const headTwo = useTransform(scrollYProgress, [0.74, 0.86], [0, 1]);
-  const headTwoY = useTransform(scrollYProgress, [0.74, 0.86], [26, 0]);
+  // Later than it was, so there is a stretch with nothing on screen but the
+  // wall. That beat is the volume; words over it straight away would explain
+  // it before it has been felt.
+  const headTwo = useTransform(scrollYProgress, [0.8, 0.92], [0, 1]);
+  const headTwoY = useTransform(scrollYProgress, [0.8, 0.92], [22, 0]);
 
   // No camera for anyone who asked for less motion: the room, then the wall
   // with its headline, as two plain sections.
@@ -153,34 +156,21 @@ export default function DeskScene() {
         </div>
 
         {/* Ground for the second headline.
-            It arrives over a wall of cards, which is the busiest thing on the
-            page, and dark type on that is unreadable however big it is. So
-            the right half becomes paper and the wall is only seen on the
-            left. The seam is a gradient rather than an edge, or the split
-            reads as two screenshots side by side.
-            Below md there is no room for a column of each, so it goes back to
-            paper across the top and the text sits on that. */}
+            Not a panel and not a band: a soft oval of paper exactly where the
+            words are, fading to nothing before it reaches any edge. The wall
+            carries on scrolling all around it, and faintly through it at the
+            oval's edges, so the text is read out of the middle of the thing
+            it describes rather than from a box beside it. */}
         <motion.div
           aria-hidden
           style={{ opacity: headTwo }}
           className="tw:pointer-events-none tw:absolute tw:inset-0"
         >
           <div
-            className="tw:absolute tw:inset-x-0 tw:top-0 tw:h-[52svh] tw:md:hidden"
+            className="tw:h-full tw:w-full"
             style={{
               background:
-                'linear-gradient(to bottom, #f5f5f0 0%, rgba(245,245,240,0.94) 42%, rgba(245,245,240,0) 100%)',
-            }}
-          />
-          <div
-            className="tw:absolute tw:inset-y-0 tw:right-0 tw:hidden tw:w-[56%] tw:md:block"
-            style={{
-              // Solid well before the text starts. The text column begins at
-              // 56% of the stage and this panel at 44%, so paper has to be
-              // opaque by a fifth of the way across it or the headline sits
-              // on half-seen cards.
-              background:
-                'linear-gradient(to right, rgba(245,245,240,0) 0%, rgba(245,245,240,0.88) 10%, #f5f5f0 20%)',
+                'radial-gradient(ellipse 66% 30% at 50% 50%, #f5f5f0 0%, #f5f5f0 58%, rgba(245,245,240,0.88) 78%, rgba(245,245,240,0) 100%)',
             }}
           />
         </motion.div>
@@ -206,9 +196,9 @@ export default function DeskScene() {
 
         <motion.header
           style={{ opacity: headTwo, y: headTwoY }}
-          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[14svh] tw:mx-auto tw:max-w-5xl tw:px-6 tw:text-center tw:md:inset-y-0 tw:md:left-auto tw:md:right-0 tw:md:flex tw:md:w-[44%] tw:md:max-w-none tw:md:flex-col tw:md:justify-center tw:md:px-10 tw:md:text-left tw:lg:px-14"
+          className="tw:pointer-events-none tw:absolute tw:inset-0 tw:mx-auto tw:flex tw:max-w-2xl tw:flex-col tw:justify-center tw:px-6 tw:text-center"
         >
-          <Head head={two.head} sub={two.sub} split />
+          <Head head={two.head} sub={two.sub} />
         </motion.header>
       </div>
     </div>
@@ -240,7 +230,7 @@ function Head({ head, sub, split = false, big = false }) {
     : split
       ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-ink tw:text-balance'
       : lines.length > 1
-        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold tw:text-ink'
+        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold tw:text-ink tw:text-balance'
         : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:text-ink tw:text-balance';
 
   return (

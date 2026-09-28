@@ -87,4 +87,50 @@ export const POSTINGS = [
     logo: { bg: '#2a6fa8', glyph: 'rings' },
     promoted: true, applicants: 'Be an early applicant', apply: 'Easy Apply',
   },
+  {
+    role: 'Cloud Infrastructure Intern', firm: 'Petrichor', where: 'Portland, OR',
+    url: 'petrichor.io/careers', chips: ['Internship', 'Remote'], lines: [84, 72, 50],
+    logo: { bg: '#356b8a', glyph: 'square' }, pay: '$44/hr',
+    posted: '5 days ago', apply: 'Apply',
+  },
+  {
+    role: 'Business Analyst Intern', firm: 'Marlowe Group', where: 'Charlotte, NC',
+    url: 'marlowegroup.com/jobs', chips: ['Summer 2027', 'On-site'], lines: [88, 62],
+    logo: { bg: '#7a4a5e', glyph: 'chevron' },
+    posted: '2 weeks ago', applicants: '147 applicants', apply: 'Apply on company site',
+  },
+  {
+    role: 'Games Programmer Intern', firm: 'Thistle & Vane', where: 'Remote',
+    url: 'thistlevane.com/careers', chips: ['Internship'], lines: [80, 68, 46],
+    logo: { bg: '#4a5d2a', glyph: 'triangle' }, pay: '$36/hr',
+    applicants: 'Be an early applicant', apply: 'Apply',
+  },
+  {
+    role: 'Hardware Test Intern', firm: 'Orrery', where: 'San Jose, CA',
+    url: 'orrery.com/careers', chips: ['Internship', 'On-site'], lines: [86, 64],
+    logo: { bg: '#8a5a1f', glyph: 'rings' },
+    deadline: 'Closes 30 Oct', apply: 'Apply',
+  },
+  {
+    role: 'UX Research Intern', firm: 'Cassava', where: 'Remote',
+    url: 'indeed.com/viewjob', chips: ['Part-time', 'Summer 2027'], lines: [78, 70, 52],
+    pay: '$28 – $34/hr', posted: 'Just posted', apply: 'Apply now',
+  },
+  {
+    role: 'Quantitative Analyst, New Grad', firm: 'Sable & Roe', where: 'Chicago, IL',
+    url: 'sableroe.com/careers', chips: ['Full-time'], lines: [90, 74, 56],
+    logo: { bg: '#2f3f6b', glyph: 'square' }, pay: '$135k – $160k',
+    verified: true, posted: '3 days ago', apply: 'Apply on company site',
+  },
+  {
+    role: 'DevOps Intern', firm: 'Foxglove', where: 'Remote',
+    url: 'joinhandshake.com/jobs', chips: ['Internship', 'Remote'], lines: [82, 60],
+    logo: { bg: '#6b3f5a', glyph: 'chevron' },
+    posted: '8 days ago', apply: 'Apply',
+  },
+  {
+    role: 'Technical Writer Intern', firm: 'Quillon', where: 'Remote',
+    url: 'quillon.com/jobs', chips: ['Part-time'], lines: [76, 64, 44],
+    pay: '$26/hr', promoted: true, posted: 'Yesterday', apply: 'Easy Apply',
+  },
 ];
