@@ -4,6 +4,11 @@
 //
 // `head` is the explanatory headline: the point of them is that a visitor
 // always knows what they are looking at. `sub` is the one line under it.
+//
+// `head` may be an array, which forces the break between its parts instead of
+// leaving it to whatever width the window happens to be. Only worth doing
+// where a sentence breaks somewhere that reads badly; left to itself the
+// balancer is usually right.
 
 export const SECTIONS = [
   {
@@ -13,7 +18,7 @@ export const SECTIONS = [
   },
   {
     id: 'pileup',
-    head: 'Applications pile up. Details disappear. Follow-ups get forgotten.',
+    head: ['Applications pile up.', 'Details disappear. Follow-ups get forgotten.'],
     sub: 'What if your tracker just kept up with you?',
   },
   {
