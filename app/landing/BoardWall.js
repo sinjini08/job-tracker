@@ -5,8 +5,8 @@ import { POSTINGS } from './postings-data';
 
 // Section two: the same postings as section one, but there is no end to them.
 //
-// Four columns running in alternating directions behind a tilt, with the
-// edges faded out so the wall has no top, bottom or sides. That is the point
+// Four columns running in alternating directions, upright, with the edges
+// faded out so the wall has no top, bottom or sides. That is the point
 // the section has to make: not that a job search is disorganised, but that it
 // does not stop, and that things go missing inside it rather than from it.
 //
@@ -32,15 +32,11 @@ export default function BoardWall({ fill = false }) {
   return (
     <div
       className={`tw:relative tw:w-full tw:overflow-hidden ${fill ? 'tw:absolute tw:inset-0 tw:h-full' : 'tw:h-[clamp(360px,54vh,520px)]'}`}
-      style={{ perspective: '900px' }}
       aria-hidden
     >
       <div
         className="tw:absolute tw:left-1/2 tw:top-1/2 tw:flex tw:gap-3"
-        style={{
-          transform:
-            'translate(-50%, -50%) translateZ(-120px) rotateX(14deg) rotateY(-12deg) rotateZ(14deg)',
-        }}
+        style={{ transform: 'translate(-50%, -50%)' }}
       >
         {COLUMNS.map((col) => {
           const list = rotate(POSTINGS, col.from);

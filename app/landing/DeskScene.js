@@ -111,50 +111,77 @@ export default function DeskScene() {
           />
         </div>
 
-        {/* Ground for the second headline. It arrives over a wall of cards,
-            which is the busiest thing on the page, and dark type on that is
-            unreadable however big it is. Paper, fading out downwards, coming
-            in with the headline it is there to carry. */}
+        {/* Ground for the second headline.
+            It arrives over a wall of cards, which is the busiest thing on the
+            page, and dark type on that is unreadable however big it is. So
+            the right half becomes paper and the wall is only seen on the
+            left. The seam is a gradient rather than an edge, or the split
+            reads as two screenshots side by side.
+            Below md there is no room for a column of each, so it goes back to
+            paper across the top and the text sits on that. */}
         <motion.div
           aria-hidden
           style={{ opacity: headTwo }}
-          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-0 tw:h-[52svh]"
+          className="tw:pointer-events-none tw:absolute tw:inset-0"
         >
           <div
-            className="tw:h-full tw:w-full"
+            className="tw:absolute tw:inset-x-0 tw:top-0 tw:h-[52svh] tw:md:hidden"
             style={{
               background:
                 'linear-gradient(to bottom, #f5f5f0 0%, rgba(245,245,240,0.94) 42%, rgba(245,245,240,0) 100%)',
             }}
           />
+          <div
+            className="tw:absolute tw:inset-y-0 tw:right-0 tw:hidden tw:w-[56%] tw:md:block"
+            style={{
+              // Solid well before the text starts. The text column begins at
+              // 56% of the stage and this panel at 44%, so paper has to be
+              // opaque by a fifth of the way across it or the headline sits
+              // on half-seen cards.
+              background:
+                'linear-gradient(to right, rgba(245,245,240,0) 0%, rgba(245,245,240,0.88) 10%, #f5f5f0 20%)',
+            }}
+          />
         </motion.div>
 
-        {/* Both headlines live over the scene, one leaving as the other
-            arrives, so the whole thing is one continuous screen. */}
-        <div className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-0 tw:flex tw:justify-center tw:px-6 tw:pt-[14svh]">
-          <motion.header style={{ opacity: headOne, y: headOneY }} className="tw:max-w-3xl tw:text-center">
-            <Head head={one.head} sub={one.sub} />
-          </motion.header>
-          <motion.header
-            style={{ opacity: headTwo, y: headTwoY }}
-            className="tw:absolute tw:top-[14svh] tw:max-w-5xl tw:px-6 tw:text-center"
-          >
-            <Head head={two.head} sub={two.sub} />
-          </motion.header>
-        </div>
+        {/* The first headline is centred over the room. The second sits in
+            the paper half, beside the wall rather than on top of it. */}
+        <motion.header
+          style={{ opacity: headOne, y: headOneY }}
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[14svh] tw:mx-auto tw:max-w-3xl tw:px-6 tw:text-center"
+        >
+          <Head head={one.head} sub={one.sub} />
+        </motion.header>
+
+        <motion.header
+          style={{ opacity: headTwo, y: headTwoY }}
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[14svh] tw:mx-auto tw:max-w-5xl tw:px-6 tw:text-center tw:md:inset-y-0 tw:md:left-auto tw:md:right-0 tw:md:flex tw:md:w-[44%] tw:md:max-w-none tw:md:flex-col tw:md:justify-center tw:md:px-10 tw:md:text-left tw:lg:px-14"
+        >
+          <Head head={two.head} sub={two.sub} split />
+        </motion.header>
       </div>
     </div>
   );
 }
 
-function Head({ head, sub }) {
+// `split` is the headline that shares the screen with the wall: half the
+// width, so it sets smaller and its written-in line breaks are dropped. The
+// breaks were chosen to stop a full-width line splitting badly; in a column
+// they would leave a very short second line.
+function Head({ head, sub, split = false }) {
   const lines = Array.isArray(head) ? head : [head];
+  const size = split
+    ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:text-balance'
+    : lines.length > 1
+      ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)]'
+      : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:text-balance';
+
   return (
     <>
-      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-semibold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-ink ${
-        lines.length > 1 ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)]' : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:text-balance'
-      }`}>
-        {lines.map((l) => <span key={l} className="tw:block">{l}</span>)}
+      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-semibold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-ink ${size}`}>
+        {split
+          ? lines.join(' ')
+          : lines.map((l) => <span key={l} className="tw:block">{l}</span>)}
       </h2>
       <p className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-muted tw:text-balance">
         {sub}
