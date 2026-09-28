@@ -9,8 +9,10 @@ import Logo from '../Logo';
 // way to the bottom, to act on that is how you lose them.
 //
 // Transparent over the first screen and frosted once you have left it, so it
-// does not sit as a bar across the opening.
-export default function Header({ onOpen }) {
+// does not sit as a bar across the opening. It slides away entirely on the
+// last screen, which is the opening animation again and wants the top of the
+// window to itself; the same two buttons are in the middle of that section.
+export default function Header({ onOpen, hidden = false }) {
   const [moved, setMoved] = useState(false);
 
   useEffect(() => {
@@ -22,9 +24,9 @@ export default function Header({ onOpen }) {
 
   return (
     <header
-      className={`tw:fixed tw:inset-x-0 tw:top-0 tw:z-40 tw:transition-colors tw:duration-300 ${
+      className={`tw:fixed tw:inset-x-0 tw:top-0 tw:z-40 tw:transition tw:duration-300 ${
         moved ? 'tw:bg-paper/80 tw:backdrop-blur-md tw:border-b tw:border-line' : 'tw:border-b tw:border-transparent'
-      }`}
+      } ${hidden ? 'tw:pointer-events-none tw:-translate-y-full tw:opacity-0' : ''}`}
     >
       <div className="tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:gap-3 tw:px-5 tw:py-3.5">
         <span className="tw:flex tw:items-center tw:gap-2.5 tw:text-ink">
