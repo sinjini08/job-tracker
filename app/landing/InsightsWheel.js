@@ -21,7 +21,7 @@ import useSceneProgress from './useSceneProgress';
 // are looking at one of them, the next is already coming. A fade would say
 // each replaces the last.
 
-const WHEEL_VH = 300;
+const WHEEL_VH = 355;
 
 // Radians between neighbouring cards on the wheel. At just over a radian the
 // card behind is clearly behind: two thirds the size, most of the way faded,
