@@ -66,7 +66,7 @@ export default function CloseHero({ onOpen, onInView }) {
       )}
 
       <div className="tw:relative tw:z-10 tw:max-w-3xl">
-        <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-semibold tw:text-[clamp(2.1rem,6vw,4rem)] tw:leading-[1.04] tw:tracking-[-0.035em] tw:text-white tw:text-balance">
+        <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-bold tw:text-[clamp(2.1rem,6vw,4rem)] tw:leading-[1.04] tw:tracking-[-0.035em] tw:text-white tw:text-balance">
           {copy.head}
         </h2>
         <p className="tw:mx-auto tw:mt-5 tw:mb-0 tw:max-w-xl tw:text-[clamp(1rem,1.7vw,1.2rem)] tw:leading-relaxed tw:text-white/75 tw:text-balance">
@@ -76,11 +76,11 @@ export default function CloseHero({ onOpen, onInView }) {
 
       <div className="tw:relative tw:z-10 tw:flex tw:flex-wrap tw:items-center tw:justify-center tw:gap-3">
         <button type="button" onClick={() => onOpen('code')}
-          className="tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-white tw:px-7 tw:py-3.5 tw:text-base tw:font-semibold tw:text-brand">
+          className="tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-white tw:px-7 tw:py-3.5 tw:text-base tw:font-bold tw:text-brand">
           I have a code
         </button>
         <button type="button" onClick={() => onOpen('waitlist')}
-          className="tw:cursor-pointer tw:rounded-full tw:border tw:border-white/35 tw:bg-transparent tw:px-7 tw:py-3.5 tw:text-base tw:font-semibold tw:text-white">
+          className="tw:cursor-pointer tw:rounded-full tw:border tw:border-white/35 tw:bg-transparent tw:px-7 tw:py-3.5 tw:text-base tw:font-bold tw:text-white">
           Join the waitlist
         </button>
       </div>

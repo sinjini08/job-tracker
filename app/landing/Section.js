@@ -22,7 +22,7 @@ export default function Section({ head, sub, children, id, wide = false }) {
     >
       <header className={`tw:relative tw:z-10 tw:text-center ${lines ? 'tw:max-w-5xl' : 'tw:max-w-3xl'}`}>
         <Reveal>
-          <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-semibold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-ink ${
+          <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-ink ${
             lines
               ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)]'
               : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:text-balance'

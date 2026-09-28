@@ -148,9 +148,9 @@ export default function DeskScene() {
             the paper half, beside the wall rather than on top of it. */}
         <motion.header
           style={{ opacity: headOne, y: headOneY }}
-          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[14svh] tw:mx-auto tw:max-w-3xl tw:px-6 tw:text-center"
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[12svh] tw:px-6 tw:text-center"
         >
-          <Head head={one.head} sub={one.sub} />
+          <Head head={one.head} big />
         </motion.header>
 
         <motion.header
@@ -164,28 +164,38 @@ export default function DeskScene() {
   );
 }
 
-// `split` is the headline that shares the screen with the wall: half the
-// width, so it sets smaller and its written-in line breaks are dropped. The
-// breaks were chosen to stop a full-width line splitting badly; in a column
-// they would leave a very short second line.
-function Head({ head, sub, split = false }) {
+// Three shapes of headline on this page.
+//
+// `big` is the opening one: it carries the screen on its own, so it sets as
+// large as it can while staying on one line. The nowrap is md and up only.
+// Below that, 5.6vw of a phone is not enough for thirty characters and it has
+// to be allowed to wrap rather than run off the side.
+//
+// `split` shares the screen with the wall, so it sets smaller and drops its
+// written-in line breaks. Those breaks stop a full-width line splitting
+// badly; in a half-width column they would strand a short line.
+function Head({ head, sub, split = false, big = false }) {
   const lines = Array.isArray(head) ? head : [head];
-  const size = split
-    ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:text-balance'
-    : lines.length > 1
-      ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)]'
-      : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:text-balance';
+  const size = big
+    ? 'tw:text-[clamp(1.9rem,5.6vw,5rem)] tw:font-extrabold tw:md:whitespace-nowrap'
+    : split
+      ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-balance'
+      : lines.length > 1
+        ? 'tw:text-[clamp(1.7rem,3.6vw,2.7rem)] tw:font-bold'
+        : 'tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:text-balance';
 
   return (
     <>
-      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:font-semibold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-ink ${size}`}>
-        {split
+      <h2 className={`tw:m-0 tw:font-[family-name:var(--landing-display)] tw:leading-[1.06] tw:tracking-[-0.035em] tw:text-ink ${size}`}>
+        {split || big
           ? lines.join(' ')
           : lines.map((l) => <span key={l} className="tw:block">{l}</span>)}
       </h2>
-      <p className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-muted tw:text-balance">
-        {sub}
-      </p>
+      {sub && (
+        <p className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-muted tw:text-balance">
+          {sub}
+        </p>
+      )}
     </>
   );
 }
