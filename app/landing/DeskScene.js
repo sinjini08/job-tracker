@@ -208,27 +208,28 @@ export default function DeskScene() {
         </div>
 
         {/* Ground for the second headline.
-            A band rather than a panel or an oval: full width, solid paper
-            through the middle, fading out above and below. The wall keeps
-            scrolling past it top and bottom, so the words are read out of the
-            middle of the thing they describe instead of from a box beside
-            it. */}
+            A band at the foot of the screen, full width, fading up into the
+            wall and solid paper by the bottom. It only has one edge to
+            soften: the other one is the bottom of the window. The wall fills
+            the rest of the screen above it, so the words are read from the
+            floor of the thing they describe. */}
         <motion.div
           aria-hidden
           style={{ opacity: headTwo }}
-          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-1/2 tw:h-[46svh] tw:-translate-y-1/2"
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-0 tw:h-[42svh]"
         >
           <div
             className="tw:h-full tw:w-full"
             style={{
               background:
-                'linear-gradient(to bottom, rgba(245,245,240,0) 0%, rgba(245,245,240,0.96) 20%, #f5f5f0 34%, #f5f5f0 66%, rgba(245,245,240,0.96) 80%, rgba(245,245,240,0) 100%)',
+                'linear-gradient(to bottom, rgba(245,245,240,0) 0%, rgba(245,245,240,0.92) 28%, #f5f5f0 52%, #f5f5f0 100%)',
             }}
           />
         </motion.div>
 
-        {/* The first headline is centred over the room. The second sits in
-            the paper half, beside the wall rather than on top of it. */}
+        {/* The first headline sits high over the room. The second sits at
+            the foot of the screen, with the wall running the full height
+            above it. */}
         {/* Two layers, because two different things move it. The outer one
             is the scroll taking it away; the inner one is its arrival, which
             is on a timer rather than on the scroll so the room has a second
@@ -248,7 +249,7 @@ export default function DeskScene() {
 
         <motion.header
           style={{ opacity: headTwo }}
-          className="tw:pointer-events-none tw:absolute tw:inset-0 tw:mx-auto tw:flex tw:max-w-5xl tw:flex-col tw:justify-center tw:px-6 tw:text-center"
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-[9svh] tw:mx-auto tw:max-w-5xl tw:px-6 tw:text-center"
         >
           <Head head={two.head} />
         </motion.header>
