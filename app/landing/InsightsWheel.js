@@ -21,7 +21,7 @@ import useSceneProgress from './useSceneProgress';
 // are looking at one of them, the next is already coming. A fade would say
 // each replaces the last.
 
-const WHEEL_VH = 355;
+const WHEEL_VH = 380;
 
 // Radians between neighbouring cards on the wheel. At just over a radian the
 // card behind is clearly behind: two thirds the size, most of the way faded,
@@ -35,10 +35,18 @@ const SPREAD = 1.05;
 // title.
 const RADIUS = 245;
 
-// The turn does not start the instant the section pins and does not finish on
-// the last pixel of it: a beat at each end to arrive and to land.
-const FROM = 0.10;
-const TO = 0.94;
+// The section arrives with the wheel and its own name, and nothing else.
+// The claim comes on the next scroll, after the reader has seen what they are
+// being asked to believe: a headline that says you can see what is working,
+// over a chart that is already showing it, is answering a question nobody has
+// asked yet.
+const HEAD_IN = [0.04, 0.15];
+const SUB_IN = [0.09, 0.20];
+
+// So the turn starts after the words have landed, and finishes just short of
+// the end: a beat at each end to arrive and to land.
+const FROM = 0.22;
+const TO = 0.95;
 
 function WheelCard({ t, index, card }) {
   // Where this card sits on the wheel right now. Zero is front and centre.
@@ -89,15 +97,24 @@ export default function InsightsWheel() {
     if (i !== at) setAt(i);
   });
 
-  // The headline comes in from the right, which is the side it stays on.
-  const headOpacity = useTransform(enter, [0, 0.55], [0, 1]);
-  const headX = useTransform(enter, [0, 0.55], [34, 0]);
-  const subOpacity = useTransform(enter, [0.3, 0.9], [0, 1]);
+  // The section's own name comes in from the right as the screen pins, which
+  // is the side it stays on.
+  const kickOpacity = useTransform(enter, [0, 0.55], [0, 1]);
+  const kickX = useTransform(enter, [0, 0.55], [34, 0]);
+
+  // The claim follows on the reader's next scroll, not on arrival.
+  const headOpacity = useTransform(progress, HEAD_IN, [0, 1]);
+  const headY = useTransform(progress, HEAD_IN, [22, 0]);
+  const subOpacity = useTransform(progress, SUB_IN, [0, 1]);
+  const subY = useTransform(progress, SUB_IN, [16, 0]);
 
   if (reduced) {
     return (
       <section id="insights" className="tw:flex tw:min-h-[100svh] tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-10 tw:px-6 tw:py-24">
         <header className="tw:max-w-3xl tw:text-center">
+          <p className="tw:m-0 tw:mb-6 tw:text-[clamp(0.95rem,1.4vw,1.1rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid">
+            Insights
+          </p>
           <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink">
             {copy.head}
           </h2>
@@ -147,17 +164,32 @@ export default function InsightsWheel() {
             </div>
           </div>
 
-          <motion.header style={{ opacity: headOpacity, x: headX }} className="tw:max-w-xl">
-            <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.7rem,4vw,3rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink">
-              {copy.head}
-            </h2>
+          <header className="tw:max-w-xl">
+            {/* The section names itself, and for a scroll it is the only
+                thing here. The other screens describe something the page
+                invented; this one is a tab in the app, and a reader who has
+                seen the word here knows where to look once they are inside.
+                Set large with a wide gap under it, so it reads as a title
+                rather than as a caption that lost its picture. */}
             <motion.p
-              style={{ opacity: subOpacity }}
+              style={{ opacity: kickOpacity, x: kickX }}
+              className="tw:m-0 tw:mb-7 tw:text-[clamp(0.95rem,1.4vw,1.1rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid"
+            >
+              Insights
+            </motion.p>
+            <motion.h2
+              style={{ opacity: headOpacity, y: headY }}
+              className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.7rem,4vw,3rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink"
+            >
+              {copy.head}
+            </motion.h2>
+            <motion.p
+              style={{ opacity: subOpacity, y: subY }}
               className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.5vw,1.15rem)] tw:leading-relaxed tw:text-muted"
             >
               {copy.sub}
             </motion.p>
-          </motion.header>
+          </header>
         </div>
       </div>
     </div>
