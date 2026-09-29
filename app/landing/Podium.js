@@ -35,15 +35,32 @@ const BASE = STAGE.h;
 const COL_X = { 1: 136, 2: 12, 3: 260 };
 const PLINTH = { 1: 176, 2: 130, 3: 96 };
 
-// Top to bottom on the leaderboard: first, second, third. The row is about
-// 36 tall, so 62 apart leaves a clear gap without the three of them drifting
-// to opposite ends of a card.
-const ROW_Y = { 1: 64, 2: 126, 3: 188 };
+// Where each row's middle sits, top to bottom: first, second, third. Rows
+// are 58 apart inside a card with 14 of padding at each end, so the three
+// gaps a reader sees are the same gap.
+const ROW_C = { 1: 83, 2: 141, 3: 199 };
+const CARD = { top: 40, height: 202 };
 
-// The row, across: numeral, face, name and score, then the bar. Fixed
-// columns, because three rows that each place their own pieces are three
-// rows that do not line up.
-const ROW = { num: 14, face: 44, label: 92, labelW: 88, track: 192, trackW: 176, barY: 21, barH: 11 };
+// The row, across and down.
+//
+// Across: fixed columns with the same 12 between them, because three rows
+// that each place their own pieces are three rows that do not line up.
+//
+// Down: every piece is hung off the row's middle by half its own height,
+// rather than by an offset guessed per piece. That is the whole of the
+// previous version's problem. The bar sat nine below the middle and the
+// numeral three above it, so nothing in a row agreed with anything else in
+// it, and the three rows were consistently wrong in the same way, which
+// makes it look deliberate and read as sloppy.
+//
+// Heights are declared rather than inherited, so the halves above are
+// arithmetic and not a measurement that changes with the font.
+const ROW = {
+  num: 16, numW: 20, numLine: 22, numScale: 0.62,
+  face: 48, faceSize: 46, faceScale: 0.72,
+  label: 93, labelW: 88, labelH: 38,
+  track: 192, trackW: 172, barH: 11,
+};
 
 const PEAK = 46;
 
@@ -162,7 +179,7 @@ function Place({ place, progress, cardOpacity }) {
   // same order every render.
   const useLerp = (from, to) => useTransform(p, [0, 1], [from, to]);
 
-  const rowY = ROW_Y[place.rank];
+  const rowC = ROW_C[place.rank];
   const colX = COL_X[place.rank];
   const h = PLINTH[place.rank];
   const top = BASE - h;
@@ -189,16 +206,16 @@ function Place({ place, progress, cardOpacity }) {
   // Whatever the height is doing, the foot of the plinth stays on the floor.
   // Worked out from the height rather than tweened alongside it, so the two
   // cannot disagree by a pixel mid-flight.
-  const barY = useTransform([p, barH], ([t, hh]) => (1 - t) * (rowY + ROW.barY) + t * (BASE - hh));
+  const barY = useTransform([p, barH], ([t, hh]) => (1 - t) * (rowC - ROW.barH / 2) + t * (BASE - hh));
 
   // The face hops: up past its landing spot, then down onto the plinth.
   const avX = useLerp(ROW.face, colX + (COL - 46) / 2);
-  const avY = useTransform(p, [0, 0.74, 1], [rowY + 1, top - 112, top - 94]);
-  const avScale = useLerp(0.72, 1);
+  const avY = useTransform(p, [0, 0.74, 1], [rowC - (ROW.faceSize * ROW.faceScale) / 2, top - 112, top - 94]);
+  const avScale = useLerp(ROW.faceScale, 1);
 
   const labX = useLerp(ROW.label, colX);
   const labW = useLerp(ROW.labelW, COL);
-  const labY = useTransform(p, [0, 0.74, 1], [rowY - 1, top - 62, top - 46]);
+  const labY = useTransform(p, [0, 0.74, 1], [rowC - ROW.labelH / 2, top - 62, top - 46]);
   // Ranged left beside a face, centred over a plinth. It snaps rather than
   // tweens, because there is no half of an alignment, and it snaps in the
   // middle of the flight where nothing is settled enough to notice.
@@ -208,9 +225,9 @@ function Place({ place, progress, cardOpacity }) {
   // and the in-between sizes are neither. It dips out of sight for the
   // crossing and comes back as the other one.
   const numX = useLerp(ROW.num, colX);
-  const numY = useLerp(rowY + 8, BASE - 37);
-  const numW = useLerp(20, COL);
-  const numScale = useLerp(0.62, 1);
+  const numY = useLerp(rowC - (ROW.numLine * ROW.numScale) / 2, BASE - 37);
+  const numW = useLerp(ROW.numW, COL);
+  const numScale = useLerp(ROW.numScale, 1);
   const numOpacity = useTransform(raw, [0, 0.28, 0.72, 1], [1, 0.08, 0.08, 1]);
 
   return (
@@ -219,7 +236,7 @@ function Place({ place, progress, cardOpacity }) {
           the board does. */}
       <motion.div
         aria-hidden
-        style={{ opacity: cardOpacity, left: ROW.track, top: rowY + ROW.barY, width: ROW.trackW, height: ROW.barH }}
+        style={{ opacity: cardOpacity, left: ROW.track, top: rowC - ROW.barH / 2, width: ROW.trackW, height: ROW.barH }}
         className="tw:absolute tw:rounded-full tw:bg-sand"
       />
 
@@ -236,7 +253,7 @@ function Place({ place, progress, cardOpacity }) {
       </motion.div>
 
       <motion.div style={{ x: numX, y: numY, width: numW, scale: numScale, opacity: numOpacity }} className="tw:absolute tw:left-0 tw:top-0 tw:origin-top-left">
-        <span className="tw:block tw:text-center tw:text-[19px] tw:font-bold" style={{ color: place.ink }}>
+        <span className="tw:block tw:text-center tw:text-[19px] tw:font-bold tw:leading-[22px]" style={{ color: place.ink }}>
           {place.rank}
         </span>
       </motion.div>
@@ -260,11 +277,11 @@ function Place({ place, progress, cardOpacity }) {
           row and as centred on the plinth, and nothing has to change
           alignment mid-flight. */}
       <motion.div style={{ x: labX, y: labY, width: labW, textAlign: labAlign }} className="tw:absolute tw:left-0 tw:top-0">
-        <p className={`tw:m-0 tw:text-[12.5px] tw:font-semibold ${place.me ? 'tw:text-brand' : 'tw:text-ink'}`}>
+        <p className={`tw:m-0 tw:text-[12.5px] tw:font-semibold tw:leading-[17px] ${place.me ? 'tw:text-brand' : 'tw:text-ink'}`}>
           {place.name}
           {place.streak && <span className="tw:ml-1 tw:text-[10px] tw:font-normal tw:text-muted">{place.streak}</span>}
         </p>
-        <p className="tw:m-0 tw:text-[15px] tw:font-bold tw:leading-tight tw:text-ink">
+        <p className="tw:m-0 tw:text-[15px] tw:font-bold tw:leading-[19px] tw:text-ink">
           {place.pts}
           <span className="tw:ml-0.5 tw:text-[10px] tw:font-semibold tw:text-muted">pts</span>
         </p>
@@ -350,8 +367,8 @@ export default function Podium() {
             {/* The leaderboard's own card. It is the one piece with nowhere
                 to go on a podium, so it is the one piece that fades. */}
             <motion.div
-              style={reduced ? { opacity: 0 } : { opacity: cardOpacity }}
-              className="tw:absolute tw:inset-x-0 tw:top-[42px] tw:h-[198px] tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
+              style={{ ...(reduced ? { opacity: 0 } : { opacity: cardOpacity }), top: CARD.top, height: CARD.height }}
+              className="tw:absolute tw:inset-x-0 tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
               aria-hidden
             />
             {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} cardOpacity={cardOpacity} />)}
