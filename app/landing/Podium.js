@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
+import { cubicBezier, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { useRef, useState } from 'react';
 import { byId } from './copy';
 import useEnterProgress from './useEnterProgress';
@@ -44,25 +44,29 @@ const PLACES = [
   {
     rank: 2, name: 'you', pts: 41, avatar: 'a20', me: true,
     bg: 'linear-gradient(180deg,#eeeef2,#dcdce2)', ink: '#4a4a52',
-    morph: [0.22, 0.60],
+    morph: [0.24, 0.58],
   },
   {
     rank: 1, name: 'mei', pts: 46, avatar: 'a3', streak: '9d',
     bg: 'linear-gradient(180deg,#f7e6b4,#f1d68a)', ink: '#6b4e08',
-    morph: [0.32, 0.72],
+    morph: [0.40, 0.76],
   },
   {
     rank: 3, name: 'rou', pts: 27, avatar: 'a11',
     bg: 'linear-gradient(180deg,#f0d9c2,#e8c8a8)', ink: '#6d4520',
-    morph: [0.14, 0.50],
+    morph: [0.10, 0.42],
   },
 ];
 
 // The card behind the rows goes before they do, so the bars are already in
 // the open by the time they start climbing.
-const CARD_OUT = [0.14, 0.34];
+const CARD_OUT = [0.10, 0.28];
 // Once the last plinth is standing.
-const PARTY_AT = 0.80;
+const PARTY_AT = 0.82;
+
+// Out fast, in slow. A straight line between two positions is a thing being
+// dragged; this is a thing being thrown and landing.
+const TRAVEL = cubicBezier(0.22, 1, 0.3, 1);
 
 const CONFETTI = ['#1f9d55', '#69b57f', '#f1d68a', '#e0651f', '#2a78d6', '#d1478c'];
 
@@ -90,6 +94,20 @@ const PIECES = Array.from({ length: 70 }, (_, i) => ({
   size: 6 + spread(i, 63.727) * 7,
   round: spread(i, 11.482) > 0.65,
 }));
+
+// The winner's cup. Drawn here rather than pulled from the app's Icons,
+// which carry the app's own classes and would arrive unstyled on a page that
+// prefixes everything.
+function Trophy() {
+  return (
+    <svg viewBox="0 0 24 24" className="tw:h-7 tw:w-7" fill="none" aria-hidden>
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" fill="#f1d68a" stroke="#c79a2a" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M7 5.5H4.8a3.2 3.2 0 0 0 3.2 3.2M17 5.5h2.2a3.2 3.2 0 0 1-3.2 3.2" stroke="#c79a2a" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M12 14v3m-3 3h6" stroke="#c79a2a" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 20h6" stroke="#c79a2a" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function Confetti() {
   const pieces = PIECES;
@@ -123,7 +141,10 @@ function Confetti() {
 // where the leaderboard puts it, at 1 where the podium does, and in between
 // it is on its way.
 function Place({ place, progress }) {
-  const p = useTransform(progress, place.morph, [0, 1], { clamp: true });
+  const raw = useTransform(progress, place.morph, [0, 1], { clamp: true });
+  // One eased clock for everything that travels, so the whole row leaves and
+  // lands together instead of each piece easing on its own.
+  const p = useTransform(raw, [0, 1], [0, 1], { ease: TRAVEL });
   // Named for the hook it is: called unconditionally, once per pair, in the
   // same order every render.
   const useLerp = (from, to) => useTransform(p, [0, 1], [from, to]);
@@ -136,23 +157,36 @@ function Place({ place, progress }) {
   const barW = 24 + 158 * (place.pts / PEAK);
 
   const barX = useLerp(196, colX);
-  const barY = useLerp(rowY + 22, top);
   const barW$ = useLerp(barW, COL);
-  const barH = useLerp(11, h);
   const barTopR = useLerp(6, 14);
   const barBottomR = useLerp(6, 0);
 
+  // The plinth overshoots its height and settles back. Read off the raw
+  // clock rather than the eased one, because the eased one is already past
+  // 0.85 by the time the bar is halfway there and the bounce would happen
+  // before the travel does.
+  const barH = useTransform(raw, [0, 0.82, 1], [11, h * 1.05, h], { ease: TRAVEL });
+  // Whatever the height is doing, the foot of the plinth stays on the floor.
+  // Worked out from the height rather than tweened alongside it, so the two
+  // cannot disagree by a pixel mid-flight.
+  const barY = useTransform([p, barH], ([t, hh]) => (1 - t) * (rowY + 22) + t * (BASE - hh));
+
+  // The face hops: up past its landing spot, then down onto the plinth.
   const avX = useLerp(34, colX + (COL - 46) / 2);
-  const avY = useLerp(rowY + 11, top - 94);
+  const avY = useTransform(p, [0, 0.74, 1], [rowY + 11, top - 112, top - 94]);
   const avScale = useLerp(0.72, 1);
 
   const labX = useLerp(72, colX);
-  const labY = useLerp(rowY + 9, top - 46);
+  const labY = useTransform(p, [0, 0.74, 1], [rowY + 9, top - 62, top - 46]);
 
+  // The numeral is doing two jobs, small beside a row and large on a plinth,
+  // and the in-between sizes are neither. It dips out of sight for the
+  // crossing and comes back as the other one.
   const numX = useLerp(6, colX);
   const numY = useLerp(rowY + 16, BASE - 37);
   const numW = useLerp(26, COL);
   const numScale = useLerp(0.62, 1);
+  const numOpacity = useTransform(raw, [0, 0.28, 0.72, 1], [1, 0.08, 0.08, 1]);
 
   return (
     <>
@@ -166,7 +200,7 @@ function Place({ place, progress }) {
         className="tw:absolute tw:left-0 tw:top-0"
       />
 
-      <motion.div style={{ x: numX, y: numY, width: numW, scale: numScale }} className="tw:absolute tw:left-0 tw:top-0 tw:origin-top-left">
+      <motion.div style={{ x: numX, y: numY, width: numW, scale: numScale, opacity: numOpacity }} className="tw:absolute tw:left-0 tw:top-0 tw:origin-top-left">
         <span className="tw:block tw:text-center tw:text-[19px] tw:font-bold" style={{ color: place.ink }}>
           {place.rank}
         </span>
@@ -226,6 +260,7 @@ export default function Podium() {
   const subOpacity = useTransform(enter, [0.25, 0.85], [0, 1]);
 
   const cardOpacity = useTransform(progress, CARD_OUT, [1, 0]);
+  const floor = useTransform(progress, [0.62, 0.84], [0, 1]);
   // The caption is about the gap between first and second, and there is no
   // gap to talk about until both are standing.
   const capOpacity = useTransform(progress, [0.74, 0.88], [0, 1]);
@@ -280,6 +315,41 @@ export default function Podium() {
               aria-hidden
             />
             {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} />)}
+
+            {/* The floor. Three blocks hanging in paper are three blocks; a
+                line under them is a podium. It draws outwards from the
+                middle as the last one lands. */}
+            <motion.i
+              aria-hidden
+              style={{
+                ...(reduced ? {} : { scaleX: floor }),
+                // Fading at both ends, so it reads as ground rather than as
+                // a rule somebody drew under the picture.
+                background: 'linear-gradient(to right, rgba(200,200,186,0) 0%, #cfcfc2 22%, #cfcfc2 78%, rgba(200,200,186,0) 100%)',
+              }}
+              className="tw:absolute tw:bottom-0 tw:left-[12px] tw:right-[12px] tw:block tw:h-[2px] tw:origin-center tw:rounded-full"
+            />
+
+            {/* Two elements, not one. The cup's own pop animates y, and a y
+                in `animate` wins over a y in `style`: with both on the same
+                node the trophy sprang neatly to the top of the stage. The
+                outer one holds the position and the inner one does the
+                popping. */}
+            {party && !reduced && (
+              <div
+                className="tw:absolute tw:left-0 tw:top-0 tw:flex tw:w-[108px] tw:justify-center"
+                style={{ transform: `translate(${COL_X[1]}px, ${BASE - PLINTH[1] - 124}px)` }}
+              >
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.4, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 340, damping: 16 }}
+                  className="tw:block"
+                >
+                  <Trophy />
+                </motion.span>
+              </div>
+            )}
           </div>
         </div>
 
