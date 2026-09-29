@@ -1,10 +1,9 @@
 'use client';
 
-import { cubicBezier, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
-import { useRef, useState } from 'react';
+import { animate, cubicBezier, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
 import { byId } from './copy';
 import useEnterProgress from './useEnterProgress';
-import useSceneProgress from './useSceneProgress';
 
 // Section six: the week's board, which turns into the week's podium.
 //
@@ -22,7 +21,12 @@ import useSceneProgress from './useSceneProgress';
 // boast, and the sub-heading says climb: a board you are already top of is
 // nothing to climb.
 
-const PODIUM_VH = 340;
+// It plays itself. The board holds for a beat when you arrive, so there is
+// something to read, and then it goes, once, at its own pace. The other
+// stages on this page are scrubbed by the scroll, which suits a camera move
+// and a change of copy; it does not suit this. A celebration you have to
+// crank by hand is not one.
+const RUN = { hold: 0.7, seconds: 3.2 };
 
 // The stage, in its own pixels. Every position below is in this space, so
 // the two layouts can be written as coordinates and checked against each
@@ -77,7 +81,7 @@ const PLACES = [
     morph: [0.24, 0.58],
   },
   {
-    rank: 1, name: 'mei', pts: 46, avatar: 'a3', streak: '9d',
+    rank: 1, name: 'mei', pts: 46, avatar: 'a3',
     bg: 'linear-gradient(180deg,#f7e6b4,#f1d68a)', ink: '#6b4e08',
     morph: [0.40, 0.76],
   },
@@ -279,7 +283,6 @@ function Place({ place, progress, cardOpacity }) {
       <motion.div style={{ x: labX, y: labY, width: labW, textAlign: labAlign }} className="tw:absolute tw:left-0 tw:top-0">
         <p className={`tw:m-0 tw:text-[12.5px] tw:font-semibold tw:leading-[17px] ${place.me ? 'tw:text-brand' : 'tw:text-ink'}`}>
           {place.name}
-          {place.streak && <span className="tw:ml-1 tw:text-[10px] tw:font-normal tw:text-muted">{place.streak}</span>}
         </p>
         <p className="tw:m-0 tw:text-[15px] tw:font-bold tw:leading-[19px] tw:text-ink">
           {place.pts}
@@ -291,21 +294,30 @@ function Place({ place, progress, cardOpacity }) {
 }
 
 export default function Podium() {
-  const wrap$ = useRef(null);
-  const stage$ = useRef(null);
+  const sec$ = useRef(null);
+  const head$ = useRef(null);
   const reduced = useReducedMotion();
   const copy = byId('league');
 
-  const enter = useEnterProgress(stage$, { settle: 0.55 });
-  const scrolled = useSpring(useSceneProgress(wrap$), {
-    stiffness: 170, damping: 36, mass: 0.4, restDelta: 0.0005,
-  });
+  // The headline still arrives on the scroll, as every other headline on the
+  // page does. Measured on the header rather than the section, because the
+  // header sits at the section's middle.
+  const enter = useEnterProgress(head$, { settle: 0.55 });
 
-  // Nobody who asked for less motion should get a board mid-flight, so they
-  // are driven by a value already at the end. Same components, same code
-  // path: only the clock is different.
-  const done = useMotionValue(1);
-  const progress = reduced ? done : scrolled;
+  // Half the section is enough to say somebody is looking at it, and `once`
+  // because a board that re-runs every time you scroll back past it is a
+  // page that will not settle.
+  const inView = useInView(sec$, { once: true, amount: 0.5 });
+  const progress = useMotionValue(0);
+
+  useEffect(() => {
+    if (!inView) return undefined;
+    // Anyone who asked for less motion gets the finished podium, with no
+    // run-up and no party.
+    if (reduced) { progress.set(1); return undefined; }
+    const run = animate(progress, 1, { duration: RUN.seconds, delay: RUN.hold, ease: 'linear' });
+    return () => run.stop();
+  }, [inView, reduced, progress]);
 
   const headOpacity = useTransform(enter, [0, 0.55], [0, 1]);
   const headY = useTransform(enter, [0, 0.55], [26, 0]);
@@ -331,96 +343,94 @@ export default function Podium() {
   });
 
   return (
-    <div id="league" ref={wrap$} className="tw:relative" style={{ height: reduced ? undefined : `${PODIUM_VH}vh` }}>
-      <div
-        ref={stage$}
-        className={`tw:flex tw:h-[100svh] tw:flex-col tw:items-center tw:justify-center tw:gap-8 tw:overflow-hidden tw:px-6 tw:py-14 ${
-          reduced ? '' : 'tw:sticky tw:top-0'
-        }`}
+    <section
+      id="league"
+      ref={sec$}
+      className="tw:relative tw:flex tw:min-h-[100svh] tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-8 tw:overflow-hidden tw:px-6 tw:py-14"
+    >
+      {party && !reduced && <Confetti />}
+
+      <motion.header
+        ref={head$}
+        style={reduced ? undefined : { opacity: headOpacity, y: headY }}
+        className="tw:relative tw:z-10 tw:max-w-3xl tw:text-center"
       >
-        {party && !reduced && <Confetti />}
-
-        <motion.header
-          style={reduced ? undefined : { opacity: headOpacity, y: headY }}
-          className="tw:relative tw:z-10 tw:max-w-3xl tw:text-center"
-        >
-          <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink">
-            {copy.head}
-          </h2>
-          <motion.p
-            style={reduced ? undefined : { opacity: subOpacity }}
-            className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted"
-          >
-            {copy.sub}
-          </motion.p>
-        </motion.header>
-
-        <div className="tw:relative tw:z-10 tw:origin-top tw:scale-[0.84] tw:sm:scale-100">
-          <motion.p
-            style={reduced ? undefined : { opacity: labelOpacity }}
-            className="tw:m-0 tw:mb-2 tw:text-center tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-[0.08em] tw:text-muted"
-          >
-            This week · CS friends
-          </motion.p>
-
-          <div className="tw:relative" style={{ width: STAGE.w, height: STAGE.h }}>
-            {/* The leaderboard's own card. It is the one piece with nowhere
-                to go on a podium, so it is the one piece that fades. */}
-            <motion.div
-              style={{ ...(reduced ? { opacity: 0 } : { opacity: cardOpacity }), top: CARD.top, height: CARD.height }}
-              className="tw:absolute tw:inset-x-0 tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
-              aria-hidden
-            />
-            {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} cardOpacity={cardOpacity} />)}
-
-            {/* The floor. Three blocks hanging in paper are three blocks; a
-                line under them is a podium. It draws outwards from the
-                middle as the last one lands. */}
-            <motion.i
-              aria-hidden
-              style={{
-                ...(reduced ? {} : { scaleX: floor }),
-                // Fading at both ends, so it reads as ground rather than as
-                // a rule somebody drew under the picture.
-                background: 'linear-gradient(to right, rgba(200,200,186,0) 0%, #cfcfc2 22%, #cfcfc2 78%, rgba(200,200,186,0) 100%)',
-              }}
-              className="tw:absolute tw:bottom-0 tw:left-[12px] tw:right-[12px] tw:block tw:h-[2px] tw:origin-center tw:rounded-full"
-            />
-
-            {/* Two elements, not one. The cup's own pop animates y, and a y
-                in `animate` wins over a y in `style`: with both on the same
-                node the trophy sprang neatly to the top of the stage. The
-                outer one holds the position and the inner one does the
-                popping. */}
-            {party && !reduced && (
-              <motion.div
-                className="tw:absolute tw:left-0 tw:top-0 tw:flex tw:w-[108px] tw:justify-center"
-                style={{
-                  opacity: cupOpacity,
-                  transform: `translate(${COL_X[1]}px, ${BASE - PLINTH[1] - 124}px)`,
-                }}
-              >
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.4, y: 12 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 340, damping: 16 }}
-                  className="tw:block"
-                >
-                  <Trophy />
-                </motion.span>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
+        <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink">
+          {copy.head}
+        </h2>
         <motion.p
-          style={reduced ? undefined : { opacity: capOpacity }}
-          className="tw:relative tw:z-10 tw:m-0 tw:max-w-md tw:text-center tw:text-[13px] tw:leading-relaxed tw:text-muted"
+          style={reduced ? undefined : { opacity: subOpacity }}
+          className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted"
         >
-          Five points off the top, which is one interview and a screening.
-          Your friends see the points, never where you applied.
+          {copy.sub}
         </motion.p>
+      </motion.header>
+
+      <div className="tw:relative tw:z-10 tw:origin-top tw:scale-[0.84] tw:sm:scale-100">
+        <motion.p
+          style={reduced ? undefined : { opacity: labelOpacity }}
+          className="tw:m-0 tw:mb-2 tw:text-center tw:text-[11px] tw:font-semibold tw:uppercase tw:tracking-[0.08em] tw:text-muted"
+        >
+          This week · CS friends
+        </motion.p>
+
+        <div className="tw:relative" style={{ width: STAGE.w, height: STAGE.h }}>
+          {/* The leaderboard's own card. It is the one piece with nowhere
+              to go on a podium, so it is the one piece that fades. */}
+          <motion.div
+            style={{ ...(reduced ? { opacity: 0 } : { opacity: cardOpacity }), top: CARD.top, height: CARD.height }}
+            className="tw:absolute tw:inset-x-0 tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
+            aria-hidden
+          />
+          {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} cardOpacity={cardOpacity} />)}
+
+          {/* The floor. Three blocks hanging in paper are three blocks; a
+              line under them is a podium. It draws outwards from the
+              middle as the last one lands. */}
+          <motion.i
+            aria-hidden
+            style={{
+              ...(reduced ? {} : { scaleX: floor }),
+              // Fading at both ends, so it reads as ground rather than as
+              // a rule somebody drew under the picture.
+              background: 'linear-gradient(to right, rgba(200,200,186,0) 0%, #cfcfc2 22%, #cfcfc2 78%, rgba(200,200,186,0) 100%)',
+            }}
+            className="tw:absolute tw:bottom-0 tw:left-[12px] tw:right-[12px] tw:block tw:h-[2px] tw:origin-center tw:rounded-full"
+          />
+
+          {/* Two elements, not one. The cup's own pop animates y, and a y
+              in `animate` wins over a y in `style`: with both on the same
+              node the trophy sprang neatly to the top of the stage. The
+              outer one holds the position and the inner one does the
+              popping. */}
+          {party && !reduced && (
+            <motion.div
+              className="tw:absolute tw:left-0 tw:top-0 tw:flex tw:w-[108px] tw:justify-center"
+              style={{
+                opacity: cupOpacity,
+                transform: `translate(${COL_X[1]}px, ${BASE - PLINTH[1] - 124}px)`,
+              }}
+            >
+              <motion.span
+                initial={{ opacity: 0, scale: 0.4, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 340, damping: 16 }}
+                className="tw:block"
+              >
+                <Trophy />
+              </motion.span>
+            </motion.div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <motion.p
+        style={reduced ? undefined : { opacity: capOpacity }}
+        className="tw:relative tw:z-10 tw:m-0 tw:max-w-md tw:text-center tw:text-[13px] tw:leading-relaxed tw:text-muted"
+      >
+        Five points off the top, which is one interview and a screening.
+        Your friends see the points, never where you applied.
+    </motion.p>
+    </section>
   );
 }
