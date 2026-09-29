@@ -21,13 +21,20 @@ import { POSTINGS } from './postings-data';
 // Durations are 0.6 of what they were, because each column now carries 0.6
 // of the cards: the keyframe travels half the column, so a shorter column at
 // the old duration would drift visibly slower.
+//
+// Each column also walks the list with its own stride rather than taking a
+// run of it. Twelve in a row starting three apart means the next column over
+// is showing the same nine postings in the same order, and two columns
+// running the same sequence side by side is the one thing a reader notices
+// about a background. Every stride is coprime with twenty, so a column still
+// visits twelve different postings.
 const COLUMNS = [
-  { from: 0, dur: '31s', rev: false },
-  { from: 3, dur: '26s', rev: true },
-  { from: 7, dur: '35s', rev: false },
-  { from: 11, dur: '29s', rev: true },
-  { from: 14, dur: '33s', rev: false },
-  { from: 17, dur: '25s', rev: true },
+  { from: 0, step: 3, dur: '31s', rev: false },
+  { from: 5, step: 7, dur: '26s', rev: true },
+  { from: 11, step: 9, dur: '35s', rev: false },
+  { from: 2, step: 11, dur: '29s', rev: true },
+  { from: 16, step: 13, dur: '33s', rev: false },
+  { from: 8, step: 17, dur: '25s', rev: true },
 ];
 
 // How many of the twenty each column carries.
@@ -40,9 +47,9 @@ const COLUMNS = [
 // sees the seam.
 const PER_COLUMN = 12;
 
-// Rotated from the list's own start so the four columns do not read as one
-// list four times.
-const rotate = (arr, n) => [...arr.slice(n), ...arr.slice(0, n)];
+// Twelve postings, starting at `from` and stepping by `step`, wrapping round.
+const walk = (arr, from, step, n) =>
+  Array.from({ length: n }, (_, i) => arr[(from + i * step) % arr.length]);
 
 // `fill` is for the camera scene, where the wall is revealed through a hole
 // that grows to the whole window: at its own height it would open onto a band
@@ -58,9 +65,9 @@ export default function BoardWall({ fill = false }) {
         style={{ transform: 'translate(-50%, -50%)' }}
       >
         {COLUMNS.map((col) => {
-          const list = rotate(POSTINGS, col.from).slice(0, PER_COLUMN);
+          const list = walk(POSTINGS, col.from, col.step, PER_COLUMN);
           return (
-            <div key={col.from} className="tw:h-[130vh] tw:overflow-hidden">
+            <div key={`${col.from}-${col.step}`} className="tw:h-[130vh] tw:overflow-hidden">
               <div className={`l-col ${col.rev ? 'rev' : ''}`} style={{ '--l-dur': col.dur }}>
                 {/* Twice, so the loop has somewhere to land. */}
                 {[0, 1].map((copy) =>
