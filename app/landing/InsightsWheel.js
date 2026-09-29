@@ -112,7 +112,7 @@ export default function InsightsWheel() {
     return (
       <section id="insights" className="tw:flex tw:min-h-[100svh] tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-10 tw:px-6 tw:py-24">
         <header className="tw:max-w-3xl tw:text-center">
-          <p className="tw:m-0 tw:mb-6 tw:text-[clamp(0.95rem,1.4vw,1.1rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid">
+          <p className="tw:m-0 tw:mb-6 tw:text-[clamp(0.8rem,1.1vw,0.95rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid">
             Insights
           </p>
           <h2 className="tw:m-0 tw:font-[family-name:var(--landing-display)] tw:text-[clamp(1.9rem,5vw,3.4rem)] tw:font-bold tw:leading-[1.08] tw:tracking-[-0.03em] tw:text-balance tw:text-ink">
@@ -173,7 +173,7 @@ export default function InsightsWheel() {
                 rather than as a caption that lost its picture. */}
             <motion.p
               style={{ opacity: kickOpacity, x: kickX }}
-              className="tw:m-0 tw:mb-7 tw:text-[clamp(0.95rem,1.4vw,1.1rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid"
+              className="tw:m-0 tw:mb-7 tw:text-[clamp(0.8rem,1.1vw,0.95rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid"
             >
               Insights
             </motion.p>
