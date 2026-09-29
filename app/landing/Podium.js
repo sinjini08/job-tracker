@@ -35,10 +35,23 @@ const BASE = STAGE.h;
 const COL_X = { 1: 136, 2: 12, 3: 260 };
 const PLINTH = { 1: 176, 2: 130, 3: 96 };
 
-// Top to bottom on the leaderboard: first, second, third.
-const ROW_Y = { 1: 58, 2: 132, 3: 206 };
+// Top to bottom on the leaderboard: first, second, third. The row is about
+// 36 tall, so 62 apart leaves a clear gap without the three of them drifting
+// to opposite ends of a card.
+const ROW_Y = { 1: 64, 2: 126, 3: 188 };
+
+// The row, across: numeral, face, name and score, then the bar. Fixed
+// columns, because three rows that each place their own pieces are three
+// rows that do not line up.
+const ROW = { num: 14, face: 44, label: 92, labelW: 88, track: 192, trackW: 176, barY: 21, barH: 11 };
 
 const PEAK = 46;
+
+// The leaderboard's bars are the app's green, the same for everyone, against
+// a track that is the same length for everyone. The medal colours belong to
+// the podium and arrive with it: a board that is already gold, silver and
+// bronze has given away where it is going.
+const GREEN = '#1d5c36';
 
 const PLACES = [
   {
@@ -140,7 +153,7 @@ function Confetti() {
 // element whose position and size are read off the same 0-to-1: at 0 it is
 // where the leaderboard puts it, at 1 where the podium does, and in between
 // it is on its way.
-function Place({ place, progress }) {
+function Place({ place, progress, cardOpacity }) {
   const raw = useTransform(progress, place.morph, [0, 1], { clamp: true });
   // One eased clock for everything that travels, so the whole row leaves and
   // lands together instead of each piece easing on its own.
@@ -154,51 +167,73 @@ function Place({ place, progress }) {
   const h = PLINTH[place.rank];
   const top = BASE - h;
   // A bar as long as the score, against the best score on the board.
-  const barW = 24 + 158 * (place.pts / PEAK);
+  const barW = ROW.trackW * (place.pts / PEAK);
 
-  const barX = useLerp(196, colX);
+  const barX = useLerp(ROW.track, colX);
   const barW$ = useLerp(barW, COL);
   const barTopR = useLerp(6, 14);
   const barBottomR = useLerp(6, 0);
+
+  // Green on the board, medal on the plinth, crossed over while the bar is
+  // in the air. Two layers rather than one animated colour, because the
+  // plinth's fill is a gradient and there is no half-way between a flat
+  // colour and a gradient.
+  const greenOut = useTransform(raw, [0.18, 0.58], [1, 0]);
+  const medalIn = useTransform(raw, [0.18, 0.58], [0, 1]);
 
   // The plinth overshoots its height and settles back. Read off the raw
   // clock rather than the eased one, because the eased one is already past
   // 0.85 by the time the bar is halfway there and the bounce would happen
   // before the travel does.
-  const barH = useTransform(raw, [0, 0.82, 1], [11, h * 1.05, h], { ease: TRAVEL });
+  const barH = useTransform(raw, [0, 0.82, 1], [ROW.barH, h * 1.05, h], { ease: TRAVEL });
   // Whatever the height is doing, the foot of the plinth stays on the floor.
   // Worked out from the height rather than tweened alongside it, so the two
   // cannot disagree by a pixel mid-flight.
-  const barY = useTransform([p, barH], ([t, hh]) => (1 - t) * (rowY + 22) + t * (BASE - hh));
+  const barY = useTransform([p, barH], ([t, hh]) => (1 - t) * (rowY + ROW.barY) + t * (BASE - hh));
 
   // The face hops: up past its landing spot, then down onto the plinth.
-  const avX = useLerp(34, colX + (COL - 46) / 2);
-  const avY = useTransform(p, [0, 0.74, 1], [rowY + 11, top - 112, top - 94]);
+  const avX = useLerp(ROW.face, colX + (COL - 46) / 2);
+  const avY = useTransform(p, [0, 0.74, 1], [rowY + 1, top - 112, top - 94]);
   const avScale = useLerp(0.72, 1);
 
-  const labX = useLerp(72, colX);
-  const labY = useTransform(p, [0, 0.74, 1], [rowY + 9, top - 62, top - 46]);
+  const labX = useLerp(ROW.label, colX);
+  const labW = useLerp(ROW.labelW, COL);
+  const labY = useTransform(p, [0, 0.74, 1], [rowY - 1, top - 62, top - 46]);
+  // Ranged left beside a face, centred over a plinth. It snaps rather than
+  // tweens, because there is no half of an alignment, and it snaps in the
+  // middle of the flight where nothing is settled enough to notice.
+  const labAlign = useTransform(raw, (v) => (v < 0.5 ? 'left' : 'center'));
 
   // The numeral is doing two jobs, small beside a row and large on a plinth,
   // and the in-between sizes are neither. It dips out of sight for the
   // crossing and comes back as the other one.
-  const numX = useLerp(6, colX);
-  const numY = useLerp(rowY + 16, BASE - 37);
-  const numW = useLerp(26, COL);
+  const numX = useLerp(ROW.num, colX);
+  const numY = useLerp(rowY + 8, BASE - 37);
+  const numW = useLerp(20, COL);
   const numScale = useLerp(0.62, 1);
   const numOpacity = useTransform(raw, [0, 0.28, 0.72, 1], [1, 0.08, 0.08, 1]);
 
   return (
     <>
+      {/* The track behind the bar. It belongs to the board, so it goes when
+          the board does. */}
+      <motion.div
+        aria-hidden
+        style={{ opacity: cardOpacity, left: ROW.track, top: rowY + ROW.barY, width: ROW.trackW, height: ROW.barH }}
+        className="tw:absolute tw:rounded-full tw:bg-sand"
+      />
+
       <motion.div
         style={{
           x: barX, y: barY, width: barW$, height: barH,
           borderTopLeftRadius: barTopR, borderTopRightRadius: barTopR,
           borderBottomLeftRadius: barBottomR, borderBottomRightRadius: barBottomR,
-          background: place.bg,
         }}
         className="tw:absolute tw:left-0 tw:top-0"
-      />
+      >
+        <motion.i style={{ opacity: greenOut, background: GREEN, borderRadius: 'inherit' }} className="tw:absolute tw:inset-0 tw:block" />
+        <motion.i style={{ opacity: medalIn, background: place.bg, borderRadius: 'inherit' }} className="tw:absolute tw:inset-0 tw:block" />
+      </motion.div>
 
       <motion.div style={{ x: numX, y: numY, width: numW, scale: numScale, opacity: numOpacity }} className="tw:absolute tw:left-0 tw:top-0 tw:origin-top-left">
         <span className="tw:block tw:text-center tw:text-[19px] tw:font-bold" style={{ color: place.ink }}>
@@ -224,7 +259,7 @@ function Place({ place, progress }) {
           three letters each, so a centred block reads as left-aligned in the
           row and as centred on the plinth, and nothing has to change
           alignment mid-flight. */}
-      <motion.div style={{ x: labX, y: labY, width: COL }} className="tw:absolute tw:left-0 tw:top-0 tw:text-center">
+      <motion.div style={{ x: labX, y: labY, width: labW, textAlign: labAlign }} className="tw:absolute tw:left-0 tw:top-0">
         <p className={`tw:m-0 tw:text-[12.5px] tw:font-semibold ${place.me ? 'tw:text-brand' : 'tw:text-ink'}`}>
           {place.name}
           {place.streak && <span className="tw:ml-1 tw:text-[10px] tw:font-normal tw:text-muted">{place.streak}</span>}
@@ -261,6 +296,11 @@ export default function Podium() {
 
   const cardOpacity = useTransform(progress, CARD_OUT, [1, 0]);
   const floor = useTransform(progress, [0.62, 0.84], [0, 1]);
+  // The cup is mounted for good once it has been won, but it only shows
+  // while the podium is standing. Scrolled back to the board it fades out
+  // with it, rather than hanging over a list of rows it has nothing to do
+  // with.
+  const cupOpacity = useTransform(progress, [PARTY_AT - 0.08, PARTY_AT], [0, 1]);
   // The caption is about the gap between first and second, and there is no
   // gap to talk about until both are standing.
   const capOpacity = useTransform(progress, [0.74, 0.88], [0, 1]);
@@ -311,10 +351,10 @@ export default function Podium() {
                 to go on a podium, so it is the one piece that fades. */}
             <motion.div
               style={reduced ? { opacity: 0 } : { opacity: cardOpacity }}
-              className="tw:absolute tw:inset-x-0 tw:top-[46px] tw:h-[232px] tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
+              className="tw:absolute tw:inset-x-0 tw:top-[42px] tw:h-[198px] tw:rounded-2xl tw:border tw:border-line tw:bg-white tw:shadow-xl tw:shadow-ink/5"
               aria-hidden
             />
-            {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} />)}
+            {PLACES.map((place) => <Place key={place.name} place={place} progress={progress} cardOpacity={cardOpacity} />)}
 
             {/* The floor. Three blocks hanging in paper are three blocks; a
                 line under them is a podium. It draws outwards from the
@@ -336,9 +376,12 @@ export default function Podium() {
                 outer one holds the position and the inner one does the
                 popping. */}
             {party && !reduced && (
-              <div
+              <motion.div
                 className="tw:absolute tw:left-0 tw:top-0 tw:flex tw:w-[108px] tw:justify-center"
-                style={{ transform: `translate(${COL_X[1]}px, ${BASE - PLINTH[1] - 124}px)` }}
+                style={{
+                  opacity: cupOpacity,
+                  transform: `translate(${COL_X[1]}px, ${BASE - PLINTH[1] - 124}px)`,
+                }}
               >
                 <motion.span
                   initial={{ opacity: 0, scale: 0.4, y: 12 }}
@@ -348,7 +391,7 @@ export default function Podium() {
                 >
                   <Trophy />
                 </motion.span>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
