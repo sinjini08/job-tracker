@@ -43,7 +43,23 @@ const MAX = 3.7;
 
 // Long enough to read as a move rather than a jump, short enough that nobody
 // wonders whether the page has stopped working.
-const SCENE_VH = 300;
+//
+// 264 rather than 300, because the last 56vh of the old one was pinned with
+// nothing happening in it at all: the second headline had finished arriving
+// and there was still half a screen of scroll before the page would move.
+// Every beat below is written in viewport heights of scroll and is at the
+// same place it was; only the tail is gone.
+const SCENE_VH = 264;
+
+// The screen is pinned for everything past its own height.
+const SPAN = SCENE_VH - 100;
+
+// Beats are given in viewport heights into the pin and turned into fractions
+// here, so the numbers above read as scroll distance rather than as a share
+// of however long the section happens to be. Changing SCENE_VH moves the
+// tail and leaves the beats where they are, which is the only edit anyone is
+// likely to want.
+const at = (vh) => vh / SPAN;
 
 export default function DeskScene() {
   const wrap = useRef(null);
@@ -95,19 +111,20 @@ export default function DeskScene() {
     return () => v.removeEventListener('timeupdate', stop);
   }, [reduced]);
 
-  // Four beats, a quarter of the scene each, so each one is its own scroll
-  // rather than everything sliding at once:
+  // Four beats, in viewport heights of scroll:
   //
-  //   0.00 - 0.40  the room, then the push
-  //   0.40 - 0.60  the wall on its own, saying nothing
-  //   0.60 - 0.72  the words fade in
-  //   0.72 - 1.00  nothing moves at all
+  //     0 - 10vh    the room, held. The clip plays and freezes.
+  //    10 - 34vh    the first headline lifts away
+  //    16 - 80vh    the push into the screen
+  //    32 - 72vh    the room fades and blurs out behind it
+  //    80 - 120vh   the wall on its own, saying nothing
+  //   120 - 144vh   the words fade in
+  //   144 - 164vh   held, then the page moves on
   //
-  // That last quarter is the point of the arrangement. Nothing on screen
-  // changes through it, so the words are read standing still and the next
-  // scroll is what carries the page on, rather than something that happens
-  // while they are still being read.
-  const scale = useTransform(scrollYProgress, [0.08, 0.4], [1, MAX]);
+  // The last 20vh is a landing, not a wait: enough to read the line standing
+  // still, and the next scroll carries the page on rather than something
+  // happening while it is still being read.
+  const scale = useTransform(scrollYProgress, [at(16), at(80)], [1, MAX]);
 
   // The hole is a box that grows, not a clip-path that is recomputed.
   //
@@ -126,17 +143,17 @@ export default function DeskScene() {
   // the clip is 720p, so past about 2.5x it is visibly soft, and the fade and
   // the blur are what carry it out before that shows. It also softens as it
   // goes, which is what a camera does and a scale on its own does not.
-  const roomFade = useTransform(scrollYProgress, [0.16, 0.36], [1, 0]);
-  const roomBlur = useTransform(scrollYProgress, [0.16, 0.36], ['blur(0px)', 'blur(7px)']);
+  const roomFade = useTransform(scrollYProgress, [at(32), at(72)], [1, 0]);
+  const roomBlur = useTransform(scrollYProgress, [at(32), at(72)], ['blur(0px)', 'blur(7px)']);
 
-  const headOne = useTransform(raw, [0, 0.05, 0.17], [1, 1, 0]);
-  const headOneY = useTransform(raw, [0.05, 0.17], [0, -28]);
+  const headOne = useTransform(raw, [0, at(10), at(34)], [1, 1, 0]);
+  const headOneY = useTransform(raw, [at(10), at(34)], [0, -28]);
   // The wall gets a beat to itself before this. That beat is the volume;
   // words over it straight away would explain it before it has been felt.
   // Fades, and does not move. Type sliding up while the page is being
   // scrolled up reads as the page shifting under you rather than as words
   // arriving, which is exactly what it should not do here.
-  const headTwo = useTransform(raw, [0.6, 0.72], [0, 1]);
+  const headTwo = useTransform(raw, [at(120), at(144)], [0, 1]);
 
   // No camera for anyone who asked for less motion: the room, then the wall
   // with its headline, as two plain sections.
