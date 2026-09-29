@@ -17,14 +17,28 @@ import { POSTINGS } from './postings-data';
 // Six of them, so the wall reaches the edges of a wide window instead of
 // leaving paper down both sides. Offsets are spread across the twenty
 // postings and no two speeds match, so the columns never line up into rows.
+//
+// Durations are 0.6 of what they were, because each column now carries 0.6
+// of the cards: the keyframe travels half the column, so a shorter column at
+// the old duration would drift visibly slower.
 const COLUMNS = [
-  { from: 0, dur: '52s', rev: false },
-  { from: 3, dur: '44s', rev: true },
-  { from: 7, dur: '58s', rev: false },
-  { from: 11, dur: '48s', rev: true },
-  { from: 14, dur: '55s', rev: false },
-  { from: 17, dur: '41s', rev: true },
+  { from: 0, dur: '31s', rev: false },
+  { from: 3, dur: '26s', rev: true },
+  { from: 7, dur: '35s', rev: false },
+  { from: 11, dur: '29s', rev: true },
+  { from: 14, dur: '33s', rev: false },
+  { from: 17, dur: '25s', rev: true },
 ];
+
+// How many of the twenty each column carries.
+//
+// It used to be all of them, twice, which is 240 posting cards and 6,800 DOM
+// nodes for one background. Measured: that wall cost the whole page about
+// twenty frames a second, in every section, because it stays mounted the
+// whole way down. A column's window is 130vh and twelve cards is nearly
+// three times that, so the loop still has plenty to land on and no reader
+// sees the seam.
+const PER_COLUMN = 12;
 
 // Rotated from the list's own start so the four columns do not read as one
 // list four times.
@@ -44,7 +58,7 @@ export default function BoardWall({ fill = false }) {
         style={{ transform: 'translate(-50%, -50%)' }}
       >
         {COLUMNS.map((col) => {
-          const list = rotate(POSTINGS, col.from);
+          const list = rotate(POSTINGS, col.from).slice(0, PER_COLUMN);
           return (
             <div key={col.from} className="tw:h-[130vh] tw:overflow-hidden">
               <div className={`l-col ${col.rev ? 'rev' : ''}`} style={{ '--l-dur': col.dur }}>

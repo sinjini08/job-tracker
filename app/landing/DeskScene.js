@@ -4,6 +4,7 @@ import { motion, useReducedMotion, useSpring, useTransform } from 'motion/react'
 import { useEffect, useRef } from 'react';
 import BoardWall from './BoardWall';
 import { byId } from './copy';
+import useOnScreen from './useOnScreen';
 import useSceneProgress from './useSceneProgress';
 
 // Sections one and two, as one camera move.
@@ -51,6 +52,13 @@ export default function DeskScene() {
   const two = byId('pileup');
 
   const raw = useSceneProgress(wrap);
+
+  // Once the scene is a screen away, stop rendering it. The wall inside it is
+  // the bulk of this page's DOM and it animates continuously, so left alone
+  // it goes on being laid out and painted behind every section below, for a
+  // picture that is three sections back. content-visibility rather than
+  // display, so the block keeps its height and nothing below it moves.
+  const onScreen = useOnScreen(wrap);
 
   // Wheels and trackpads deliver scroll in lumps, and a transform driven
   // straight off them steps rather than moves. The spring rides over the
@@ -136,7 +144,10 @@ export default function DeskScene() {
 
   return (
     <div ref={wrap} id="everywhere" style={{ height: `${SCENE_VH}vh` }} className="tw:relative">
-      <div className="tw:sticky tw:top-0 tw:h-[100svh] tw:w-full tw:overflow-hidden tw:bg-paper">
+      <div
+        className="tw:sticky tw:top-0 tw:h-[100svh] tw:w-full tw:overflow-hidden tw:bg-paper"
+        style={{ contentVisibility: onScreen ? 'visible' : 'hidden' }}
+      >
         {/* The artwork box: the image's own proportions, sized to cover the
             window, centred. Everything else is a percentage of this, which is
             what keeps the hole on the bezel at any size. */}

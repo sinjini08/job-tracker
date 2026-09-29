@@ -89,6 +89,15 @@
 }
 .l-col.rev { animation-direction: reverse; }
 
+/* Each card is skipped while it is outside its column's window.
+ *
+ * Only three or four of a column's twelve are ever on screen, and the other
+ * eight were being laid out and painted on every frame of a continuous
+ * animation. `auto` on the intrinsic size means the browser remembers the
+ * height it measured, so the column does not resize as cards come and go.
+ */
+.l-col > * { content-visibility: auto; contain-intrinsic-size: auto 230px; }
+
 /* A wall of moving cards is the worst thing on this page for anyone who has
    asked for less motion, so it simply stops. The content is identical. */
 @media (prefers-reduced-motion: reduce) {
