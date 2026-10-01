@@ -1,8 +1,11 @@
 node_modules/
 .next/
-.env
-.env.local
-.env*.local
+# Every dotenv variant, because .env.production and .env.development were not
+# covered and would have been committed the first time either was created.
+# .env.example is already tracked and is placeholders only; the negation keeps
+# it that way.
+.env*
+!.env.example
 .vercel
 .DS_Store
 
