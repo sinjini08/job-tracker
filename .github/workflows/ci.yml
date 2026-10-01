@@ -1,0 +1,39 @@
+# What a green check here means.
+#
+#   lint      no errors (warnings are allowed and there are some)
+#   test      the unit suite, and `pretest` first, which fails the run if the
+#             extension's copy of the extractor has drifted from lib/
+#   extract   the extractor still agrees with the saved postings in
+#             scripts/fixtures, field by field
+#
+# No build step and no deploy. Vercel builds every push already, so repeating
+# it here would only mean waiting twice to find out the same thing.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly what the lock
+      # file says, so a run that passes here is a run against the same tree
+      # anyone else would get.
+      - run: npm ci
+
+      - run: npm run lint
+
+      # `npm test` runs `pretest` on its own, so the drift guard is covered.
+      - run: npm test
+
+      - run: npm run extract
