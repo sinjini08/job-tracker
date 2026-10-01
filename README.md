@@ -1,135 +1,142 @@
 # Job Application Tracker
 
-An Excel-style tracker for students' on-campus and off-campus job applications,
-with charts, read-only share links, and a personal Claude connector that fills it
-in from job postings.
+A job search tracker for students. Live at **[myjobtracker.co](https://myjobtracker.co)**.
 
-- **Accounts:** Clerk handles sign-in (Google, Microsoft, or an emailed code), so
-  there are no passwords to store and no email service to run.
-- **Private by default:** each student sees only their own applications. The
-  database enforces this with row-level security, not just the website.
-- **The sheet:** On-Campus and Off-Campus tabs. Click a cell and type. Click a
-  row number to see the saved job description and the application's history.
-- **Charts:** headline numbers, how far applications get, applications per week,
-  and breakdowns by status, source and category.
-- **Sharing:** a student can create a read-only link (for a career advisor or a
-  friend) and turn it off at any time.
-- **Claude:** students add one connector URL (`/api/mcp`) and approve it with a
-  sign-in and consent screen — OAuth 2.1, no secret to copy. Claude can then add jobs
-  from pasted postings, update statuses, and answer questions about that student's
-  stats, and it only ever sees that student's data. Connections are listed and
-  revocable in Settings.
+A job search generates a lot of small facts: where you applied, what the pay
+was, who replied, what you said you would follow up on. Spreadsheets hold them
+badly and job boards do not hold them at all. This holds them, and tries never
+to make you type one twice.
 
-```
-Student ──sign in (Clerk)──────► Website ──(their session, RLS)──► Supabase
-Student's Claude ──OAuth──► /api/mcp (bearer token, scoped to them) ────┘
-Advisor ──share link──► /s/<token> (read-only) ─────────────────────────┘
-```
+## Three ways a posting gets in
 
----
+1. **The Chrome extension.** One click on a posting reads the role, company,
+   location, pay and work mode off the page and saves the row.
+   [Published to the Chrome Web Store](https://chromewebstore.google.com/detail/bnmemnhbjchapcpjkdlncfghhmgnpmdo),
+   Manifest V3, nine applicant tracking systems: LinkedIn, Indeed, Greenhouse,
+   Lever, Workday, Ashby, Handshake, Glassdoor and ZipRecruiter.
+2. **An AI assistant.** The tracker is an MCP server behind its own OAuth 2.0
+   authorization server, so you can paste a posting into a chat you were having
+   anyway and say you applied.
+3. **By hand**, in a sheet that behaves like a spreadsheet.
 
-## Setup (for whoever runs the site)
+Then it tells you what the numbers say, and a friends league gives you a reason
+to come back tomorrow.
 
-### 1. Supabase (database)
+## Architecture
 
-1. Create a project at https://supabase.com.
-2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql), then each file in
-   [`supabase/migrations/`](supabase/migrations) in order.
-
-### 2. Clerk (sign-in)
-
-1. Create an application at https://dashboard.clerk.com and enable the sign-in
-   methods you want (Google, Microsoft, email code).
-2. In Clerk, open **Configure → Integrations** and enable **Supabase**. Copy the
-   Clerk domain it shows.
-3. In Supabase, open **Authentication → Sign In / Providers → Third-Party Auth**,
-   add **Clerk**, and paste that domain. Row-level security then reads the Clerk
-   user id from the session token (`auth.jwt()->>'sub'`).
-4. For real users, switch Clerk from its Development instance to **Production**,
-   which needs a domain you own.
-
-### 3. Vercel
-
-Import the repo and add these environment variables:
-
-| Name | Where to find it |
+| | |
 |---|---|
-| `SUPABASE_URL` | Supabase → Project Settings → Data API → Project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | Supabase → API Keys → publishable key (`sb_publishable_…`), safe to expose |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → API Keys → secret key (`sb_secret_…`), **server-only** |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk → Configure → API keys (`pk_…`), safe to expose |
-| `CLERK_SECRET_KEY` | Clerk → Configure → API keys (`sk_…`), **server-only** |
+| App | Next.js 16, React 19, JavaScript, deployed on Vercel |
+| Data | PostgreSQL on Supabase, 12 tables, 27 migrations |
+| Auth | Clerk for people, a self-hosted OAuth 2.0 server for machines |
+| Extension | Manifest V3, vanilla JS, extractor synced from `lib/` |
+| Tests | `node scripts/*.mjs`, no framework |
 
-On the free Vercel plan, commits must be authored by the email address linked to
-the GitHub account that owns the Vercel project. Otherwise the deploy is blocked.
+```
+Chrome extension ─┐
+AI assistant ─────┼─→ Next.js route handlers ─→ Supabase (RLS) ─→ Postgres
+The sheet ────────┘                                    │
+                                                 security-definer
+                                                 functions for the
+                                                 only cross-user reads
+```
 
-### 4. Local development
+## The security model
+
+Three layers, and the third is the one worth reading.
+
+**Row-level security on the tables.** 25 policies. Every read and write is
+scoped to the account that made it, in the database rather than in route code,
+so a missing `where` clause in an API handler cannot leak a row.
+
+**Security-definer functions for the one place data must cross accounts.** A
+league is the only feature where you see anything of another person's. Those
+reads go through Postgres functions (`league_history`, `league_months`,
+`league_settle`, `is_league_member`) that check membership themselves. No
+endpoint reads another user's rows directly.
+
+**And the part that is structural rather than enforced:** the points ledger
+stores no company, role, pay or link. It holds a user, a date, an event type
+and a number. So a leaderboard read cannot leak where you applied, not because
+the API filters it out but because the data is not in the table. That property,
+and not the code in front of it, is what makes the leak impossible.
+
+## MCP and OAuth
+
+The tracker speaks [MCP](https://modelcontextprotocol.io) at `/api/mcp`, with
+seven tools: `list_applications`, `get_application`, `add_application`,
+`update_application`, `add_history_note`, `delete_application` and `get_stats`.
+
+Connecting an assistant needed a full authorization server, not an API key:
+
+- `/.well-known/oauth-authorization-server` and
+  `/.well-known/oauth-protected-resource` for discovery (RFC 8414, RFC 9728)
+- `/oauth/register` for dynamic client registration (RFC 7591), because an
+  assistant arrives without credentials
+- `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`, with PKCE
+- `oauth_clients`, `oauth_codes` and `oauth_tokens` in the schema, and a
+  cleanup function for expired grants
+
+The result is that you authorize an assistant the same way you authorize any
+app, from a consent screen you can revoke later, rather than by pasting a
+long-lived secret into a chat window.
+
+## Design decisions
+
+**The points ledger holds no company or role.** Covered above. It is the
+decision this project is proudest of, because it moves a privacy guarantee out
+of code that can be wrong and into a schema that cannot.
+
+**The extension asks for `activeTab` and `scripting`, not host permissions.**
+It therefore cannot read any page until you click its icon on that page. The
+cost is that it cannot watch tabs in the background. That was the right trade
+for an extension whose users are handing it their job search.
+
+**Point values live in a table, not in code.** `applied` 1, `outreach` 1,
+`screening` 2, `assessment` 2, `interviewing` 3, `final round` 4, `offer` 5,
+`accepted` 8. Tuning the scale is an `UPDATE`, not a deploy, which matters
+because the right numbers are a question about people and were always going to
+need changing.
+
+**The daily target is a floor, not a race.** Anyone who clears 10 points has
+won the day. A single winner would have made the league a thing you lose at
+four days in five, and the point is to make the work feel lighter rather than
+heavier.
+
+**Bonuses apply to the month only.** Never to the day or the week, so a bonus
+can never decide who topped the day it was awarded for.
+
+**Duplicate detection compares job links, not company names.** People apply to
+several roles at one company, so "you already have Northwind" is wrong.
+Tracking parameters are stripped first, because the same posting arrives with
+different ones depending on where you found it.
+
+**The extension carries a copy of the extractor, and a guard against drift.**
+A Chrome extension cannot import from outside its own directory, and there is
+no bundler here for anything but Next, so `npm run ext:sync` copies the
+extractor from `lib/` into `extension/`. The copy is the risk: the tested
+extractor and the installed one could quietly become different code. So
+`ext:check` fails if they have drifted, and it runs as `pretest`, which npm
+invokes before `npm test`. A guard nobody has to remember to run is the only
+kind worth having.
+
+**The extractor is tested against frozen pages.** `scripts/fixtures` holds a
+saved posting per board. Expected values were read out of each page's own
+JSON-LD by hand, so a pass means the extractor agrees with the posting rather
+than with itself. See `scripts/fixtures/README.md`.
+
+## Running it
 
 ```bash
+cp .env.example .env.local   # Supabase, Clerk
 npm install
-cp .env.example .env.local   # fill in the three values
 npm run dev
 ```
 
----
+Then apply `supabase/migrations/*.sql` in order to a fresh Supabase project.
 
-## For students: using Claude with your tracker
-
-1. In Claude, go to **Settings → Connectors → Add custom connector**. Name it
-   **Job Tracker** and paste `https://<your-site>/api/mcp`. In Claude Code, run
-   `claude mcp add --transport http job-tracker https://<your-site>/api/mcp`.
-2. Click **Connect**. You'll be sent to the tracker to sign in and approve, then
-   back to Claude. Nothing to copy, and you can disconnect any time in
-   **Settings → Connected apps**.
-3. Optional but recommended: add the skill in
-   [`claude-skill/job-tracker/`](claude-skill/job-tracker/SKILL.md). It teaches Claude
-   the whole routine: read the posting, ask only about the gaps, confirm, then
-   save. In Claude, zip the folder and go to **Settings → Capabilities → Skills →
-   Upload**. In Claude Code, copy the folder to `~/.claude/skills/`.
-4. Paste a job posting and say *"I'm applying to this."*
-
-Tools that can't sign in can still use a personal link (**Settings → Connect Claude →
-Show the old-style link**). That link works like a password, so prefer OAuth.
-
----
-
-## How access is enforced
-
-| Path | Who | How |
-|---|---|---|
-| Website and `/api/*` | the signed-in student | Clerk session. Supabase queries carry the Clerk token, so RLS matches `auth.jwt()->>'sub'` to `user_id` |
-| `/s/<token>` and `/api/share/<token>/*` | anyone with the share link | read-only routes. The server looks up the owner and reads only their rows |
-| `/api/mcp` | the student's Claude (OAuth) | bearer access token, hashed at rest, 1-hour expiry with refresh; PKCE required, codes single-use, replay revokes the connection |
-| `/api/mcp/<token>` | tools that can't sign in | personal link; the token is stored only as a SHA-256 hash |
-
-Every database call goes through `storeFor(client, userId)` in `lib/db.js`, which
-filters every query by `user_id`. For the signed-in path, RLS enforces the same
-rule a second time. Deleting an account (Settings → Account) removes all of that
-student's data: their rows cascade from the profile row, and the Clerk user is
-deleted through Clerk's API.
-
-## Project layout
-
-```
-app/
-  page.js, Sheet.js, Drawer.js, Charts.js   the spreadsheet and the Charts tab
-  sign-in/, sign-up/                        Clerk sign-in and sign-up
-  settings/                                 connector link, share link, account
-  s/[token]/                                read-only shared view
-  api/applications/…, api/events            signed-in JSON API
-  api/share/[token]/…                       read-only JSON API for share links
-  api/mcp/                                  the Claude connector (MCP), OAuth-protected
-  api/mcp/[token]/                          same tools via a personal link
-  oauth/                                    authorize + consent, token, register, revoke
-  .well-known/                              OAuth metadata MCP clients look for
-lib/
-  db.js            per-user data access (the one place queries are built)
-  auth.js          sessions, share and connector token lookups
-  mcp-tools.js     the connector's tools
-  oauth.js         the OAuth 2.1 authorization server (clients, codes, tokens)
-  stats.js         numbers behind Charts, shared with the get_stats tool
-  fields.js        columns and dropdown options
-proxy.js           Clerk middleware; sends signed-out visitors to /sign-in
-supabase/          schema.sql and migrations/
-claude-skill/      the Claude skill
+```bash
+npm test       # unit tests
+npm run extract  # extractor accuracy against the fixtures
+npm run lint
 ```
