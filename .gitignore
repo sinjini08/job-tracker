@@ -15,3 +15,9 @@ app/dev-preview/
 .claude/
 dist/
 public/_shot/
+
+# Instructions for AI assistants working in this repo. Kept on disk, out of
+# the history: they are notes to a tool, not part of the project, and nothing
+# in them would mean anything to someone reading the code.
+AGENTS.md
+CLAUDE.md
