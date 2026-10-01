@@ -7,6 +7,8 @@ was, who replied, what you said you would follow up on. Spreadsheets hold them
 badly and job boards do not hold them at all. This holds them, and tries never
 to make you type one twice.
 
+![The sheet](docs/sheet.jpg)
+
 ## Three ways a posting gets in
 
 1. **The Chrome extension.** One click on a posting reads the role, company,
@@ -21,6 +23,13 @@ to make you type one twice.
 
 Then it tells you what the numbers say, and a friends league gives you a reason
 to come back tomorrow.
+
+| | |
+|---|---|
+| ![Insights](docs/insights.jpg) | ![League](docs/league.jpg) |
+| Insights: reply rate by source, how far applications get, and where things stand | The league: a daily target anyone can clear, not a race with one winner |
+
+![The extension](docs/extension.jpg)
 
 ## Architecture
 
