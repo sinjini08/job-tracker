@@ -7,7 +7,7 @@ was, who replied, what you said you would follow up on. Spreadsheets hold them
 badly and job boards do not hold them at all. This holds them, and tries never
 to make you type one twice.
 
-![The sheet](docs/sheet.jpg)
+![The sheet](docs/sheet.png)
 
 ## Three ways a posting gets in
 
@@ -16,6 +16,11 @@ to make you type one twice.
    [Published to the Chrome Web Store](https://chromewebstore.google.com/detail/bnmemnhbjchapcpjkdlncfghhmgnpmdo),
    Manifest V3, nine applicant tracking systems: LinkedIn, Indeed, Greenhouse,
    Lever, Workday, Ashby, Handshake, Glassdoor and ZipRecruiter.
+   <img src="docs/extension.png" alt="The extension popup" width="330">
+
+   CHECK marks the fields the extractor worked out rather than read off the
+   page, so you know which ones to glance at before saving.
+
 2. **An AI assistant.** The tracker is an MCP server behind its own OAuth 2.0
    authorization server, so you can paste a posting into a chat you were having
    anyway and say you applied.
@@ -24,12 +29,23 @@ to make you type one twice.
 Then it tells you what the numbers say, and a friends league gives you a reason
 to come back tomorrow.
 
-| | |
-|---|---|
-| ![Insights](docs/insights.jpg) | ![League](docs/league.jpg) |
-| Insights: reply rate by source, how far applications get, and where things stand | The league: a daily target anyone can clear, not a race with one winner |
+Open a row and the rest of it is there: the fields that do not fit on a line,
+who you reached out to and when, and every status change since you saved it.
 
-![The extension](docs/extension.jpg)
+![A row opened](docs/row.png)
+
+### What it tells you
+
+Reply rate by where you found the job, how far applications get, when you
+applied, and what every row is doing right now.
+
+![Insights](docs/insights.png)
+
+### The league
+
+A daily target anyone can clear rather than a race with one winner.
+
+![The league](docs/league.png)
 
 ## Architecture
 
@@ -85,6 +101,8 @@ Connecting an assistant needed a full authorization server, not an API key:
 - `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`, with PKCE
 - `oauth_clients`, `oauth_codes` and `oauth_tokens` in the schema, and a
   cleanup function for expired grants
+
+![Connecting an assistant](docs/connect.png)
 
 The result is that you authorize an assistant the same way you authorize any
 app, from a consent screen you can revoke later, rather than by pasting a

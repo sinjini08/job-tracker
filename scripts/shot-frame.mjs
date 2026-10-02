@@ -18,6 +18,10 @@ const out = join(here, '..', 'public', '_shot');
 mkdirSync(out, { recursive: true });
 
 for (const f of ['popup.js', 'extract.js', 'iso-date.js']) copyFileSync(join(ext, f), join(out, f));
+// Not from the extension: the browser and the tracker, faked, so the real
+// popup can run in a plain page. Copied from scripts/ because this directory
+// is generated and gitignored, and the stub used to live only here.
+copyFileSync(join(here, 'chrome-stub.js'), join(out, 'chrome-stub.js'));
 copyFileSync(join(here, 'fixtures', 'linkedin.html'), join(out, 'linkedin.html'));
 
 const popupHtml = readFileSync(join(ext, 'popup.html'), 'utf8');
