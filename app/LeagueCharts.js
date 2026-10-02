@@ -31,6 +31,53 @@ export function seriesDates(length) {
 
 const fmtDay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
+// A curve through the points that never overshoots them: monotone cubic
+// (Fritsch-Carlson). See DayChart for why not Catmull-Rom. Takes pixel
+// coordinates, so any chart can lay its points out however it likes.
+function monotonePath(px, py) {
+  const n = px.length;
+  if (n === 0) return '';
+  if (n === 1) return `M${px[0].toFixed(1)},${py[0].toFixed(1)}`;
+
+  // Secant slope of each span.
+  const d = [];
+  for (let i = 0; i < n - 1; i += 1) d.push((py[i + 1] - py[i]) / (px[i + 1] - px[i]));
+
+  // Tangent at each point. Flat wherever the direction reverses, which is
+  // every peak and trough, and the average of the two spans elsewhere.
+  //
+  // Zeroing on a reversal is the part that actually prevents overshoot, and
+  // leaving it out is a quiet failure: the curve still looks smooth, it just
+  // sails past the data. With points at 5, 0, 5 the control points reached
+  // 12% above the highest day and below zero, so a chart of points per day
+  // showed a negative day.
+  const m = [d[0]];
+  for (let i = 1; i < n - 1; i += 1) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+
+  // Then the Fritsch-Carlson clamp, for spans where the averaged tangent is
+  // still too steep to stay between its own two points.
+  for (let i = 0; i < n - 1; i += 1) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }       // a flat span pins both ends flat
+    const a = m[i] / d[i];
+    const b = m[i + 1] / d[i];
+    const h = a * a + b * b;
+    if (h > 9) {
+      const t = 3 / Math.sqrt(h);
+      m[i] = t * a * d[i];
+      m[i + 1] = t * b * d[i];
+    }
+  }
+  let out = `M${px[0].toFixed(1)},${py[0].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i += 1) {
+    const dx = (px[i + 1] - px[i]) / 3;
+    out += ` C${(px[i] + dx).toFixed(1)},${(py[i] + m[i] * dx).toFixed(1)}`
+      + ` ${(px[i + 1] - dx).toFixed(1)},${(py[i + 1] - m[i + 1] * dx).toFixed(1)}`
+      + ` ${px[i + 1].toFixed(1)},${py[i + 1].toFixed(1)}`;
+  }
+  return out;
+}
+
 export default function DayChart({ series, target, title, subtitle, monthOnly = true }) {
   // No target passed (the personal chart) means no rule and no "won" tag.
   const showTarget = Number(target) > 0;
@@ -54,9 +101,17 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
     const ranked = [...withData].sort((a, b) =>
       (b.daily.slice(slice).reduce((t, n) => t + n, 0)) - (a.daily.slice(slice).reduce((t, n) => t + n, 0)));
     const shown = ranked.slice(0, MAX_SERIES);
-    const lines = shown.map((s, i) => ({
+    // Colour follows the person, never their rank: you are always the first
+    // colour, the brand green, and everyone else takes the rest in a fixed
+    // order of who they are. Coloured by rank, overtaking somebody repainted
+    // both of you, so nobody's line kept its colour from one day to the next.
+    const others = shown.filter((s) => !s.mine)
+      .sort((a, b) => String(a.key ?? a.label).localeCompare(String(b.key ?? b.label)));
+    const colour = new Map(shown.filter((s) => s.mine).concat(others)
+      .map((s, i) => [s, SERIES[i]]));
+    const lines = shown.map((s) => ({
       ...s,
-      color: SERIES[i],
+      color: colour.get(s),
       values: s.daily.slice(slice),
     }));
     // Yours last, so it draws over the others rather than under them.
@@ -64,6 +119,15 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
     const max = Math.max(showTarget ? target * 1.2 : 0, ...lines.flatMap((l) => l.values), 1);
     return { lines, dates, max, hidden: ranked.length - shown.length };
   }, [series, target, monthOnly, showTarget]);
+
+  // The league's month has its own layout (MonthChart, below). The rolling
+  // chart on Insights stays as it is.
+  if (monthOnly && lines.length && dates.length >= 1) {
+    return (
+      <MonthChart lines={lines} dates={dates} max={max} target={target}
+        showTarget={showTarget} title={title} subtitle={subtitle} hidden={hidden} gradId={gradId} />
+    );
+  }
 
   if (!lines.length || dates.length < 2) {
     return <p className="muted">No days to draw yet. Points show up here as you log applications.</p>;
@@ -88,58 +152,7 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   // points move the same way the curve stays between them, and where the
   // direction changes the tangent is flattened to zero, so every peak and
   // trough sits exactly on its own data point.
-  const curve = (values) => {
-    const n = values.length;
-    if (n === 0) return '';
-    const px = values.map((_, i) => x(i));
-    const py = values.map((v) => y(v));
-    if (n === 1) return `M${px[0].toFixed(1)},${py[0].toFixed(1)}`;
-
-    // Secant slope of each span.
-    const d = [];
-    for (let i = 0; i < n - 1; i += 1) d.push((py[i + 1] - py[i]) / (px[i + 1] - px[i]));
-
-    // Tangent at each point. Flat wherever the direction reverses, which is
-    // every peak and trough, and the average of the two spans elsewhere.
-    //
-    // Zeroing on a reversal is the part that actually prevents overshoot, and
-    // leaving it out is a quiet failure: the curve still looks smooth, it just
-    // sails past the data. With points at 5, 0, 5 the control points reached
-    // 12% above the highest day and below zero, so a chart of points per day
-    // showed a negative day.
-    const m = [d[0]];
-    for (let i = 1; i < n - 1; i += 1) {
-      m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
-    }
-    m.push(d[n - 2]);
-
-    // Then the Fritsch-Carlson clamp, for spans where the averaged tangent is
-    // still too steep to stay between its own two points.
-    for (let i = 0; i < n - 1; i += 1) {
-      if (d[i] === 0) {                       // a flat span pins both ends flat
-        m[i] = 0;
-        m[i + 1] = 0;
-        continue;
-      }
-      const a = m[i] / d[i];
-      const b = m[i + 1] / d[i];
-      const h = a * a + b * b;
-      if (h > 9) {
-        const t = 3 / Math.sqrt(h);
-        m[i] = t * a * d[i];
-        m[i + 1] = t * b * d[i];
-      }
-    }
-
-    let out = `M${px[0].toFixed(1)},${py[0].toFixed(1)}`;
-    for (let i = 0; i < n - 1; i += 1) {
-      const dx = (px[i + 1] - px[i]) / 3;
-      out += ` C${(px[i] + dx).toFixed(1)},${(py[i] + m[i] * dx).toFixed(1)}`
-        + ` ${(px[i + 1] - dx).toFixed(1)},${(py[i + 1] - m[i + 1] * dx).toFixed(1)}`
-        + ` ${px[i + 1].toFixed(1)},${py[i + 1].toFixed(1)}`;
-    }
-    return out;
-  };
+  const curve = (values) => monotonePath(values.map((_, i) => x(i)), values.map((v) => y(v)));
 
   const path = curve;
   const area = (values) =>
@@ -238,6 +251,184 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
       {hover != null && (
         <div className="chart-readout">
           <b>{fmtDay(dates[hover])}</b>
+          {lines.map((l) => (
+            <span key={l.key ?? l.label}>
+              <i style={{ background: l.color }} />{l.label}
+              <b>{l.values[hover] ?? 0}</b>
+              {showTarget && (l.values[hover] ?? 0) >= target && <em>won</em>}
+            </span>
+          ))}
+        </div>
+      )}
+      {hidden > 0 && <p className="league-fine">Showing the top {MAX_SERIES}. There are {hidden} more in the league.</p>}
+    </figure>
+  );
+}
+
+// The league's month, shaped like the trend chart on the landing page, in
+// each player's colour: evenly spaced day columns, a smooth line per player,
+// yours heavier with white dots, a soft fill and its latest value labelled,
+// and pale columns behind for the whole league's points that day.
+//
+// At least a week of columns. Laid out over only the days so far, the first
+// two days of a month stretched one change across the whole width; laid out
+// over the whole month, they were a sliver at the left. A week is the middle
+// way: early on the days so far sit in the first columns and the rest of the
+// week waits empty.
+//
+// Today is drawn as "so far", a dashed line into a hollow point and a faint
+// column, because a day still in progress at 0 is not a day of 0.
+//
+// Dots and the fill are yours alone, and everyone else's line is lighter.
+// Points per day jump about, and five lines each with a dot on every day was
+// a tangle; this way your month is the shape you read and theirs are context.
+function MonthChart({ lines, dates, max, target, showTarget, title, subtitle, hidden, gradId }) {
+  const [hover, setHover] = useState(null);
+  const svgRef = useRef(null);
+
+  const first = dates[0];
+  const year = first.getFullYear();
+  const month = first.getMonth();
+  const inMonth = new Date(year, month + 1, 0).getDate();
+  // The data may start after the 1st (a league made mid-month): day k of the
+  // data sits in column k + off.
+  const off = first.getDate() - 1;
+  const n = dates.length;
+  const today = n - 1;
+  const slots = Math.min(inMonth, Math.max(7, today + off + 1));
+
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+  const base = PAD.top + plotH;
+  const slotW = plotW / slots;
+  const cx = (slot) => PAD.left + (slot + 0.5) * slotW;
+  const y = (v) => PAD.top + plotH - (Math.min(v, max) / max) * plotH;
+  const dayAt = (slot) => new Date(year, month, slot + 1);
+  const todaySlot = today + off;
+
+  const mine = lines.find((l) => l.mine) ?? (lines.length === 1 ? lines[0] : null);
+
+  // Every column labelled while there are few, then about eight of them.
+  const every = Math.max(1, Math.ceil(slots / 8));
+  const ticks = Array.from({ length: slots }, (_, i) => i).filter((i) => i % every === 0);
+
+  // The backdrop: everybody's points that day, on its own scale, so the
+  // columns stay quiet under the lines rather than competing with them.
+  const totals = dates.map((_, k) => lines.reduce((t, l) => t + (l.values[k] ?? 0), 0));
+  const topTotal = Math.max(1, ...totals);
+  const colH = (v) => (v / topTotal) * plotH * 0.6;
+
+  const onMove = (e) => {
+    const box = svgRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const px = ((e.clientX - box.left) / box.width) * W;
+    const k = Math.floor((px - PAD.left) / slotW) - off;
+    setHover(k >= 0 && k < n ? k : null);
+  };
+
+  return (
+    <figure className="daychart">
+      {(title || subtitle) && (
+        <figcaption>
+          {title && <h4>{title}</h4>}
+          {subtitle && <p>{subtitle}</p>}
+        </figcaption>
+      )}
+      <div className="chart-legend">
+        {lines.map((l) => (
+          <span key={l.key ?? l.label}><i style={{ background: l.color }} />{l.label}</span>
+        ))}
+        <span><i className="legend-col" />everyone</span>
+        {showTarget && <span className="legend-rule"><i className="rule" />target {target}</span>}
+      </div>
+
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img"
+        onMouseMove={onMove} onMouseLeave={() => setHover(null)}
+        aria-label={`Points per day this month for ${lines.map((l) => l.label).join(', ')}`}>
+        <defs>
+          {mine && (
+            <linearGradient id={`fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mine.color} stopOpacity="0.20" />
+              <stop offset="100%" stopColor={mine.color} stopOpacity="0" />
+            </linearGradient>
+          )}
+        </defs>
+
+        {[0, 0.5, 1].map((f) => (
+          <line key={f} className="chart-grid" x1={PAD.left} x2={W - PAD.right}
+            y1={PAD.top + plotH * f} y2={PAD.top + plotH * f} />
+        ))}
+        {[0, Math.round(max / 2), Math.round(max)].map((v, i) => (
+          <text key={v + '-' + i} className="chart-axis" x={PAD.left - 8} y={y(v)} textAnchor="end" dominantBaseline="middle">{v}</text>
+        ))}
+
+        <rect className="chart-today" x={PAD.left + todaySlot * slotW} y={PAD.top} width={slotW} height={plotH} />
+
+        <g className="chart-rise" style={{ transformOrigin: `0px ${base}px` }}>
+          {totals.map((t, k) => t > 0 && (
+            <rect key={`col-${k}`} className="chart-col" x={cx(k + off) - Math.min(slotW * 0.42, 22)}
+              y={base - colH(t)} width={Math.min(slotW * 0.84, 44)} height={colH(t)} rx="3"
+              opacity={k === today ? 0.5 : 1} />
+          ))}
+          {mine && today > 1 && (
+            <path fill={`url(#fill-${gradId})`}
+              d={`${monotonePath(mine.values.slice(0, today).map((_, k) => cx(k + off)), mine.values.slice(0, today).map((v) => y(v)))}`
+                + ` L${cx(today - 1 + off).toFixed(1)},${base} L${cx(off).toFixed(1)},${base} Z`} />
+          )}
+
+          {showTarget && <line className="chart-target" x1={PAD.left} x2={W - PAD.right} y1={y(target)} y2={y(target)} />}
+
+          {/* Everyone else first, so yours is drawn over theirs. */}
+          {[...lines].sort((a, b) => Number(a === mine) - Number(b === mine)).map((l) => {
+            const past = l.values.slice(0, today);
+            const heavy = l === mine;
+            const lastX = cx(today - 1 + off);
+            const lastY = y(past[past.length - 1] ?? 0);
+            const last = past[past.length - 1];
+            return (
+              <g key={`l-${l.key ?? l.label}`} opacity={mine && !heavy ? 0.6 : 1}>
+                {past.length > 1 && (
+                  <path d={monotonePath(past.map((_, k) => cx(k + off)), past.map((v) => y(v)))} fill="none"
+                    stroke={l.color} strokeWidth={heavy ? 2.6 : 1.8}
+                    strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                )}
+                {past.length > 0 && (
+                  <line x1={lastX} y1={lastY} x2={cx(todaySlot)} y2={y(l.values[today] ?? 0)}
+                    stroke={l.color} strokeWidth="1.6" strokeDasharray="3 4" opacity="0.55" />
+                )}
+                {heavy && past.map((v, k) => (
+                  <circle key={k} cx={cx(k + off)} cy={y(v)} r={k === past.length - 1 ? 4.2 : 3}
+                    fill={k === past.length - 1 ? l.color : 'var(--viz-surface)'}
+                    stroke={l.color} strokeWidth="1.8" />
+                ))}
+                {!heavy && past.length === 1 && <circle cx={lastX} cy={lastY} r="2.6" fill={l.color} />}
+                {heavy && (
+                  <circle cx={cx(todaySlot)} cy={y(l.values[today] ?? 0)} r="3"
+                    fill="var(--viz-surface)" stroke={l.color} strokeWidth="1.6" strokeDasharray="2 2" />
+                )}
+                {heavy && past.length > 0 && (
+                  <text className="chart-label" x={lastX} y={lastY - 10} textAnchor="middle">
+                    {last} {last === 1 ? 'pt' : 'pts'}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+
+        {hover != null && (
+          <rect className="chart-hover" x={PAD.left + (hover + off) * slotW} y={PAD.top} width={slotW} height={plotH} />
+        )}
+
+        {ticks.map((t) => (
+          <text key={t} className="chart-axis" x={cx(t)} y={H - 8} textAnchor="middle"
+            opacity={t > todaySlot ? 0.45 : undefined}>{fmtDay(dayAt(t))}</text>
+        ))}
+      </svg>
+
+      {hover != null && (
+        <div className="chart-readout">
+          <b>{fmtDay(dates[hover])}{hover === today ? ' (so far)' : ''}</b>
           {lines.map((l) => (
             <span key={l.key ?? l.label}>
               <i style={{ background: l.color }} />{l.label}

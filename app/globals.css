@@ -945,14 +945,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Palette: validated with the dataviz skill's validator against #ffffff —
    categorical slots 1–2 (all checks pass) and a 5-step ordinal blue ramp. */
 .viz-root {
-  /* Series colours in fixed order, checked for colourblind separation against
-     the #f5f5f0 surface. 1 and 2 are On-Campus and Off-Campus; 3-5 are there
-     for the by-source and by-category charts. */
-  --series-1: #7c4dd8;
-  --series-2: #0f8f83;
-  --series-3: #d4741a;
-  --series-4: #c2358c;
-  --series-5: #2a6fd6;
+  /* Series colours: one per person on the league's charts (LeagueCharts.js),
+     in fixed order. Slot 1 is always you and is the brand green; the rest are
+     earthy hues picked to sit with it rather than fight it. Validated with the
+     dataviz skill's validator against #fcfcfb: lightness band, chroma floor,
+     colourblind separation between neighbours (worst 14.6, target 8) and
+     3:1 contrast all pass. Green and terracotta are not neighbours on
+     purpose: under protanopia they are 3.6 apart. The dark set below is the
+     same hues, validated the same way against #1d221f. */
+  --series-1: #2e7d46;
+  --series-2: #2f6f9f;
+  --series-3: #c0573a;
+  --series-4: #8a4f8d;
+  --series-5: #a87a12;
   /* Funnel: one hue, light to dark, ending past the logo green. Seven steps,
      one per pipeline stage (Applied … Accepted). */
   --ord-0: #eceee9;
@@ -985,11 +990,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
    for separation against white and lose most of it against #1d221f. */
 :root[data-theme="dark"] .viz-root,
 :root[data-theme="dark"] .charts {
-  --series-1: #a98af0;
-  --series-2: #3fc4b4;
-  --series-3: #f0954a;
-  --series-4: #ef72b8;
-  --series-5: #6aa7f5;
+  --series-1: #4c9e66;
+  --series-2: #5a8cc8;
+  --series-3: #cc6c4f;
+  --series-4: #a474c2;
+  --series-5: #b88d2c;
   --ord-0: #232a25;
   --ord-1: #196c36;
   --ord-2: #39804d;
@@ -1013,11 +1018,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .viz-root,
   :root:not([data-theme="light"]) .charts {
-    --series-1: #a98af0;
-    --series-2: #3fc4b4;
-    --series-3: #f0954a;
-    --series-4: #ef72b8;
-    --series-5: #6aa7f5;
+    --series-1: #4c9e66;
+    --series-2: #5a8cc8;
+    --series-3: #cc6c4f;
+    --series-4: #a474c2;
+    --series-5: #b88d2c;
     --ord-0: #232a25;
   --ord-1: #196c36;
     --ord-2: #39804d;
@@ -1640,11 +1645,6 @@ body:has(.login) { overflow: auto; }
 .league-board td.member { text-align: left; font-weight: 500; color: var(--viz-ink); }
 .league-board tr.me { background: var(--xl-green-tint); }
 .hidden-cell { color: var(--viz-base); cursor: help; }
-.league-board .trace-col { width: 78px; }
-.trace { display: flex; align-items: flex-end; gap: 1px; height: 18px; justify-content: flex-end; }
-.trace i { width: 4px; min-height: 1px; background: var(--ord-4); border-radius: 1px 1px 0 0; }
-.trace i.empty { height: 1px; background: var(--viz-grid); }
-.trace i.hit { background: var(--ord-6); }
 
 /* settings */
 .league-settings { display: flex; flex-direction: column; gap: 16px; }
@@ -1896,6 +1896,11 @@ body:has(.login) { overflow: auto; }
 .chart-axis { font-size: 10px; fill: var(--viz-muted); opacity: 0.75; }
 .chart-target { stroke: var(--viz-base); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .chart-cross { stroke: var(--viz-base); stroke-width: 1; }
+.chart-today { fill: var(--viz-ring); opacity: 0.35; }
+.chart-col { fill: var(--viz-ring); opacity: 0.75; }
+.chart-label { font-size: 11px; font-weight: 700; fill: var(--viz-ink); }
+.chart-legend .legend-col { border-radius: 2px; background: var(--viz-ring) !important; }
+.chart-hover { fill: var(--viz-ring); opacity: 0.5; }
 .chart-readout {
   display: flex;
   flex-wrap: wrap;

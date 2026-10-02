@@ -687,7 +687,6 @@ function StatsPanel({ rows, target, months, me }) {
               <th>Applied</th>
               <th>Interviews</th>
               <th>Offers</th>
-              <th className="trace-col" title="Points per day over the last two weeks">Last 2 weeks</th>
             </tr>
           </thead>
           <tbody>
@@ -704,36 +703,15 @@ function StatsPanel({ rows, target, months, me }) {
                 <td>{cell(row.applied_total)}</td>
                 <td>{cell(row.interviews)}</td>
                 <td>{cell(row.offers)}</td>
-                <td className="trace-col"><Trace daily={row.daily} target={target} /></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="league-fine">
-        A dot means that member shows points only. The trace is points per day over the last
-        fortnight against the {target} point target, so a full bar is a day they won.
+        A dot means that member shows points only.
       </p>
     </>
-  );
-}
-
-// The last fortnight of the daily series, drawn against the target: a bar that
-// reaches the top is a day won. Steady beats spiky, and a week's work done in
-// one evening looks like exactly that.
-function Trace({ daily, target }) {
-  if (!daily) return <span className="hidden-cell" title="This member shows points only">·</span>;
-  const last = daily.slice(-14);
-  const hit = last.filter((n) => n >= target).length;
-  const total = last.reduce((t, n) => t + n, 0);
-  return (
-    <span className="trace" title={`${total} points in the last 14 days · ${hit} ${hit === 1 ? 'day' : 'days'} won`}>
-      {last.map((n, i) => (
-        // A day with something on it must not look like a day with nothing.
-        <i key={i} className={n >= target ? 'hit' : n ? '' : 'empty'}
-           style={{ height: n ? `${Math.max(20, Math.min(100, (n / target) * 100))}%` : undefined }} />
-      ))}
-    </span>
   );
 }
 
