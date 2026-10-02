@@ -125,7 +125,7 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   if (monthOnly && lines.length && dates.length >= 1) {
     return (
       <MonthChart lines={lines} dates={dates} max={max} target={target}
-        showTarget={showTarget} title={title} subtitle={subtitle} hidden={hidden} gradId={gradId} />
+        showTarget={showTarget} title={title} subtitle={subtitle} hidden={hidden} />
     );
   }
 
@@ -265,69 +265,40 @@ export default function DayChart({ series, target, title, subtitle, monthOnly = 
   );
 }
 
-// The league's month, shaped like the trend chart on the landing page, in
-// each player's colour: evenly spaced day columns, a smooth line per player,
-// yours heavier with white dots, a soft fill and its latest value labelled,
-// and pale columns behind for the whole league's points that day.
+// The league's month as small multiples: one row per player, one vertical
+// bar per day of the month, every row on the same scale so heights compare
+// across rows.
 //
-// At least a week of columns. Laid out over only the days so far, the first
-// two days of a month stretched one change across the whole width; laid out
-// over the whole month, they were a sliver at the left. A week is the middle
-// way: early on the days so far sit in the first columns and the rest of the
-// week waits empty.
+// One row each, because the alternatives failed on the same days. Lines over
+// the days so far stretched the first two days of a month into one diagonal;
+// bars for everybody in one strip made each bar a needle by mid-month. Here a
+// bar is a twentieth of the row's width whatever the date, and a player's
+// month reads as its own shape.
 //
-// Today is drawn as "so far", a dashed line into a hollow point and a faint
-// column, because a day still in progress at 0 is not a day of 0.
-//
-// Dots and the fill are yours alone, and everyone else's line is lighter.
-// Points per day jump about, and five lines each with a dot on every day was
-// a tangle; this way your month is the shape you read and theirs are context.
-function MonthChart({ lines, dates, max, target, showTarget, title, subtitle, hidden, gradId }) {
-  const [hover, setHover] = useState(null);
-  const svgRef = useRef(null);
-
+// Full colour is a day at or over the target, the same colour lighter is a
+// day under it, so days won are counted at a glance. Today is faded, because
+// a day still in progress is not a day finished low; days still to come are
+// faint stubs, so it is plain how much of the month is left.
+function MonthChart({ lines, dates, max, target, showTarget, title, subtitle, hidden }) {
   const first = dates[0];
   const year = first.getFullYear();
   const month = first.getMonth();
   const inMonth = new Date(year, month + 1, 0).getDate();
   // The data may start after the 1st (a league made mid-month): day k of the
-  // data sits in column k + off.
+  // data is day k + off of the month.
   const off = first.getDate() - 1;
-  const n = dates.length;
-  const today = n - 1;
-  const slots = Math.min(inMonth, Math.max(7, today + off + 1));
+  const today = dates.length - 1;
+  const top = Math.max(max, 1);
+  const pct = (v) => `${Math.max(0, Math.min(1, v / top)) * 100}%`;
 
-  const plotW = W - PAD.left - PAD.right;
-  const plotH = H - PAD.top - PAD.bottom;
-  const base = PAD.top + plotH;
-  const slotW = plotW / slots;
-  const cx = (slot) => PAD.left + (slot + 0.5) * slotW;
-  const y = (v) => PAD.top + plotH - (Math.min(v, max) / max) * plotH;
-  const dayAt = (slot) => new Date(year, month, slot + 1);
-  const todaySlot = today + off;
+  // Yours first, then everyone else in the order of the standings.
+  const rows = [...lines].sort((a, b) => Number(Boolean(b.mine)) - Number(Boolean(a.mine))
+    || b.values.reduce((t, n) => t + n, 0) - a.values.reduce((t, n) => t + n, 0));
 
-  const mine = lines.find((l) => l.mine) ?? (lines.length === 1 ? lines[0] : null);
-
-  // Every column labelled while there are few, then about eight of them.
-  const every = Math.max(1, Math.ceil(slots / 8));
-  const ticks = Array.from({ length: slots }, (_, i) => i).filter((i) => i % every === 0);
-
-  // The backdrop: everybody's points that day, on its own scale, so the
-  // columns stay quiet under the lines rather than competing with them.
-  const totals = dates.map((_, k) => lines.reduce((t, l) => t + (l.values[k] ?? 0), 0));
-  const topTotal = Math.max(1, ...totals);
-  const colH = (v) => (v / topTotal) * plotH * 0.6;
-
-  const onMove = (e) => {
-    const box = svgRef.current?.getBoundingClientRect();
-    if (!box) return;
-    const px = ((e.clientX - box.left) / box.width) * W;
-    const k = Math.floor((px - PAD.left) / slotW) - off;
-    setHover(k >= 0 && k < n ? k : null);
-  };
+  const ticks = [1, 8, 15, 22, 29].filter((d) => d <= inMonth);
 
   return (
-    <figure className="daychart">
+    <figure className="daychart month-rows">
       {(title || subtitle) && (
         <figcaption>
           {title && <h4>{title}</h4>}
@@ -335,109 +306,53 @@ function MonthChart({ lines, dates, max, target, showTarget, title, subtitle, hi
         </figcaption>
       )}
       <div className="chart-legend">
-        {lines.map((l) => (
-          <span key={l.key ?? l.label}><i style={{ background: l.color }} />{l.label}</span>
-        ))}
-        <span><i className="legend-col" />everyone</span>
+        <span><i className="legend-won" />day won</span>
+        <span><i className="legend-under" />under the target</span>
         {showTarget && <span className="legend-rule"><i className="rule" />target {target}</span>}
       </div>
 
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img"
-        onMouseMove={onMove} onMouseLeave={() => setHover(null)}
-        aria-label={`Points per day this month for ${lines.map((l) => l.label).join(', ')}`}>
-        <defs>
-          {mine && (
-            <linearGradient id={`fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={mine.color} stopOpacity="0.20" />
-              <stop offset="100%" stopColor={mine.color} stopOpacity="0" />
-            </linearGradient>
-          )}
-        </defs>
+      {rows.map((l) => {
+        const total = l.values.reduce((t, n) => t + n, 0);
+        const won = l.values.slice(0, today + 1).filter((n) => showTarget && n >= target).length;
+        return (
+          <div key={l.key ?? l.label} className={`mrow${l.mine ? ' mine' : ''}`} style={{ '--c': l.color }}>
+            <div className="mrow-who">
+              <i className="mrow-swatch" />
+              <span className="mrow-name">{l.label}</span>
+              <span className="mrow-sum"><b>{total}</b> pts · {won} won</span>
+            </div>
+            <div className="mrow-bars" role="img"
+              aria-label={`${l.label}: ${total} points this month, ${won} ${won === 1 ? 'day' : 'days'} won`}>
+              {showTarget && <span className="mrow-target" style={{ bottom: pct(target) }} />}
+              {Array.from({ length: inMonth }, (_, d) => {
+                const k = d - off;
+                const v = k >= 0 && k <= today ? (l.values[k] ?? 0) : null;
+                const day = new Date(year, month, d + 1);
+                if (v == null) {
+                  return <i key={d} className={k > today ? 'future' : 'none'} />;
+                }
+                const isToday = k === today;
+                const label = `${fmtDay(day)}${isToday ? ' (so far)' : ''}: ${v} ${v === 1 ? 'point' : 'points'}`
+                  + (showTarget && v >= target ? ', won' : '');
+                return (
+                  <i key={d} title={label}
+                    className={`${showTarget && v >= target ? 'won' : 'under'}${isToday ? ' today' : ''}${v === 0 ? ' zero' : ''}`}
+                    style={v > 0 ? { height: pct(v) } : undefined} />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
-        {[0, 0.5, 1].map((f) => (
-          <line key={f} className="chart-grid" x1={PAD.left} x2={W - PAD.right}
-            y1={PAD.top + plotH * f} y2={PAD.top + plotH * f} />
-        ))}
-        {[0, Math.round(max / 2), Math.round(max)].map((v, i) => (
-          <text key={v + '-' + i} className="chart-axis" x={PAD.left - 8} y={y(v)} textAnchor="end" dominantBaseline="middle">{v}</text>
-        ))}
-
-        <rect className="chart-today" x={PAD.left + todaySlot * slotW} y={PAD.top} width={slotW} height={plotH} />
-
-        <g className="chart-rise" style={{ transformOrigin: `0px ${base}px` }}>
-          {totals.map((t, k) => t > 0 && (
-            <rect key={`col-${k}`} className="chart-col" x={cx(k + off) - Math.min(slotW * 0.42, 22)}
-              y={base - colH(t)} width={Math.min(slotW * 0.84, 44)} height={colH(t)} rx="3"
-              opacity={k === today ? 0.5 : 1} />
-          ))}
-          {mine && today > 1 && (
-            <path fill={`url(#fill-${gradId})`}
-              d={`${monotonePath(mine.values.slice(0, today).map((_, k) => cx(k + off)), mine.values.slice(0, today).map((v) => y(v)))}`
-                + ` L${cx(today - 1 + off).toFixed(1)},${base} L${cx(off).toFixed(1)},${base} Z`} />
-          )}
-
-          {showTarget && <line className="chart-target" x1={PAD.left} x2={W - PAD.right} y1={y(target)} y2={y(target)} />}
-
-          {/* Everyone else first, so yours is drawn over theirs. */}
-          {[...lines].sort((a, b) => Number(a === mine) - Number(b === mine)).map((l) => {
-            const past = l.values.slice(0, today);
-            const heavy = l === mine;
-            const lastX = cx(today - 1 + off);
-            const lastY = y(past[past.length - 1] ?? 0);
-            const last = past[past.length - 1];
-            return (
-              <g key={`l-${l.key ?? l.label}`} opacity={mine && !heavy ? 0.6 : 1}>
-                {past.length > 1 && (
-                  <path d={monotonePath(past.map((_, k) => cx(k + off)), past.map((v) => y(v)))} fill="none"
-                    stroke={l.color} strokeWidth={heavy ? 2.6 : 1.8}
-                    strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-                )}
-                {past.length > 0 && (
-                  <line x1={lastX} y1={lastY} x2={cx(todaySlot)} y2={y(l.values[today] ?? 0)}
-                    stroke={l.color} strokeWidth="1.6" strokeDasharray="3 4" opacity="0.55" />
-                )}
-                {heavy && past.map((v, k) => (
-                  <circle key={k} cx={cx(k + off)} cy={y(v)} r={k === past.length - 1 ? 4.2 : 3}
-                    fill={k === past.length - 1 ? l.color : 'var(--viz-surface)'}
-                    stroke={l.color} strokeWidth="1.8" />
-                ))}
-                {!heavy && past.length === 1 && <circle cx={lastX} cy={lastY} r="2.6" fill={l.color} />}
-                {heavy && (
-                  <circle cx={cx(todaySlot)} cy={y(l.values[today] ?? 0)} r="3"
-                    fill="var(--viz-surface)" stroke={l.color} strokeWidth="1.6" strokeDasharray="2 2" />
-                )}
-                {heavy && past.length > 0 && (
-                  <text className="chart-label" x={lastX} y={lastY - 10} textAnchor="middle">
-                    {last} {last === 1 ? 'pt' : 'pts'}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
-
-        {hover != null && (
-          <rect className="chart-hover" x={PAD.left + (hover + off) * slotW} y={PAD.top} width={slotW} height={plotH} />
-        )}
-
-        {ticks.map((t) => (
-          <text key={t} className="chart-axis" x={cx(t)} y={H - 8} textAnchor="middle"
-            opacity={t > todaySlot ? 0.45 : undefined}>{fmtDay(dayAt(t))}</text>
-        ))}
-      </svg>
-
-      {hover != null && (
-        <div className="chart-readout">
-          <b>{fmtDay(dates[hover])}{hover === today ? ' (so far)' : ''}</b>
-          {lines.map((l) => (
-            <span key={l.key ?? l.label}>
-              <i style={{ background: l.color }} />{l.label}
-              <b>{l.values[hover] ?? 0}</b>
-              {showTarget && (l.values[hover] ?? 0) >= target && <em>won</em>}
-            </span>
+      <div className="mrow axis" aria-hidden>
+        <div className="mrow-who" />
+        <div className="mrow-ticks">
+          {ticks.map((d) => (
+            <span key={d} style={{ left: `${((d - 0.5) / inMonth) * 100}%` }}>{fmtDay(new Date(year, month, d))}</span>
           ))}
         </div>
-      )}
+      </div>
       {hidden > 0 && <p className="league-fine">Showing the top {MAX_SERIES}. There are {hidden} more in the league.</p>}
     </figure>
   );
