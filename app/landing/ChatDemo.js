@@ -81,11 +81,16 @@ function Bubble({ children }) {
 
 // ask + posting, thinking, advice, confirmation, row lands. The gap before
 // the confirmation is the longest because the advice above it is the one
-// thing on this page worth stopping to read.
+// thing on this page worth stopping to read. Only used when nothing drives
+// the steps from outside, which is the reduced-motion page, where useSteps
+// jumps straight to the end anyway.
 const GAPS = [700, 800, 1000, 1500, 600];
 
-export default function ChatDemo() {
-  const { ref, step } = useSteps(GAPS);
+// `step`, when given, comes from the stage in TwoWays, which runs the same
+// sequence itself because it holds the page until the chat has finished.
+export default function ChatDemo({ step: driven }) {
+  const { ref, step: timed } = useSteps(GAPS, { armed: driven === undefined });
+  const step = driven ?? timed;
 
   return (
     <div ref={ref} className="tw:grid tw:gap-4 tw:md:grid-cols-[1.05fr_1fr]">

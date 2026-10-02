@@ -17,9 +17,9 @@ import { useEffect, useRef, useState } from 'react';
  * they get the finished state, which is the informative part, without the
  * theatre.
  *
- * `armed` is for a demo that is on screen before it is on show: the second
- * half of a sticky swap is in the layout the whole time, so being in view is
- * not enough to say anyone has looked at it yet.
+ * `armed` holds the sequence at zero. A demo whose steps are driven from
+ * somewhere else, as the popup's are by the scroll in TwoWays, keeps it off
+ * so the timers never start.
  *
  * @param gaps milliseconds between steps, one per step after the first
  * @param armed hold the sequence at zero until this goes true

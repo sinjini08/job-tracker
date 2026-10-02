@@ -19,11 +19,16 @@ const FIELDS = [
   ['Work mode', 'Hybrid', true],
 ];
 
-// One per field, then the save.
+// One per field, then the save. Only used when nothing drives the steps from
+// outside, which is the reduced-motion page, where useSteps jumps straight
+// to the end anyway.
 const GAPS = [520, 260, 260, 260, 260, 700];
 
-export default function PopupDemo({ armed = true }) {
-  const { ref, step } = useSteps(GAPS, { armed });
+// `step`, when given, is the scroll's: the stage in TwoWays fills the popup
+// in as you scroll, so it cannot be scrolled past half done.
+export default function PopupDemo({ step: driven }) {
+  const { ref, step: timed } = useSteps(GAPS, { armed: driven === undefined });
+  const step = driven ?? timed;
   const saved = step >= FIELDS.length + 1;
 
   return (

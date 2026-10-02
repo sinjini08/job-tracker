@@ -1,13 +1,15 @@
 'use client';
 
 import { motion, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import ChatDemo from './ChatDemo';
 import PopupDemo from './PopupDemo';
 import Section from './Section';
 import { byId } from './copy';
 import useEnterProgress from './useEnterProgress';
+import useHold from './useHold';
 import useSceneProgress from './useSceneProgress';
+import useSteps from './useSteps';
 
 // Sections three and four, on one stage.
 //
@@ -21,29 +23,58 @@ import useSceneProgress from './useSceneProgress';
 // words leave to the left, the extension's arrive from the right, and the
 // chat is replaced by the popup that does the same thing in one click.
 
-// How much scroll the swap is given. The screen is pinned for all of it, so
-// this is not page travel, it is how long the change-over takes: near two
-// screens' worth of wheel for one pair of lines to leave and the next to
-// arrive. Slow on purpose. The swap is the one thing this section does, and
-// at a shorter length it was over before it registered as a transition.
-const STAGE_VH = 280;
+// How much scroll the section is given. The screen is pinned for everything
+// past its own height, so this is not page travel, it is how long the stage
+// holds: near two screens' worth of wheel for the change-over, then one more
+// for the popup to fill itself in and be read.
+//
+// 380 rather than 280. At 280 the popup was fully visible for the last 14vh
+// of the pin only, one or two clicks of a wheel, and it filled itself in on
+// a 2.3 second timer that had started while it was still fading in. A normal
+// scroll left before it said "Saved". The extra screen is the fill and a
+// hold after it; the change-over is where it was.
+//
+// The chat is not in this arithmetic: it plays on its own clock, and the
+// page waits at the top of the pin until it has finished (CHAT_GAPS below).
+const STAGE_VH = 380;
 
-// The swap, as fractions of that scroll. It starts almost at once and runs
-// almost to the end, so every turn of the wheel while the screen is pinned
-// moves it and none of them do nothing. The last stretch is deliberately
-// left over: the popup has just finished filling itself in and deserves a
-// beat before the page moves on.
-const A_OUT = [0.06, 0.46];
-const B_IN = [0.40, 0.86];
+// The screen is pinned for everything past its own height.
+const SPAN = STAGE_VH - 100;
+
+// Beats are given in viewport heights into the pin, as in DeskScene, so
+// changing STAGE_VH moves the tail and leaves them where they are.
+const at = (vh) => vh / SPAN;
+
+// First the chat, on its own clock: it starts as the section comes into
+// view and plays through, ask, thinking, advice, confirmation, row. The
+// longest gap is before the confirmation, because the advice above it is
+// the one thing here worth stopping to read. The last gap is the new row's
+// highlight fading, so the chat counts as finished once the sheet is still.
+//
+// The page is held at the top of the pin until then, so the change-over
+// cannot start with the chat half done, and the first scroll after it has
+// finished is the one that starts the change-over.
+const CHAT_GAPS = [700, 800, 1000, 1500, 600, 1400];
+const CHAT_DONE = CHAT_GAPS.length;
+
+// The change-over. It starts almost at once, so every turn of the wheel
+// while the screen is pinned moves something.
+const A_OUT = [at(11), at(83)];
+const B_IN = [at(72), at(155)];
+const B_SUB_IN = [at(90), at(162)];
 // The visuals follow the words rather than lead them: you read the new
 // headline, then see what it is talking about.
-const A_OUT_ART = [0.10, 0.50];
-const B_IN_ART = [0.46, 0.92];
+const A_OUT_ART = [at(18), at(90)];
+const B_IN_ART = [at(83), at(166)];
 
-// Where the popup's own fill-in sequence is allowed to start. Held until the
-// swap is well under way, because it is in the layout from the top of the
-// section and a demo that finished before you saw it has shown you nothing.
-const ARM_AT = 0.40;
+// Then the popup fills in, one field per click of a wheel or so, and saves.
+// Scroll-driven rather than timed, so the page cannot move on with it half
+// done: scrolling is what finishes it. The first field waits until the popup
+// has fully arrived, and the save gets a longer gap than the fields, as it
+// does in the real extension.
+const FILL = [at(168), at(180), at(192), at(204), at(216), at(236)];
+// Everything past the save, to 280, is the hold: nothing moves, so there is
+// a moment to read the finished popup before the page carries on.
 
 function Words({ head, sub, opacity, subOpacity, x, y, subY }) {
   return (
@@ -85,10 +116,22 @@ export default function TwoWays() {
     stiffness: 150, damping: 34, mass: 0.4, restDelta: 0.0005,
   });
 
-  const [armed, setArmed] = useState(false);
+  // How many of the popup's steps the scroll has reached. Reversible, like
+  // everything else here: scroll back up and the fields empty again.
+  const [step, setStep] = useState(0);
   useMotionValueEvent(swap, 'change', (v) => {
-    if (v >= ARM_AT && !armed) setArmed(true);
+    const n = FILL.filter((f) => v >= f).length;
+    if (n !== step) setStep(n);
   });
+
+  // The chat's own clock, kept here rather than inside ChatDemo because the
+  // hold needs to know when it has finished.
+  const { ref: chat$, step: chatStep } = useSteps(CHAT_GAPS);
+  const holdAt = useCallback(() => {
+    const el = wrap$.current;
+    return el ? el.getBoundingClientRect().top + window.scrollY : Infinity;
+  }, []);
+  useHold(holdAt, chatStep >= CHAT_DONE);
 
   // Arriving.
   const aIn = useTransform(enter, [0, 0.55], [0, 1]);
@@ -106,7 +149,7 @@ export default function TwoWays() {
   // Replacing.
   const bOpacity = useTransform(swap, B_IN, [0, 1]);
   const bX = useTransform(swap, B_IN, ['24%', '0%']);
-  const bSubOpacity = useTransform(swap, [B_IN[0] + 0.10, B_IN[1] + 0.04], [0, 1]);
+  const bSubOpacity = useTransform(swap, B_SUB_IN, [0, 1]);
 
   const artAOpacity = useTransform(swap, A_OUT_ART, [1, 0]);
   const artAX = useTransform(swap, A_OUT_ART, ['0%', '-12%']);
@@ -147,16 +190,17 @@ export default function TwoWays() {
 
         <div className="tw:relative tw:z-10 tw:grid tw:w-full tw:place-items-center">
           <motion.div
+            ref={chat$}
             style={{ opacity: artAOpacity, x: artAX }}
             className="tw:col-start-1 tw:row-start-1 tw:w-full tw:max-w-6xl"
           >
-            <ChatDemo />
+            <ChatDemo step={chatStep} />
           </motion.div>
           <motion.div
             style={{ opacity: artBOpacity, x: artBX }}
             className="tw:col-start-1 tw:row-start-1 tw:w-full"
           >
-            <PopupDemo armed={armed} />
+            <PopupDemo step={step} />
           </motion.div>
         </div>
       </div>
