@@ -286,7 +286,7 @@ export default function League() {
   );
 }
 
-// A handle like "mrmalpani25" doesn't tell a league who that is. Tapping it
+// A handle like "sparrow0423" doesn't tell a league who that is. Tapping it
 // swaps in the name that person gave. A swap rather than an extra line,
 // because these rows are a fixed height and a second line would push the
 // board around under whoever clicked.

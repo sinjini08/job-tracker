@@ -1,7 +1,7 @@
 -- 020: the name behind the name on the board.
 --
 -- display_name is a handle. It defaults to the part of an email before the @,
--- so a league full of friends can read "mrmalpani25" and not be sure who that
+-- so a league full of friends can read "sparrow0423" and not be sure who that
 -- is. full_name is the answer to that, and only that: it is blank until the
 -- student types it in, and the board shows it only when someone taps a name.
 --
