@@ -3,9 +3,14 @@ import { cookies } from 'next/headers';
 import { THEME_KEY } from '@/lib/theme';
 import './globals.css';
 
+// Indexable since sign-up opened: the landing page, privacy and terms are
+// public. The private routes are kept out by an X-Robots-Tag header in
+// next.config.mjs. The description is what a search result shows under the
+// title.
 export const metadata = {
+  metadataBase: new URL('https://myjobtracker.co'),
   title: 'Job Application Tracker',
-  robots: { index: false, follow: false },
+  description: 'Track every job application in one place. Save jobs in one click, let ChatGPT or Claude file them as you go, see what is working, and climb a league with friends.',
 };
 
 // For anyone whose choice predates the cookie. It only acts when the server
