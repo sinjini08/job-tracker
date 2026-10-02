@@ -26,25 +26,17 @@ code, with Device Trust switched off for the length of the review, because
 the reviewer would otherwise sit waiting for a code sent to an inbox they
 could not reach. None of that applies any more.)
 
-**Reviewer notes**, to paste into the submission:
+**Reviewer notes**, for the Test instructions field (Access -> Test
+instructions). The field takes at most 500 characters; this is 458. No other
+site is named, not even here where only the reviewer reads it: a rejection for
+naming other companies in the listing is not worth risking again.
 
-    The extension saves job postings into the user's own tracker at
-    myjobtracker.co, so it needs an account there. Sign-up is open and free:
-
-        https://myjobtracker.co/sign-up
-        (Continue with Google, or an email address and password)
-
-    To see it work end to end:
-    1. Create an account at the address above.
-    2. Open https://myjobtracker.co/settings/connect-extension and press
-       Connect. This hands the extension an add-only token for that account.
-    3. Open any job posting, for example on LinkedIn, Indeed or a company
-       careers page, and click the extension's icon. It reads the posting and
-       shows what it found.
-    4. Press "Save to tracker", then reload myjobtracker.co to see the row.
-
-    The extension reads a page only when the icon is clicked, holds no host
-    permissions, and cannot read or delete anything already in the tracker.
+    Needs a free account at myjobtracker.co. Sign-up is open.
+    1. Sign up at https://myjobtracker.co/sign-up (Google, or email and password).
+    2. Open https://myjobtracker.co/settings/connect-extension and press Connect.
+    3. Open any job posting and click the extension icon. It shows what it read.
+    4. Press Save to tracker, then reload myjobtracker.co to see the row.
+    It reads a page only when its icon is clicked, and can only add rows, never read or delete them.
 
 ## Store listing
 
