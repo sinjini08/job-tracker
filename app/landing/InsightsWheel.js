@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
+import { motion, useInView, useMotionValueEvent, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { useRef, useState } from 'react';
 import { CARDS, Card } from './insight-cards';
 import { byId } from './copy';
@@ -21,7 +21,29 @@ import useSceneProgress from './useSceneProgress';
 // are looking at one of them, the next is already coming. A fade would say
 // each replaces the last.
 
-const WHEEL_VH = 380;
+// 411 rather than 380. At 380 the last chart reached the front with 14vh of
+// the pin left, one or two clicks of a wheel, and the page carried on while
+// it was still drawing itself. The extra is a hold after it, as the popup
+// has; the turn itself is where it was.
+const WHEEL_VH = 411;
+
+// The screen is pinned for everything past its own height.
+const SPAN = WHEEL_VH - 100;
+
+// Beats are given in viewport heights into the pin, as in DeskScene and
+// TwoWays, so changing WHEEL_VH moves the tail and leaves them where they
+// are.
+const beat = (vh) => vh / SPAN;
+
+// How far this section is pulled up over the end of the one before it. Both
+// stages centre their contents on a full screen, so between the popup
+// leaving and the first card arriving there was 59vh of empty paper: 22 under
+// the popup, 37 over the card. The overlap takes 25 of it out. It stops short
+// of 37 so that nothing here is on screen while the popup is still pinned:
+// at the moment it lets go, the first card is still 12vh below the fold.
+// Both stages are transparent, so the overlap is only ever empty paper on
+// empty paper.
+const PULL_VH = 25;
 
 // Radians between neighbouring cards on the wheel. At just over a radian the
 // card behind is clearly behind: two thirds the size, most of the way faded,
@@ -40,15 +62,23 @@ const RADIUS = 245;
 // being asked to believe: a headline that says you can see what is working,
 // over a chart that is already showing it, is answering a question nobody has
 // asked yet.
-const HEAD_IN = [0.04, 0.15];
-const SUB_IN = [0.09, 0.20];
+const HEAD_IN = [beat(11), beat(42)];
+const SUB_IN = [beat(25), beat(56)];
 
-// So the turn starts after the words have landed, and finishes just short of
-// the end: a beat at each end to arrive and to land.
-const FROM = 0.22;
-const TO = 0.95;
+// So the turn starts after the words have landed. It ends at 266, and
+// everything from there to 311 is the hold: the last chart faces front and
+// draws itself, and nothing moves until it has had a moment to be read.
+const FROM = beat(62);
+const TO = beat(266);
 
-function WheelCard({ t, index, card }) {
+function WheelCard({ t, index, card, front }) {
+  // A chart draws itself when it is the one facing front and is actually on
+  // screen. The second half matters for the first card, which is in front
+  // from the start: without it, it would draw while the section was still
+  // below the fold.
+  const ref = useRef(null);
+  const visible = useInView(ref, { amount: 0.9 });
+
   // Where this card sits on the wheel right now. Zero is front and centre.
   const angle = useTransform(t, (v) => (index - v) * SPREAD);
 
@@ -68,10 +98,13 @@ function WheelCard({ t, index, card }) {
 
   return (
     <motion.div
+      ref={ref}
       style={{ y, scale, rotateX, opacity, zIndex }}
       className="tw:absolute tw:inset-x-0 tw:top-1/2 tw:-mt-[120px] tw:mx-auto tw:w-full tw:max-w-[23rem] tw:origin-center"
     >
-      <Card title={card.title} sub={card.sub}>{card.body}</Card>
+      <Card title={card.title} sub={card.sub} stat={card.stat}>
+        <card.Body active={front && visible} />
+      </Card>
     </motion.div>
   );
 }
@@ -121,14 +154,17 @@ export default function InsightsWheel() {
           <p className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted">{copy.sub}</p>
         </header>
         <div className="tw:grid tw:w-full tw:max-w-5xl tw:gap-4 tw:sm:grid-cols-2">
-          {CARDS.map((c) => <Card key={c.key} title={c.title} sub={c.sub}>{c.body}</Card>)}
+          {CARDS.map((c) => <Card key={c.key} title={c.title} sub={c.sub} stat={c.stat}><c.Body active /></Card>)}
         </div>
       </section>
     );
   }
 
   return (
-    <div id="insights" ref={wrap$} className="tw:relative" style={{ height: `${WHEEL_VH}vh` }}>
+    <div
+      id="insights" ref={wrap$} className="tw:relative"
+      style={{ height: `${WHEEL_VH}vh`, marginTop: `-${PULL_VH}vh` }}
+    >
       <div
         ref={stage$}
         className="tw:sticky tw:top-0 tw:flex tw:h-[100svh] tw:items-center tw:overflow-hidden tw:px-6 tw:py-16"
@@ -145,7 +181,7 @@ export default function InsightsWheel() {
                 card's title. Flat, ordinary stacking applies and the card
                 facing front is the one on top. */}
             <div className="tw:relative tw:h-[420px] tw:w-full" style={{ perspective: '1100px' }}>
-              {CARDS.map((c, i) => <WheelCard key={c.key} t={t} index={i} card={c} />)}
+              {CARDS.map((c, i) => <WheelCard key={c.key} t={t} index={i} card={c} front={i === at} />)}
             </div>
 
             {/* Four charts, and you are on this one. Under the wheel rather

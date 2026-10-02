@@ -103,3 +103,20 @@
 @media (prefers-reduced-motion: reduce) {
   .l-col { animation: none; }
 }
+
+/* The halo on the newest point of the trend line: the one live thing on a
+ * chart of history, so it is the one thing that moves once the chart has
+ * drawn. An SVG circle, so the box and origin have to be its own.
+ */
+@keyframes l-ping {
+  from { transform: scale(1); opacity: 0.5; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+.l-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: l-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .l-ping { animation: none; opacity: 0; }
+}
