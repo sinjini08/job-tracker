@@ -90,10 +90,14 @@ globalThis.fetch = async (input, init = {}) => {
     status: 200, headers: { 'Content-Type': 'application/json' },
   });
 
+  // The requirements read is a POST, so it is answered before the method
+  // switch below; inside the GET branch it never matched and the popup was
+  // handed the saved row instead.
+  if (url.includes('/requirements')) return json({ requirements: null });
+
   // The one GET the popup makes before showing anything: which sheets exist,
   // and whether this posting is already a row.
   if ((init.method ?? 'GET') === 'GET') {
-    if (url.includes('/requirements')) return json({ requirements: '' });
     return json({
       sheets: [{ name: 'Job applications' }, { name: 'On-Campus' }],
       existing: state === 'known' ? EXISTING : null,
