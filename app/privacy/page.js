@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <header className="legal-head">
         <Link href="/" className="legal-mark"><Logo size={36} tone="dark" /></Link>
         <h1>Privacy</h1>
-        <p className="legal-sub">Last updated 24 September 2026</p>
+        <p className="legal-sub">Last updated 2 October 2026</p>
       </header>
 
       <p className="legal-lede">
@@ -76,20 +76,39 @@ export default function PrivacyPage() {
       <h2>Who else is involved</h2>
       <p>
         Three services make this work: <b>Clerk</b> for sign-in, <b>Supabase</b> for the database,
-        and <b>Vercel</b> for hosting. They process your data so the app can run. Nobody else
-        receives it. Everything on the Insights tab is worked out here, from your own rows, and
-        goes nowhere.
+        and <b>Vercel</b> for hosting. They process your data so the app can run.
       </p>
       <p>
-        Nothing is sold, and nothing is shared with advertisers. There is no analytics or tracking
-        on this site beyond what is needed to keep you signed in.
+        One more is involved only if you use the browser extension. When the extension cannot
+        find a posting&rsquo;s requirements by itself, it sends the text of that posting to{' '}
+        <b>Anthropic</b>&rsquo;s Claude model, which points out the lines that are the
+        requirements. Only that posting&rsquo;s text is sent: never your other applications, your
+        notes, or who you are.
+      </p>
+      <p>
+        Nobody else receives your data. Everything on the Insights tab is worked out here, from
+        your own rows, and goes nowhere. Nothing is sold, and nothing is shared with advertisers.
       </p>
 
-      <h2>Google and Microsoft sign-in</h2>
+      <h2>Counting visits</h2>
       <p>
-        If you sign in with Google or Microsoft, this app asks only for your name, your email
-        address and your profile picture. It cannot read your mail, your files, your calendar or
-        your contacts, and it never receives your password.
+        To see how many people visit and where they come from, the site counts page views with
+        Vercel Web Analytics. It uses no cookies and does not identify you: each visit is counted
+        anonymously, and the short-lived identifier that tells one visitor from another is thrown
+        away after 24 hours. It never sees what is in your tracker. Shared tracker links are not
+        counted at all, and invite codes and anything after a <code>?</code> in an address are
+        removed before a visit is recorded.
+      </p>
+
+      <h2>Signing in</h2>
+      <p>
+        If you sign in with Google, this app asks only for your name, your email address and your
+        profile picture. It cannot read your mail, your files, your calendar or your contacts, and
+        it never receives your Google password.
+      </p>
+      <p>
+        If you sign up with an email address and a password instead, the password is kept by
+        Clerk, which handles sign-in. This app never sees it.
       </p>
 
       <h2>Cookies</h2>

@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { cookies } from 'next/headers';
 import { THEME_KEY } from '@/lib/theme';
+import Analytics from './Analytics';
 import './globals.css';
 
 // Indexable since sign-up opened: the landing page, privacy and terms are
@@ -42,7 +43,10 @@ export default async function RootLayout({ children }) {
           {/* So form controls, scrollbars and the like are drawn to match. */}
           <meta name="color-scheme" content="light dark" />
         </head>
-        <body>{children}</body>
+        <body>
+          {children}
+          <Analytics />
+        </body>
       </html>
     </ClerkProvider>
   );
