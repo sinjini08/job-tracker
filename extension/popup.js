@@ -183,6 +183,12 @@ async function askForRequirements() {
     // 'derived' and not 'json-ld', so it arrives marked CHECK like anything
     // else that was worked out rather than read.
     if (d.requirements) extracted.fields.requirements = { value: d.requirements, from: 'derived' };
+    // The tracker's daily cap on these reads. Said out loud, because a blank
+    // requirements field on a posting that plainly has some looks like a bug.
+    if (d.limit) {
+      $('limit-note').textContent = `Daily limit reached: ${d.limit} of ${d.limit} automatic requirement reads used today. Paste the requirements in yourself, or save without them.`;
+      $('limit-note').hidden = false;
+    }
   } catch {
     // Never blocks the save. A missing field is a much smaller problem than
     // a popup stuck on "Reading the page".

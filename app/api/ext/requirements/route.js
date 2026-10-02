@@ -33,20 +33,22 @@ const MAX_LINES = 400;
 
 // Model reads per student per day. This is the one call in the product that
 // runs on this app's own key, at about a fifth of a cent each, so the cap is
-// not for ordinary use: nobody saves thirty postings a day by hand. It is for
+// not for ordinary use: nobody saves twenty postings a day by hand. It is for
 // a script, or a stolen extension token. Past it the save still goes through
 // and the popup keeps whatever its own matcher found. Counted in Postgres
 // (029_ext_reads.sql) because a serverless function has no memory between
 // requests, and in one statement so two saves at once cannot both slip under.
-const DAILY_READS = Number(process.env.EXT_READS_PER_DAY) || 30;
+const DAILY_READS = Number(process.env.EXT_READS_PER_DAY) || 20;
 
-// True if this read is allowed, and counts it. If the meter itself fails, the
-// answer is no: a missing requirements field costs nothing, an unmetered model
-// call is exactly what this is here to prevent.
+// Counts this read if it is allowed: 'ok', 'over' the cap, or 'error' if the
+// meter itself failed. An error is treated as a no: a missing requirements
+// field costs nothing, an unmetered model call is exactly what this is here
+// to prevent.
 async function claimRead(userId) {
   const { data, error } = await supabaseAdmin()
     .rpc('claim_ext_read', { p_user_id: userId, p_cap: DAILY_READS });
-  return !error && data != null;
+  if (error) return 'error';
+  return data == null ? 'over' : 'ok';
 }
 
 const PROMPT = `You are given the numbered lines of one job posting.
@@ -106,7 +108,16 @@ export async function POST(request) {
   // Counted before the call rather than after it: a call that times out has
   // usually been paid for anyway. Only here, after the checks above, so a
   // posting too short to ask about does not use up a read.
-  if (!(await claimRead(userId))) return none(cors, 'daily limit reached');
+  // Over the cap, the popup is told so, with the number, because otherwise an
+  // empty requirements field on a posting that plainly has some looks broken.
+  const claim = await claimRead(userId);
+  if (claim === 'over') {
+    return NextResponse.json(
+      { requirements: null, why: 'daily limit reached', limit: DAILY_READS },
+      { headers: cors },
+    );
+  }
+  if (claim !== 'ok') return none(cors, 'read meter unavailable');
 
   const lines = text.split('\n').map((l) => l.trim()).slice(0, MAX_LINES);
   const numbered = lines.map((l, i) => `${i}: ${l}`).join('\n');
