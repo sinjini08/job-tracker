@@ -1,9 +1,10 @@
 // Routes that must never appear in a search engine. A share link is
-// somebody's applications; settings, the OAuth endpoints and the API are
-// machinery. Kept out by header rather than by robots.txt: a crawler that is
-// disallowed never fetches the page, so never sees a noindex, and can still
-// list the bare URL if someone links to it.
-const PRIVATE = ['/s/:path*', '/settings/:path*', '/settings', '/oauth/:path*', '/api/:path*'];
+// somebody's applications and an invite names somebody's league; settings,
+// the OAuth endpoints and the API are machinery. Kept out by header rather
+// than by robots.txt: a crawler that is disallowed never fetches the page, so
+// never sees a noindex, and can still list the bare URL if someone links to
+// it.
+const PRIVATE = ['/s/:path*', '/settings/:path*', '/settings', '/oauth/:path*', '/api/:path*', '/join/:path*'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

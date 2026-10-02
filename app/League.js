@@ -58,6 +58,10 @@ export default function League() {
   const [months, setMonths] = useState([]);
   const [me, setMe] = useState(null);
   const [view, setView] = useState('today');
+  // A league somebody was invited to by link (/join/CODE hands over with
+  // ?join=CODE): its name, host and size, offered above everything else
+  // until they join it or say not now.
+  const [invite, setInvite] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
   const { celebrate, node: party } = useCelebration();
@@ -67,6 +71,23 @@ export default function League() {
     setLeagues(data.leagues);
     setValues(data.pointValues);
     setActive((cur) => prefer ?? (data.leagues.some((l) => l.id === cur) ? cur : data.leagues[0]?.id ?? null));
+  }, []);
+
+  // Read once and taken out of the address, so a reload or a shared screenshot
+  // of the tab does not carry the invite around.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('join');
+    if (!code) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    // Following your own invite, or one to a league you are already in, just
+    // opens that league instead of offering to join it.
+    Promise.all([api(`/api/leagues/invite?code=${encodeURIComponent(code)}`), api('/api/leagues')])
+      .then(([found, mine]) => {
+        const already = mine.leagues.find((l) => l.join_code === found.code);
+        if (already) setActive(already.id);
+        else setInvite(found);
+      })
+      .catch((e) => setErr(e.message));
   }, []);
 
   useEffect(() => {
@@ -120,6 +141,7 @@ export default function League() {
   });
   const join = (code) => act(async () => {
     const league = await api('/api/leagues/join', 'POST', { code });
+    setInvite(null);
     await loadLeagues(league?.id);
   });
   const leave = (league) => act(async () => {
@@ -198,10 +220,14 @@ export default function League() {
       </div>
     );
   }
+  const invited = invite && (
+    <InviteCard invite={invite} busy={busy} onJoin={() => join(invite.code)} onDismiss={() => setInvite(null)} />
+  );
   if (leagues.length === 0) {
     return (
       <div className="charts viz-root">
-        <Start onCreate={create} onJoin={join} busy={busy} err={err} />
+        {invited}
+        <Start onCreate={create} onJoin={join} busy={busy} err={err} compact={Boolean(invited)} />
       </div>
     );
   }
@@ -239,6 +265,7 @@ export default function League() {
         </nav>
 
         <div className="league-panel">
+          {invited}
           {/* The league you are looking at heads the panel it belongs to,
               rather than sitting in the rail away from its own content. Still
               a picker even with one league, so there is somewhere obvious for
@@ -1121,20 +1148,44 @@ function Pill({ label, value, tone, icon }) {
   );
 }
 
+// The link first, because a friend who is sent a link is one click from the
+// league, and a friend who is sent a code still has to find the site, sign up
+// and find where to type it. The code stays for reading out loud.
 function InviteCode({ league }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
+  const [copied, setCopied] = useState(null);
+  const copy = async (what, text) => {
     try {
-      await navigator.clipboard.writeText(league.join_code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      setTimeout(() => setCopied(null), 1500);
     } catch { /* clipboard blocked; the code is on screen anyway */ }
   };
   return (
     <div className="rail-invite">
       <span>Invite a friend</span>
       <code>{league.join_code}</code>
-      <button className="viz-toggle" onClick={copy}>{copied ? 'Copied' : 'Copy code'}</button>
+      <button className="viz-toggle" onClick={() => copy('link', `${window.location.origin}/join/${league.join_code}`)}>
+        {copied === 'link' ? 'Copied' : 'Copy invite link'}
+      </button>
+      <button className="viz-toggle" onClick={() => copy('code', league.join_code)}>
+        {copied === 'code' ? 'Copied' : 'Copy code'}
+      </button>
+    </div>
+  );
+}
+
+// Arriving from an invite link: which league, whose, how big, and one button.
+function InviteCard({ invite, busy, onJoin, onDismiss }) {
+  const people = `${invite.members} ${invite.members === 1 ? 'person' : 'people'}`;
+  return (
+    <div className="league-invite">
+      <Avatar name={invite.host.name ?? invite.name} avatar={invite.host.avatar} size={44} />
+      <div className="league-invite-text">
+        <b>You&rsquo;re invited to {invite.name}</b>
+        <span>{invite.host.name ? `Hosted by ${invite.host.name} · ` : ''}{people}</span>
+      </div>
+      <button className="btn primary" onClick={onJoin} disabled={busy}>Join</button>
+      <button className="viz-toggle" onClick={onDismiss} disabled={busy}>Not now</button>
     </div>
   );
 }
@@ -1229,7 +1280,7 @@ function Start({ onCreate, onJoin, busy, err, compact }) {
         <>
           <p className="viz-empty-title">Compete with your friends</p>
           <p className="league-intro">
-            Make a league and send the code to a friend. Every application earns points, every round
+            Make a league and send a friend the invite link. Every application earns points, every round
             you reach earns more, and clearing the daily target wins you the day. Weekly and monthly
             winners get recorded when the period ends. Your friends never see which jobs you
             applied to.

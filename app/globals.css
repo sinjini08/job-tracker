@@ -912,6 +912,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .login-card button:disabled { opacity: 0.7; cursor: default; }
 .login-error { color: var(--due) !important; font-weight: 600; }
 
+/* The league invite page (/join/CODE): the login card, centred, with the
+   host's face, one line saying what the link is, and one way in. */
+.join-card { align-items: center; text-align: center; gap: 10px; }
+.join-card h2 { margin: 4px 0 0; font-size: 18px; font-weight: 600; line-height: 1.35; }
+.join-card h2 b { font-weight: 700; }
+.join-card p { line-height: 1.5; }
+.join-go {
+  align-self: stretch;
+  margin-top: 6px;
+  display: grid;
+  place-items: center;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--xl-green);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.join-go:hover { background: var(--xl-green-dark); }
+.join-fine { font-size: 13px; }
+.join-fine a { color: var(--xl-green-dark); font-weight: 600; }
+
 /* ---------- small screens ---------- */
 @media (max-width: 720px) {
   .save-state { display: none; }
@@ -1443,6 +1465,24 @@ body:has(.login) { overflow: auto; }
   background: var(--viz-surface);
   border: 1px solid var(--viz-ring);
 }
+.rail-invite .viz-toggle { width: 100%; }
+
+/* Arriving from an invite link: the league on offer, above everything else
+   on the tab until it is joined or put off. */
+.league-invite {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--viz-surface);
+  border: 1px solid var(--xl-green);
+}
+.league-invite-text { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.league-invite-text b { font-size: 15px; }
+.league-invite-text span { font-size: 13px; color: var(--viz-muted); }
 .rail-invite > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--viz-muted); }
 .rail-invite code {
   font-size: 17px;

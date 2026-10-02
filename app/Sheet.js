@@ -260,8 +260,14 @@ export default function Sheet({ initialRows, role, apiBase = '/api', email, shar
   useEffect(() => {
     try {
       const saved = localStorage.getItem('jt_tab');
-      const wantsSheet = new URLSearchParams(window.location.search).has('sheet');
-      if (wantsSheet) {
+      const params = new URLSearchParams(window.location.search);
+      const wantsSheet = params.has('sheet');
+      // Arriving from a league invite link (/join/CODE hands over with
+      // ?join=CODE). Straight to the League, which reads the code itself and
+      // offers to join; the parameter is left for it to find and clear.
+      if (params.has('join')) {
+        setTab('League');
+      } else if (wantsSheet) {
         // The sheet they were last on, if that is a sheet they still have,
         // and otherwise their first one. It used to name On-Campus whenever
         // the remembered tab was not Off-Campus, so anybody who keeps only
