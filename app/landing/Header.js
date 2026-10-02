@@ -11,8 +11,8 @@ import Logo from '../Logo';
 // Transparent over the first screen and frosted once you have left it, so it
 // does not sit as a bar across the opening. It slides away entirely on the
 // last screen, which is the opening animation again and wants the top of the
-// window to itself; the same two buttons are in the middle of that section.
-export default function Header({ onOpen, hidden = false }) {
+// window to itself; the same button is in the middle of that section.
+export default function Header({ hidden = false }) {
   const [moved, setMoved] = useState(false);
 
   useEffect(() => {
@@ -47,19 +47,17 @@ export default function Header({ onOpen, hidden = false }) {
 
         <span className="tw:flex-1" />
 
+        {/* One way in. Sign-up is open, so there is no waitlist to join and
+            no code to have: the only decision left is new or returning. */}
         <Link href="/sign-in"
-          className="tw:hidden tw:text-sm tw:text-muted tw:no-underline tw:hover:text-ink tw:sm:inline">
+          className="tw:px-1 tw:py-2 tw:text-sm tw:text-muted tw:no-underline tw:hover:text-ink">
           Sign in
         </Link>
-        <button type="button" onClick={() => onOpen('waitlist')}
-          className="tw:cursor-pointer tw:rounded-full tw:border tw:border-line tw:bg-white tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-ink">
-          <span className="tw:sm:hidden">Waitlist</span>
-          <span className="tw:hidden tw:sm:inline">Join the waitlist</span>
-        </button>
-        <button type="button" onClick={() => onOpen('code')}
-          className="tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-brand tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-white">
-          I have a code
-        </button>
+        <Link href="/sign-up"
+          className="tw:rounded-full tw:bg-brand tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-white tw:no-underline">
+          <span className="tw:sm:hidden">Get started</span>
+          <span className="tw:hidden tw:sm:inline">Get started free</span>
+        </Link>
       </div>
     </header>
   );

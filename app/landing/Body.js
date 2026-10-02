@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Doors from './Doors';
 import CloseHero from './CloseHero';
 import DeskScene from './DeskScene';
 import InsightsWheel from './InsightsWheel';
@@ -15,14 +14,13 @@ import TwoWays from './TwoWays';
 // Every section carries an explanatory headline, because a visitor who has to
 // guess what they are looking at stops scrolling. The copy lives in copy.js.
 export default function Body() {
-  const [door, setDoor] = useState(null);
   // The header steps aside for the last screen, which is the opening
   // animation again and does not want a bar across the top of it.
   const [atClose, setAtClose] = useState(false);
 
   return (
     <>
-      <Header onOpen={setDoor} hidden={atClose} />
+      <Header hidden={atClose} />
 
       <main className="tw:bg-paper tw:text-ink">
         {/* Sections one and two are one camera move: a drawn room, then the
@@ -41,10 +39,9 @@ export default function Body() {
             second, then first, with the points climbing behind them. */}
         <Podium />
 
-        <CloseHero onOpen={setDoor} onInView={setAtClose} />
+        <CloseHero onInView={setAtClose} />
       </main>
 
-      <Doors open={door} onClose={() => setDoor(null)} />
     </>
   );
 }

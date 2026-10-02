@@ -4,10 +4,7 @@ import {
 import Body from './landing/Body';
 import './landing/landing.css';
 
-// The landing page being built, not yet the front door.
-//
-// Reachable at /?next=1 while it is worked on. The live front door is the
-// original hero in Landing.js, restored until this one is finished.
+// The landing page: the front door for anyone signed out.
 //
 // Seven screens: where a job search actually lives, what that costs you, the
 // two ways this tracker keeps up with you, what it then tells you, the league,

@@ -17,7 +17,7 @@ import { byId } from './copy';
 // out of globals.css, which run on mount. Replaying on every visit is
 // therefore a remount, which is what the `key` below is for.
 
-export default function CloseHero({ onOpen, onInView }) {
+export default function CloseHero({ onInView }) {
   const wrap = useRef(null);
   const copy = byId('close');
 
@@ -75,14 +75,10 @@ export default function CloseHero({ onOpen, onInView }) {
       </div>
 
       <div className="tw:relative tw:z-10 tw:flex tw:flex-wrap tw:items-center tw:justify-center tw:gap-3">
-        <button type="button" onClick={() => onOpen('code')}
-          className="tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-white tw:px-7 tw:py-3.5 tw:text-base tw:font-bold tw:text-brand">
-          I have a code
-        </button>
-        <button type="button" onClick={() => onOpen('waitlist')}
-          className="tw:cursor-pointer tw:rounded-full tw:border tw:border-white/35 tw:bg-transparent tw:px-7 tw:py-3.5 tw:text-base tw:font-bold tw:text-white">
-          Join the waitlist
-        </button>
+        <Link href="/sign-up"
+          className="tw:rounded-full tw:bg-white tw:px-7 tw:py-3.5 tw:text-base tw:font-bold tw:text-brand tw:no-underline">
+          Get started free
+        </Link>
       </div>
 
       <div className="tw:relative tw:z-10">
