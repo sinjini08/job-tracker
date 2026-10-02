@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { userIdForExtension } from '@/lib/auth';
 import { allowedOrigin } from '@/lib/ext-ids';
 import { pickSpan } from '@/lib/req-span';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,24 @@ export const dynamic = 'force-dynamic';
 const MODEL = 'claude-haiku-4-5-20251001';
 const MAX_CHARS = 24000;
 const MAX_LINES = 400;
+
+// Model reads per student per day. This is the one call in the product that
+// runs on this app's own key, at about a fifth of a cent each, so the cap is
+// not for ordinary use: nobody saves thirty postings a day by hand. It is for
+// a script, or a stolen extension token. Past it the save still goes through
+// and the popup keeps whatever its own matcher found. Counted in Postgres
+// (029_ext_reads.sql) because a serverless function has no memory between
+// requests, and in one statement so two saves at once cannot both slip under.
+const DAILY_READS = Number(process.env.EXT_READS_PER_DAY) || 30;
+
+// True if this read is allowed, and counts it. If the meter itself fails, the
+// answer is no: a missing requirements field costs nothing, an unmetered model
+// call is exactly what this is here to prevent.
+async function claimRead(userId) {
+  const { data, error } = await supabaseAdmin()
+    .rpc('claim_ext_read', { p_user_id: userId, p_cap: DAILY_READS });
+  return !error && data != null;
+}
 
 const PROMPT = `You are given the numbered lines of one job posting.
 
@@ -72,7 +91,8 @@ export async function POST(request) {
   const token = /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1];
   // Authenticated for cost as much as for privacy: an open endpoint that
   // calls a paid model is an invitation.
-  if (!token || !(await userIdForExtension(token))) {
+  const userId = token ? await userIdForExtension(token) : null;
+  if (!userId) {
     return NextResponse.json({ error: 'Not connected.' }, { status: 401, headers: cors });
   }
 
@@ -82,6 +102,11 @@ export async function POST(request) {
   const body = await request.json().catch(() => null);
   const text = String(body?.text ?? '').slice(0, MAX_CHARS);
   if (text.length < 200) return none(cors, 'too short to have a requirements section');
+
+  // Counted before the call rather than after it: a call that times out has
+  // usually been paid for anyway. Only here, after the checks above, so a
+  // posting too short to ask about does not use up a read.
+  if (!(await claimRead(userId))) return none(cors, 'daily limit reached');
 
   const lines = text.split('\n').map((l) => l.trim()).slice(0, MAX_LINES);
   const numbered = lines.map((l, i) => `${i}: ${l}`).join('\n');
