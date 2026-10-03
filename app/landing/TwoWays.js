@@ -90,7 +90,7 @@ function Words({ head, sub, opacity, subOpacity, x, y, subY }) {
       </motion.h2>
       <motion.p
         style={{ opacity: subOpacity, y: subY }}
-        className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted"
+        className="tw:mt-3 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted tw:md:mt-5"
       >
         {sub}
       </motion.p>
@@ -171,9 +171,13 @@ export default function TwoWays() {
 
   return (
     <div id="assistant" ref={wrap$} className="tw:relative" style={{ height: `${STAGE_VH}vh` }}>
+      {/* On a phone the top padding is the header's height and a little, so
+          the headline is never under the bar. Everything here was a laptop's
+          worth of stage, and on a phone it ran off both ends of the screen:
+          the headline behind the header, the sheet below the fold. */}
       <div
         ref={stage$}
-        className="tw:sticky tw:top-0 tw:flex tw:h-[100svh] tw:flex-col tw:items-center tw:justify-center tw:gap-8 tw:overflow-hidden tw:px-6 tw:py-16"
+        className="tw:sticky tw:top-0 tw:flex tw:h-[100svh] tw:flex-col tw:items-center tw:justify-center tw:gap-5 tw:overflow-hidden tw:px-6 tw:pt-[76px] tw:pb-4 tw:md:gap-8 tw:md:py-16"
       >
         {/* Both pairs live in the same grid cell, so the stage is as tall as
             the taller of them and neither moves when the other leaves. */}
@@ -196,9 +200,12 @@ export default function TwoWays() {
           >
             <ChatDemo step={chatStep} />
           </motion.div>
+          {/* Top of the cell on a phone rather than its middle. The cell is
+              as tall as the chat and the sheet together, and centred in it
+              the popup sat a long way under its own headline. */}
           <motion.div
             style={{ opacity: artBOpacity, x: artBX }}
-            className="tw:col-start-1 tw:row-start-1 tw:w-full"
+            className="tw:col-start-1 tw:row-start-1 tw:w-full tw:self-start tw:md:self-center"
           >
             <PopupDemo step={step} />
           </motion.div>

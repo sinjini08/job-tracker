@@ -101,8 +101,11 @@ function Furthest({ active }) {
   const draw = useDraw(active);
 
   return (
-    <div className="tw:flex tw:h-full tw:items-center tw:gap-5">
-      <div className="tw:relative tw:h-[136px] tw:w-[136px] tw:flex-none">
+    // A smaller ring and a tighter legend on a phone. At full size the
+    // legend was too narrow for its own labels, and "Applied only" became
+    // "Applied o".
+    <div className="tw:flex tw:h-full tw:items-center tw:gap-4 tw:sm:gap-5">
+      <div className="tw:relative tw:h-[108px] tw:w-[108px] tw:flex-none tw:sm:h-[136px] tw:sm:w-[136px]">
         <svg
           viewBox="0 0 100 100" className="tw:h-full tw:w-full" role="img"
           aria-label="64 applications by the furthest stage each reached: 43 applied only, 8 screening, 5 assessment, 3 interviewing, 3 final round, 2 offers"
@@ -143,7 +146,7 @@ function Furthest({ active }) {
                 off: { opacity: 0.3, x: -6 },
                 on: (k) => ({ opacity: 1, x: 0, transition: { duration: 0.35, delay: 0.15 + k * 0.06, ease: EASE } }),
               }}
-              className="tw:flex tw:items-center tw:gap-2 tw:text-[11px]"
+              className="tw:flex tw:items-center tw:gap-1.5 tw:text-[11px] tw:sm:gap-2"
             >
               <i
                 className="tw:block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
@@ -151,7 +154,7 @@ function Furthest({ active }) {
               />
               <span className={`tw:truncate ${offer ? 'tw:font-semibold tw:text-brand' : 'tw:text-ink-2'}`}>{s.name}</span>
               <b className="tw:ml-auto tw:font-semibold tw:tabular-nums tw:text-ink">{s.n}</b>
-              <span className="tw:w-8 tw:text-right tw:tabular-nums tw:text-muted">{s.pct}%</span>
+              <span className="tw:w-7 tw:text-right tw:tabular-nums tw:text-muted tw:sm:w-8">{s.pct}%</span>
             </motion.li>
           );
         })}

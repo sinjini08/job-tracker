@@ -325,9 +325,12 @@ export default function Podium() {
   return (
     <section
       id="league" ref={wrap$}
-      className="tw:relative tw:flex tw:min-h-[100svh] tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-8 tw:overflow-hidden tw:px-6 tw:py-14"
+      className="tw:relative tw:flex tw:min-h-[100svh] tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-6 tw:overflow-hidden tw:px-6 tw:pt-20 tw:pb-10 tw:md:gap-8 tw:md:py-14"
       style={{ marginTop: `calc(-1 * ${PULL})` }}
     >
+      {/* The top padding on a phone clears the header. On a short one the
+          screen is fuller than the window, so nothing centres it down from
+          the top, and 56px of padding left the headline under the bar. */}
       <motion.header
         ref={head$}
         style={reduced ? undefined : { opacity: headOpacity, y: headY }}
@@ -338,7 +341,7 @@ export default function Podium() {
         </h2>
         <motion.p
           style={reduced ? undefined : { opacity: subOpacity }}
-          className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted"
+          className="tw:mt-3 tw:md:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.6vw,1.2rem)] tw:leading-relaxed tw:text-balance tw:text-muted"
         >
           {copy.sub}
         </motion.p>

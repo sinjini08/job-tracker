@@ -33,18 +33,22 @@ export default function PopupDemo({ step: driven }) {
 
   return (
     <div ref={ref} className="tw:flex tw:justify-center">
-      <Frame label="Save this posting" className="tw:w-[min(22rem,92vw)]">
+      <Frame label="Save this posting" className="tw:w-full tw:max-w-[22rem]">
         <div className="tw:p-3.5">
           <p className="tw:m-0 tw:text-[12.5px] tw:font-semibold tw:text-ink">Software Engineer Intern</p>
-          <p className="tw:mt-0.5 tw:mb-3 tw:text-[11px] tw:text-muted">Northwind · linkedin.com</p>
+          <p className="tw:mt-0.5 tw:mb-2.5 tw:text-[11px] tw:text-muted tw:md:mb-3">Northwind · linkedin.com</p>
 
-          <div className="tw:flex tw:flex-col tw:gap-2">
+          {/* On a phone each label sits beside its field rather than above
+              it. Stacked, the popup was taller than what a phone has left
+              under the headline; side by side it is five rows shorter, and
+              still reads as the form it is. */}
+          <div className="tw:flex tw:flex-col tw:gap-1.5 tw:md:gap-2">
             {FIELDS.map(([label, value, check], i) => {
               const filled = step >= i + 1;
               return (
-                <div key={label}>
-                  <div className="tw:mb-1 tw:flex tw:items-center tw:gap-1.5">
-                    <span className="tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-[0.07em] tw:text-muted">
+                <div key={label} className="tw:flex tw:items-center tw:gap-2 tw:md:block">
+                  <div className="tw:flex tw:w-[112px] tw:flex-none tw:items-center tw:gap-1.5 tw:md:mb-1 tw:md:w-auto">
+                    <span className="tw:whitespace-nowrap tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-[0.07em] tw:text-muted">
                       {label}
                     </span>
                     {check && filled && (
@@ -56,7 +60,7 @@ export default function PopupDemo({ step: driven }) {
                       </motion.span>
                     )}
                   </div>
-                  <div className={`tw:flex tw:h-7 tw:items-center tw:rounded-md tw:border tw:px-2 tw:text-[11.5px] ${
+                  <div className={`tw:flex tw:h-7 tw:min-w-0 tw:flex-1 tw:items-center tw:rounded-md tw:border tw:px-2 tw:text-[11.5px] ${
                     check && filled ? 'tw:border-amber-300 tw:bg-amber-50/50' : 'tw:border-line tw:bg-paper'
                   }`}>
                     <AnimatePresence>

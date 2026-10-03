@@ -167,20 +167,27 @@ export default function InsightsWheel() {
     >
       <div
         ref={stage$}
-        className="tw:sticky tw:top-0 tw:flex tw:h-[100svh] tw:items-center tw:overflow-hidden tw:px-6 tw:py-16"
+        className="tw:sticky tw:top-0 tw:flex tw:h-[100svh] tw:items-center tw:overflow-hidden tw:px-6 tw:pt-[72px] tw:pb-4 tw:md:py-16"
       >
-        <div className="tw:mx-auto tw:grid tw:w-full tw:max-w-6xl tw:items-center tw:gap-10 tw:md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="tw:mx-auto tw:grid tw:w-full tw:max-w-6xl tw:items-center tw:gap-5 tw:md:gap-10 tw:md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* The wheel. Perspective lives here rather than on the cards, so
               all four turn about the same axis instead of each about its
               own. */}
-          <div className="tw:flex tw:flex-col tw:items-center tw:gap-5">
+          <div className="tw:flex tw:flex-col tw:items-center tw:gap-3 tw:md:gap-5">
             {/* The cards are direct children of the element carrying the
                 perspective, and nothing here sets preserve-3d. Under
                 preserve-3d the browser paints by 3D position and ignores
                 z-index, so the tilted card behind came through the front
                 card's title. Flat, ordinary stacking applies and the card
                 facing front is the one on top. */}
-            <div className="tw:relative tw:h-[420px] tw:w-full" style={{ perspective: '1100px' }}>
+            {/* On a phone the wheel is cut to what the screen has room for
+                under the headline, and its top and bottom fade out, so the
+                cards before and after show as an edge going over rather than
+                as a card lying across the words above. */}
+            <div
+              className="tw:relative tw:h-[clamp(300px,calc(100svh-310px),380px)] tw:w-full tw:overflow-hidden tw:[mask-image:linear-gradient(to_bottom,transparent,#000_15%,#000_85%,transparent)] tw:md:h-[420px] tw:md:overflow-visible tw:md:[mask-image:none]"
+              style={{ perspective: '1100px' }}
+            >
               {CARDS.map((c, i) => <WheelCard key={c.key} t={t} index={i} card={c} front={i === at} />)}
             </div>
 
@@ -200,7 +207,11 @@ export default function InsightsWheel() {
             </div>
           </div>
 
-          <header className="tw:max-w-xl">
+          {/* Beside the wheel on a laptop. On a phone, above it: a column
+              read top down has to say what the charts are before it shows
+              them, or the first thing on the screen is a chart with no
+              question. */}
+          <header className="tw:order-first tw:mx-auto tw:max-w-xl tw:text-center tw:md:order-none tw:md:mx-0 tw:md:text-left">
             {/* The section names itself, and for a scroll it is the only
                 thing here. The other screens describe something the page
                 invented; this one is a tab in the app, and a reader who has
@@ -209,7 +220,7 @@ export default function InsightsWheel() {
                 rather than as a caption that lost its picture. */}
             <motion.p
               style={{ opacity: kickOpacity, x: kickX }}
-              className="tw:m-0 tw:mb-7 tw:text-[clamp(0.8rem,1.1vw,0.95rem)] tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid"
+              className="tw:m-0 tw:mb-3 tw:text-[clamp(0.8rem,1.1vw,0.95rem)] tw:md:mb-7 tw:font-bold tw:uppercase tw:tracking-[0.18em] tw:text-brand-mid"
             >
               Insights
             </motion.p>
@@ -221,7 +232,7 @@ export default function InsightsWheel() {
             </motion.h2>
             <motion.p
               style={{ opacity: subOpacity, y: subY }}
-              className="tw:mt-5 tw:mb-0 tw:text-[clamp(1rem,1.5vw,1.15rem)] tw:leading-relaxed tw:text-muted"
+              className="tw:mt-3 tw:mb-0 tw:text-[clamp(1rem,1.5vw,1.15rem)] tw:leading-relaxed tw:text-muted tw:text-balance tw:md:mt-5 tw:md:text-wrap"
             >
               {copy.sub}
             </motion.p>

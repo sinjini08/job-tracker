@@ -29,10 +29,14 @@ const POSTING = {
 
 const ROW = { role: POSTING.role, firm: POSTING.firm, when: 'Today', status: 'Applied' };
 
+// `phone` marks the two kept on a phone, where the sheet is cut to three rows
+// so the whole stage fits one screen: two already there, and the new one.
+// These two because they are two different colours of chip, and so still
+// read as a sheet with things happening in it.
 const EXISTING = [
-  { role: 'Data Science Intern', firm: 'Meridian Labs', when: '24 Sep', status: 'Screening' },
+  { role: 'Data Science Intern', firm: 'Meridian Labs', when: '24 Sep', status: 'Screening', phone: true },
   { role: 'Product Analyst', firm: 'Cobalt', when: '19 Sep', status: 'Applied' },
-  { role: 'ML Engineer Intern', firm: 'Halcyon', when: '15 Sep', status: 'Interviewing' },
+  { role: 'ML Engineer Intern', firm: 'Halcyon', when: '15 Sep', status: 'Interviewing', phone: true },
   { role: 'Backend Intern', firm: 'Ravenna', when: '11 Sep', status: 'Wishlist' },
   { role: 'Frontend Intern', firm: 'Lumen', when: '6 Sep', status: 'Offer' },
 ];
@@ -51,14 +55,19 @@ const CHIP = {
 // One template, shared by the header and every row. Separate grids with an
 // `auto` track size themselves to their own contents, which is why the dates
 // and chips used to sit at a different x on every line.
-const GRID = 'tw:grid tw:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)_52px_80px] tw:items-center tw:gap-2.5 tw:px-3';
+//
+// On a phone it is two columns, role and status. Four in a third of the
+// width truncated every role and every company to a few letters, which is a
+// sheet nobody can read; the company and the date are what goes.
+const GRID = 'tw:grid tw:grid-cols-[minmax(0,1fr)_84px] tw:md:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)_52px_80px] tw:items-center tw:gap-2.5 tw:px-3';
+const WIDE = 'tw:hidden tw:md:block';
 
 function Row({ row }) {
   return (
     <div className={`${GRID} tw:border-b tw:border-line tw:py-2.5`}>
       <span className="tw:truncate tw:text-[11px] tw:font-semibold tw:text-ink">{row.role}</span>
-      <span className="tw:truncate tw:text-[11px] tw:text-ink-2">{row.firm}</span>
-      <span className="tw:text-right tw:text-[10px] tw:text-muted">{row.when}</span>
+      <span className={`${WIDE} tw:truncate tw:text-[11px] tw:text-ink-2`}>{row.firm}</span>
+      <span className={`${WIDE} tw:text-right tw:text-[10px] tw:text-muted`}>{row.when}</span>
       <span className={`tw:justify-self-start tw:rounded-full tw:px-2 tw:py-0.5 tw:text-[9px] tw:font-semibold ${CHIP[row.status]}`}>
         {row.status}
       </span>
@@ -93,9 +102,13 @@ export default function ChatDemo({ step: driven }) {
   const step = driven ?? timed;
 
   return (
-    <div ref={ref} className="tw:grid tw:gap-4 tw:md:grid-cols-[1.05fr_1fr]">
+    <div ref={ref} className="tw:grid tw:gap-3 tw:md:gap-4 tw:md:grid-cols-[1.05fr_1fr]">
       <Frame label="Your assistant">
-        <div className="tw:flex tw:h-[clamp(276px,30vh,300px)] tw:flex-col tw:gap-2.5 tw:p-3.5">
+        {/* On a phone the chat is as tall as the screen leaves room for, and
+            no taller than the whole conversation. Its messages sit at the bottom,
+            as they do in any chat, so on a short screen it is the first one
+            that scrolls out of the top and the reply is always in view. */}
+        <div className="tw:flex tw:h-[clamp(150px,calc(100svh-500px),306px)] tw:flex-col tw:justify-end tw:gap-2.5 tw:overflow-hidden tw:p-3.5 tw:md:h-[clamp(276px,30vh,300px)] tw:md:justify-start">
           <AnimatePresence>
             {step >= 1 && (
               <motion.div
@@ -168,16 +181,20 @@ export default function ChatDemo({ step: driven }) {
       </Frame>
 
       <Frame label="myjobtracker.co">
-        <div className="tw:h-[clamp(276px,30vh,300px)] tw:overflow-hidden">
+        {/* Held at the height of three rows on a phone, so the new one
+            lands in room already kept for it and nothing above it moves. */}
+        <div className="tw:h-[146px] tw:overflow-hidden tw:md:h-[clamp(276px,30vh,300px)]">
           <div className={`${GRID} tw:border-b tw:border-line tw:bg-paper tw:py-2 tw:text-[9px] tw:font-semibold tw:uppercase tw:tracking-[0.06em] tw:text-muted`}>
-            <span>Role</span><span>Company</span><span className="tw:text-right">Applied</span><span>Status</span>
+            <span>Role</span><span className={WIDE}>Company</span><span className={`${WIDE} tw:text-right`}>Applied</span><span>Status</span>
           </div>
 
           {/* The rows already in the sheet. Real postings from the wall
               upstairs rather than grey bars: the section claims the row is
               filed, and a sheet of placeholders does not show that. */}
           {EXISTING.map((r) => (
-            <Row key={r.role + r.firm} row={r} />
+            <div key={r.role + r.firm} className={r.phone ? undefined : WIDE}>
+              <Row row={r} />
+            </div>
           ))}
 
           <AnimatePresence>
