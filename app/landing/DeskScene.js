@@ -1,10 +1,11 @@
 'use client';
 
 import { motion, useReducedMotion, useSpring, useTransform } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BoardWall from './BoardWall';
 import { byId } from './copy';
 import useOnScreen from './useOnScreen';
+import usePhone from './usePhone';
 import useSceneProgress from './useSceneProgress';
 
 // Sections one and two, as one camera move.
@@ -40,6 +41,35 @@ const ORIGIN = { x: 60.82, y: 54.37 };
 // Far enough that the hole clears every corner. The left edge reaches zero at
 // 3.65 and the top at 3.48, which are the two that hold out longest.
 const MAX = 3.7;
+
+// The frame the film stops on, as a still. Shown in the film's place when the
+// film will not play: phones refuse to autoplay video in low power mode, and
+// without it the opening was an empty screen with a headline on it.
+const STILL = '/brand/desk-frame.webp';
+
+// How long the film has to start before the still stands in for it.
+const STILL_AFTER = 3000;
+
+// On a phone the camera is a different move, because the laptop's does not
+// survive the trip. The artwork is laid out to cover the window, and on a
+// tall narrow screen that is 1,450px of picture with the middle 375px
+// showing: half a head and a monitor running off the edge. And the push
+// re-blurs a full-screen film on every frame while a window onto the moving
+// wall grows to twelve times its size, which a phone cannot draw at speed.
+//
+// So a phone sees the room whole, the width of the screen, and the push is
+// a zoom toward the monitor with the wall dissolving in over it: a scale and
+// two fades, no blur and no window. The film is at its own resolution by the
+// end of the zoom rather than three times past it, so it stays sharp too.
+//
+// PHONE_MAX is where the monitor's screen is most of the window's width
+// and a good part of its height, and the film is still near its own
+// resolution.
+const PHONE_MAX = 3.2;
+
+// The film's box. On a phone its top and bottom fade into the page, since
+// there it is a picture on the page rather than the whole window.
+const FILM = 'tw:absolute tw:inset-0 tw:h-full tw:w-full tw:object-cover tw:select-none tw:max-md:[mask-image:linear-gradient(to_bottom,transparent,#000_16%,#000_84%,transparent)]';
 
 // Long enough to read as a move rather than a jump, short enough that nobody
 // wonders whether the page has stopped working.
@@ -82,6 +112,8 @@ export default function DeskScene() {
   // damped past one so it never overshoots and rubber-bands the zoom.
   const scrollYProgress = useSpring(raw, { stiffness: 220, damping: 40, mass: 0.35, restDelta: 0.0005 });
   const film = useRef(null);
+  const phone = usePhone();
+  const [still, setStill] = useState(false);
 
   // Play the first few seconds, then hold on the frame the measurements were
   // taken from. Muted, because a landing page that makes a noise is a landing
@@ -103,10 +135,22 @@ export default function DeskScene() {
       const hold = () => { v.currentTime = FREEZE_AT; v.pause(); };
       v.readyState >= 1 ? hold() : v.addEventListener('loadedmetadata', hold, { once: true });
     } else {
-      v.play().catch(() => {
-        // Autoplay refused. The frame is still what matters, so hold it.
-        v.currentTime = FREEZE_AT;
-      });
+      // Autoplay refused, or the film never got going. The frame is still
+      // what matters, so put it up as a picture: a video that was never
+      // allowed to play has nothing of its own to show.
+      let started = false;
+      const fall = () => {
+        if (started) return;
+        v.pause();
+        setStill(true);
+      };
+      v.addEventListener('playing', () => { started = true; }, { once: true });
+      v.play().catch(fall);
+      const late = setTimeout(fall, STILL_AFTER);
+      return () => {
+        clearTimeout(late);
+        v.removeEventListener('timeupdate', stop);
+      };
     }
     return () => v.removeEventListener('timeupdate', stop);
   }, [reduced]);
@@ -146,6 +190,23 @@ export default function DeskScene() {
   const roomFade = useTransform(scrollYProgress, [at(32), at(72)], [1, 0]);
   const roomBlur = useTransform(scrollYProgress, [at(32), at(72)], ['blur(0px)', 'blur(7px)']);
 
+  // The phone's move, on the same beats. The zoom also slides the monitor to
+  // the middle of the screen, since on a phone it starts right of centre and
+  // a zoom about it on its own would carry it off the right edge. The wall
+  // comes in over the room while the monitor is filling the screen, so the
+  // screen is what turns into it.
+  // The zoom is quicker than the laptop's, so the monitor is already large
+  // when the wall starts to come through: a wall fading in over the whole
+  // room reads as a dissolve, over a screen it reads as the screen.
+  const phoneScale = useTransform(scrollYProgress, [at(16), at(66)], [1, PHONE_MAX]);
+  const phoneX = useTransform(scrollYProgress, [at(16), at(66)], ['0%', `${50 - ORIGIN.x}%`]);
+  const wallIn = useTransform(scrollYProgress, [at(44), at(72)], [0, 1]);
+
+  // One style for the film and for the still that stands in for it.
+  const filmStyle = phone
+    ? { scale: phoneScale, x: phoneX, opacity: roomFade, transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%` }
+    : { scale, opacity: roomFade, filter: roomBlur, transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%` };
+
   const headOne = useTransform(raw, [0, at(10), at(34)], [1, 1, 0]);
   const headOneY = useTransform(raw, [at(10), at(34)], [0, -28]);
   // The wall gets a beat to itself before this. That beat is the volume;
@@ -168,54 +229,67 @@ export default function DeskScene() {
         {/* The artwork box: the image's own proportions, sized to cover the
             window, centred. Everything else is a percentage of this, which is
             what keeps the hole on the bezel at any size. */}
+        {/* On a phone the box is the room from the person's chair to the
+            mug, the width of the screen, and sits under the headline rather
+            than behind it. The headline is placed from the same 57%, so the
+            two stay together on any phone. Both scale with the width, the
+            picture by its aspect and the headline by its vw size, so the gap
+            between the words and the top of the head is the same 16px on
+            all of them: 57svh is the picture's centre, and 40.5vw is half
+            its height less the empty wall above the head, plus two lines of
+            headline. */}
         <div
-          className="tw:absolute tw:left-1/2 tw:top-1/2 tw:-translate-x-1/2 tw:-translate-y-1/2"
+          className="tw:absolute tw:left-1/2 tw:top-[57%] tw:w-[128vw] tw:-translate-x-1/2 tw:-translate-y-1/2 tw:md:top-1/2 tw:md:w-[var(--art-w)]"
           style={{
             aspectRatio: `${ART.w} / ${ART.h}`,
-            width: `max(100vw, calc(100svh * ${ART.w / ART.h}))`,
+            '--art-w': `max(100vw, calc(100svh * ${ART.w / ART.h}))`,
           }}
         >
-          {/* The wall, full size and perfectly still, seen through the hole. */}
-          <motion.div
-            className="tw:absolute tw:overflow-hidden"
-            style={{
-              left: `${SCREEN.left}%`,
-              top: `${SCREEN.top}%`,
-              width: `${SCREEN.right - SCREEN.left}%`,
-              height: `${SCREEN.bottom - SCREEN.top}%`,
-              scale,
-              willChange: 'transform',
-            }}
-          >
-            {/* Counter-scaled, and laid out large enough that at 1/scale it
-                still covers the stage. Its layout size never changes, so the
-                wall's rendered size never changes either. */}
+          {/* The wall, full size and perfectly still, seen through the hole.
+              Laptops only, and only once that is known: it sits under the
+              film, so the opening frame is the same without it. */}
+          {phone === false && (
             <motion.div
-              className="tw:absolute tw:left-1/2 tw:top-1/2"
+              className="tw:absolute tw:overflow-hidden"
               style={{
-                width: `${(100 / (SCREEN.right - SCREEN.left)) * 100}%`,
-                height: `${(100 / (SCREEN.bottom - SCREEN.top)) * 100}%`,
-                // Not -50%. Centring this on the window would centre the
-                // wall on the screen, and the screen is not the middle of the
-                // picture: it sits at ORIGIN, right of and below centre. This
-                // shift is exactly that offset.
-                x: `-${ORIGIN.x}%`,
-                y: `-${ORIGIN.y}%`,
-                scale: counter,
-                // And the counter-scale has to turn about the same point the
-                // window turns about, or it undoes the size but not the
-                // position: a scale moves its children as well as resizing
-                // them, so the wall crept left as the window grew. Expressed
-                // in this element's own box, the window's centre is ORIGIN,
-                // because this element is exactly the size of the artwork.
-                transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%`,
+                left: `${SCREEN.left}%`,
+                top: `${SCREEN.top}%`,
+                width: `${SCREEN.right - SCREEN.left}%`,
+                height: `${SCREEN.bottom - SCREEN.top}%`,
+                scale,
                 willChange: 'transform',
               }}
             >
-              <div className="tw:absolute tw:inset-0 tw:bg-paper" />
-              <BoardWall fill />
+              {/* Counter-scaled, and laid out large enough that at 1/scale it
+                  still covers the stage. Its layout size never changes, so the
+                  wall's rendered size never changes either. */}
+              <motion.div
+                className="tw:absolute tw:left-1/2 tw:top-1/2"
+                style={{
+                  width: `${(100 / (SCREEN.right - SCREEN.left)) * 100}%`,
+                  height: `${(100 / (SCREEN.bottom - SCREEN.top)) * 100}%`,
+                  // Not -50%. Centring this on the window would centre the
+                  // wall on the screen, and the screen is not the middle of the
+                  // picture: it sits at ORIGIN, right of and below centre. This
+                  // shift is exactly that offset.
+                  x: `-${ORIGIN.x}%`,
+                  y: `-${ORIGIN.y}%`,
+                  scale: counter,
+                  // And the counter-scale has to turn about the same point the
+                  // window turns about, or it undoes the size but not the
+                  // position: a scale moves its children as well as resizing
+                  // them, so the wall crept left as the window grew. Expressed
+                  // in this element's own box, the window's centre is ORIGIN,
+                  // because this element is exactly the size of the artwork.
+                  transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%`,
+                  willChange: 'transform',
+                }}
+              >
+                <div className="tw:absolute tw:inset-0 tw:bg-paper" />
+                <BoardWall fill />
+              </motion.div>
             </motion.div>
-          </motion.div>
+          )}
 
           {/* The room, on top, growing and leaving. */}
           <motion.video
@@ -225,15 +299,19 @@ export default function DeskScene() {
             playsInline
             preload="auto"
             aria-hidden
-            className="tw:absolute tw:inset-0 tw:h-full tw:w-full tw:object-cover tw:select-none"
-            style={{
-              scale,
-              opacity: roomFade,
-              filter: roomBlur,
-              transformOrigin: `${ORIGIN.x}% ${ORIGIN.y}%`,
-            }}
+            className={FILM}
+            style={filmStyle}
           />
+          {still && <motion.img src={STILL} alt="" aria-hidden className={FILM} style={filmStyle} />}
         </div>
+
+        {/* The phone's wall: the whole window, fading in over the room as
+            the zoom reaches the monitor. */}
+        {phone && (
+          <motion.div aria-hidden style={{ opacity: wallIn }} className="tw:absolute tw:inset-0 tw:bg-paper">
+            <BoardWall fill phone />
+          </motion.div>
+        )}
 
         {/* Ground for the second headline.
             A band at the foot of the screen, full width, fading up into the
@@ -264,7 +342,7 @@ export default function DeskScene() {
             of screen to itself before any words land on it. */}
         <motion.header
           style={{ opacity: headOne, y: headOneY }}
-          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[12svh] tw:px-6 tw:text-center"
+          className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:top-[calc(57svh-40.5vw-16px)] tw:px-6 tw:text-center tw:md:top-[12svh]"
         >
           <motion.div
             initial={reduced ? false : { opacity: 0, y: 16 }}
@@ -293,7 +371,8 @@ export default function DeskScene() {
 // It reads at 10.4:1 against the room's wall, well past what it needs.
 //
 // `big` is the opening one: it carries the screen on its own, so it sets as
-// large as it can while staying on one line. The nowrap is md and up only.
+// large as it can while staying on one line. On a phone it shares the screen
+// with the room under it and sets on two lines, as large as those allow. The nowrap is md and up only.
 // Below that, 5.6vw of a phone is not enough for thirty characters and it has
 // to be allowed to wrap rather than run off the side.
 //
@@ -307,7 +386,7 @@ function Head({ head, sub, split = false, big = false }) {
   // by the order Tailwind emits them, not the order they are written: a
   // text-ink on the base quietly beat the hair colour set here.
   const size = big
-    ? 'tw:text-[clamp(1.75rem,5vw,4.4rem)] tw:font-extrabold tw:text-[#3f342f] tw:md:whitespace-nowrap'
+    ? 'tw:text-[clamp(2.1rem,9.6vw,2.6rem)] tw:md:text-[clamp(1.75rem,5vw,4.4rem)] tw:font-extrabold tw:text-[#3f342f] tw:md:whitespace-nowrap'
     : split
       ? 'tw:text-[clamp(1.6rem,2.6vw,2.3rem)] tw:font-bold tw:text-ink tw:text-balance'
       : lines.length > 1

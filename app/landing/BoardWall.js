@@ -47,14 +47,25 @@ const COLUMNS = [
 // sees the seam.
 const PER_COLUMN = 12;
 
+// On a phone the wall is three of the six columns, drawn at a little over
+// half size. At full size a phone shows one and a half cards, which reads as
+// a card rather than as a pile; at this size it is three columns of them,
+// running past the edges, and half the DOM of the full wall.
+//
+// The columns are laid out tall enough that, once scaled, they still cover
+// the window: 130vh drawn at 0.62 would be a band across the middle.
+const PHONE_SCALE = 0.62;
+const PHONE_COLUMNS = COLUMNS.slice(0, 3);
+
 // Twelve postings, starting at `from` and stepping by `step`, wrapping round.
 const walk = (arr, from, step, n) =>
   Array.from({ length: n }, (_, i) => arr[(from + i * step) % arr.length]);
 
 // `fill` is for the camera scene, where the wall is revealed through a hole
 // that grows to the whole window: at its own height it would open onto a band
-// of cards with paper above and below.
-export default function BoardWall({ fill = false }) {
+// of cards with paper above and below. `phone` is the smaller wall above.
+export default function BoardWall({ fill = false, phone = false }) {
+  const columns = phone ? PHONE_COLUMNS : COLUMNS;
   return (
     <div
       className={`tw:relative tw:w-full tw:overflow-hidden ${fill ? 'tw:absolute tw:inset-0 tw:h-full' : 'tw:h-[clamp(360px,54vh,520px)]'}`}
@@ -62,12 +73,16 @@ export default function BoardWall({ fill = false }) {
     >
       <div
         className="tw:absolute tw:left-1/2 tw:top-1/2 tw:flex tw:gap-3"
-        style={{ transform: 'translate(-50%, -50%)' }}
+        style={{ transform: phone ? `translate(-50%, -50%) scale(${PHONE_SCALE})` : 'translate(-50%, -50%)' }}
       >
-        {COLUMNS.map((col) => {
+        {columns.map((col) => {
           const list = walk(POSTINGS, col.from, col.step, PER_COLUMN);
           return (
-            <div key={`${col.from}-${col.step}`} className="tw:h-[130vh] tw:overflow-hidden">
+            <div
+              key={`${col.from}-${col.step}`}
+              className={phone ? 'tw:overflow-hidden' : 'tw:h-[130vh] tw:overflow-hidden'}
+              style={phone ? { height: `${Math.ceil(130 / PHONE_SCALE)}vh` } : undefined}
+            >
               <div className={`l-col ${col.rev ? 'rev' : ''}`} style={{ '--l-dur': col.dur }}>
                 {/* Twice, so the loop has somewhere to land. */}
                 {[0, 1].map((copy) =>
